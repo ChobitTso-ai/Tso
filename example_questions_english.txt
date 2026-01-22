@@ -1,0 +1,25 @@
+What is the capital of Taiwan?|Taipei
+How many days are there in a week?|7
+What color is the sky?|blue
+How do you spell "貓" in English?|cat
+How do you spell "狗" in English?|dog
+What is 1+1 in English?|two
+What is the opposite of "hot"?|cold
+What is the opposite of "big"?|small
+What is the opposite of "happy"|sad
+Complete: Good _____!|morning
+Complete: Thank ___!|you
+Complete: I ___ you.|love
+What comes after Monday?|Tuesday
+What comes before Sunday?|Saturday
+How many letters are in "HELLO"?|5
+What is the first letter of the alphabet?|A
+What is the last letter of the alphabet?|Z
+Translate "謝謝" to English|Thank you
+Translate "再見" to English|Goodbye
+What animal says "meow"?|cat
+What animal says "woof"?|dog
+What fruit is red and round?|apple
+What color is a banana?|yellow
+How many fingers do you have on one hand?|5
+What do we use to write?|pen
