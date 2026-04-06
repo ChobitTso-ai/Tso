@@ -11,12 +11,28 @@ import json
 import random
 import os
 from datetime import datetime
+from pathlib import Path
 
 class GameSave:
     """遊戲存檔類別"""
     def __init__(self, slot_id):
         self.slot_id = slot_id
-        self.save_file = f"save_slot_{slot_id}.json"
+
+        # 取得 Documents 資料夾路徑
+        if os.name == 'nt':  # Windows
+            documents_path = Path.home() / "Documents"
+        else:  # Mac/Linux
+            documents_path = Path.home() / "Documents"
+
+        # 建立遊戲資料夾
+        game_folder = documents_path / "Minecraft quiz game"
+        save_folder = game_folder / "saves"
+
+        # 確保資料夾存在
+        save_folder.mkdir(parents=True, exist_ok=True)
+
+        # 設定存檔路徑
+        self.save_file = str(save_folder / f"save_slot_{slot_id}.json")
 
     def save(self, game_data):
         """儲存遊戲資料"""
