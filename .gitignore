@@ -23,6 +23,8 @@ wheels/
 # 測驗遊戲產生的檔案
 questions.json
 save_slot_*.json
+*_backup.py
+*_v3.py
 
 # Virtual Environment
 venv/
