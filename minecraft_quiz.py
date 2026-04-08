@@ -586,12 +586,19 @@ class MinecraftQuizGame:
         self.answer_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.answer_entry.bind('<Return>', lambda e: self.submit_answer())
 
-        self.create_button(
+        self.submit_btn = self.create_button(
             answer_frame,
             "✅ 提交答案",
             self.submit_answer,
             self.colors['grass']
-        ).pack(side=tk.LEFT, padx=5)
+        )
+        self.submit_btn.pack(side=tk.LEFT, padx=5)
+
+        # 選擇題選項區域（初始隱藏）
+        self.choice_frame = tk.Frame(game_frame, bg=self.colors['btn_bg'])
+        self.choice_frame.pack(pady=10, padx=10, fill=tk.X)
+        self.choice_buttons = []
+        self.selected_choice = None
 
         # 下一題按鈕
         self.create_button(
@@ -794,16 +801,96 @@ class MinecraftQuizGame:
         ).pack(side=tk.LEFT, padx=5)
 
     def parse_questions_with_rules(self, content):
-        """使用規則解析題目"""
+        """使用規則解析題目（支援選擇題和填空題）"""
         import re
 
         questions = []
         lines = content.split('\n')
+        i = 0
 
-        for line in lines:
-            line = line.strip()
+        while i < len(lines):
+            line = lines[i].strip()
+
             if not line:
+                i += 1
                 continue
+
+            # === 選擇題檢測（多行格式） ===
+            # 偵測問題行，然後檢查後續是否有 A. B. C. D. 格式的選項
+            question_match = re.match(r'^(?:\d+[\.)、]\s*)?(.+[？?])?\s*(.+)', line)
+            if question_match and i + 1 < len(lines):
+                # 嘗試收集選項
+                options = []
+                option_labels = []
+                j = i + 1
+
+                # 檢查接下來的行是否是選項（A. B. C. D. 或 (A) (B) (C) (D)）
+                while j < len(lines):
+                    opt_line = lines[j].strip()
+                    if not opt_line:
+                        j += 1
+                        continue
+
+                    # 匹配 A. 選項 或 (A) 選項 或 A) 選項
+                    opt_match = re.match(r'^([A-Za-z0-9])[\.)、]\s*(.+)', opt_line)
+                    if not opt_match:
+                        opt_match = re.match(r'^\(([A-Za-z0-9])\)\s*(.+)', opt_line)
+                    if not opt_match:
+                        opt_match = re.match(r'^([A-Za-z0-9])\)\s*(.+)', opt_line)
+
+                    if opt_match:
+                        label = opt_match.group(1).upper()
+                        option_text = opt_match.group(2).strip()
+                        option_labels.append(label)
+                        options.append(option_text)
+                        j += 1
+                    else:
+                        break
+
+                # 如果找到至少 2 個選項，這是選擇題
+                if len(options) >= 2:
+                    # 繼續找答案
+                    answer = None
+                    while j < len(lines):
+                        ans_line = lines[j].strip()
+                        if not ans_line:
+                            j += 1
+                            continue
+
+                        # 匹配答案格式：答：A 或 答案：A
+                        ans_match = re.search(r'(?:答案?|answer)[:：]\s*([A-Za-z0-9])', ans_line, re.IGNORECASE)
+                        if ans_match:
+                            answer = ans_match.group(1).upper()
+                            j += 1
+                            break
+                        j += 1
+                        if j - i > 10:  # 避免無限循環
+                            break
+
+                    if answer and answer in option_labels:
+                        # 提取問題文字
+                        q_text = line
+                        # 清理題號
+                        q_text = re.sub(r'^\d+[\.)、]\s*', '', q_text)
+
+                        questions.append({
+                            'type': 'choice',
+                            'question': q_text,
+                            'options': options,
+                            'labels': option_labels,
+                            'answer': answer
+                        })
+                        i = j
+                        continue
+
+            # === 單行選擇題格式 ===
+            # 問題？ (A)選項1 (B)選項2 (C)選項3 答：A
+            single_choice_match = re.search(r'(.+?)\s+(?:\(([A-Z])\)\s*([^(]+?)\s*)+(?:答案?[:：]\s*([A-Z]))', line, re.IGNORECASE)
+            if single_choice_match:
+                # 這個格式比較複雜，先跳過，使用下面的簡單格式
+                pass
+
+            # === 填空題格式 ===
 
             # 格式 1: 問題|答案
             if '|' in line:
@@ -811,7 +898,10 @@ class MinecraftQuizGame:
                 if len(parts) >= 2:
                     q = parts[0].strip()
                     a = parts[1].strip()
-                    questions.append({'question': q, 'answer': a})
+                    # 清理題號
+                    q = re.sub(r'^\d+[\.)、]\s*', '', q)
+                    questions.append({'type': 'text', 'question': q, 'answer': a})
+                    i += 1
                     continue
 
             # 格式 2: 問題 答案：XXX 或 答：XXX
@@ -821,7 +911,8 @@ class MinecraftQuizGame:
                 a = match.group(2).strip()
                 # 清理題號
                 q = re.sub(r'^\d+[\.)、]\s*', '', q)
-                questions.append({'question': q, 'answer': a})
+                questions.append({'type': 'text', 'question': q, 'answer': a})
+                i += 1
                 continue
 
             # 格式 3: 問：XXX 答：XXX
@@ -829,7 +920,8 @@ class MinecraftQuizGame:
             if match:
                 q = match.group(1).strip()
                 a = match.group(2).strip()
-                questions.append({'question': q, 'answer': a})
+                questions.append({'type': 'text', 'question': q, 'answer': a})
+                i += 1
                 continue
 
             # 格式 4: 題目 (答案)
@@ -839,8 +931,11 @@ class MinecraftQuizGame:
                 a = match.group(2).strip()
                 # 清理題號
                 q = re.sub(r'^\d+[\.)、]\s*', '', q)
-                questions.append({'question': q, 'answer': a})
+                questions.append({'type': 'text', 'question': q, 'answer': a})
+                i += 1
                 continue
+
+            i += 1
 
         return questions
 
@@ -937,6 +1032,66 @@ class MinecraftQuizGame:
         except ValueError:
             messagebox.showerror("錯誤", "請輸入有效的數字！")
 
+    def show_choice_options(self, options, labels):
+        """顯示選擇題選項"""
+        # 清空之前的選項
+        for widget in self.choice_frame.winfo_children():
+            widget.destroy()
+        self.choice_buttons = []
+        self.selected_choice = None
+
+        # 顯示選項容器
+        self.choice_frame.pack(pady=10, padx=10, fill=tk.X)
+
+        # 隱藏文字輸入
+        self.answer_entry.pack_forget()
+        self.submit_btn.pack_forget()
+
+        # 創建選項按鈕
+        for i, (label, option) in enumerate(zip(labels, options)):
+            btn_frame = tk.Frame(self.choice_frame, bg=self.colors['btn_bg'])
+            btn_frame.pack(pady=5, fill=tk.X)
+
+            def make_choice_handler(lbl):
+                def handler():
+                    self.selected_choice = lbl
+                    # 更新按鈕樣式
+                    for btn, btn_label in self.choice_buttons:
+                        if btn_label == lbl:
+                            btn.config(bg=self.colors['grass'], relief=tk.SUNKEN)
+                        else:
+                            btn.config(bg=self.colors['stone'], relief=tk.RAISED)
+                    # 自動提交答案
+                    self.root.after(300, self.submit_answer)
+                return handler
+
+            btn = tk.Button(
+                btn_frame,
+                text=f"{label}. {option}",
+                command=make_choice_handler(label),
+                font=("Arial", 12, "bold"),
+                bg=self.colors['stone'],
+                fg=self.colors['text'],
+                activebackground=self.colors['grass'],
+                relief=tk.RAISED,
+                bd=3,
+                cursor="hand2",
+                anchor="w",
+                padx=15,
+                pady=10
+            )
+            btn.pack(fill=tk.X)
+            self.choice_buttons.append((btn, label))
+
+    def hide_choice_options(self):
+        """隱藏選擇題選項，顯示文字輸入"""
+        # 隱藏選項容器
+        self.choice_frame.pack_forget()
+
+        # 顯示文字輸入
+        self.answer_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True, in_=self.answer_entry.master)
+        self.submit_btn.pack(side=tk.LEFT, padx=5, in_=self.submit_btn.master)
+
     def next_question(self):
         """下一題"""
         if not self.questions or self.question_range == (0, 0):
@@ -961,17 +1116,34 @@ class MinecraftQuizGame:
         if self.double_coins_remaining > 0:
             bonus_text = f"\n🌟 雙倍金幣效果中！（剩餘 {self.double_coins_remaining} 題）"
 
-        question_text = f"""
+        # 檢查題目類型
+        question_type = current_q.get('type', 'text')
+
+        if question_type == 'choice':
+            # 選擇題
+            question_text = f"""
+📝 題目 #{self.current_question_index + 1} (選擇題)
+
+{current_q['question']}{bonus_text}
+
+請點擊下方選項：
+            """
+            self.update_question_display(question_text)
+            self.show_choice_options(current_q['options'], current_q['labels'])
+
+        else:
+            # 填空題
+            question_text = f"""
 📝 題目 #{self.current_question_index + 1}
 
 {current_q['question']}{bonus_text}
 
 請在下方輸入你的答案：
-        """
-
-        self.update_question_display(question_text)
-        self.answer_entry.delete(0, tk.END)
-        self.answer_entry.focus()
+            """
+            self.update_question_display(question_text)
+            self.hide_choice_options()
+            self.answer_entry.delete(0, tk.END)
+            self.answer_entry.focus()
 
     def submit_answer(self):
         """提交答案"""
@@ -979,16 +1151,46 @@ class MinecraftQuizGame:
             messagebox.showwarning("提示", "請先開始測驗！")
             return
 
-        user_answer = self.answer_entry.get().strip()
-        if not user_answer:
-            messagebox.showwarning("提示", "請輸入答案！")
-            return
+        current_q = self.questions[self.current_question_index]
+        question_type = current_q.get('type', 'text')
 
-        correct_answer = self.questions[self.current_question_index]['answer']
+        # 取得使用者答案
+        if question_type == 'choice':
+            user_answer = self.selected_choice
+            if not user_answer:
+                messagebox.showwarning("提示", "請選擇一個選項！")
+                return
+        else:
+            user_answer = self.answer_entry.get().strip()
+            if not user_answer:
+                messagebox.showwarning("提示", "請輸入答案！")
+                return
+
+        correct_answer = current_q['answer']
 
         self.total_answered += 1
 
-        if user_answer.lower() == correct_answer.lower():
+        # 判斷答案是否正確
+        is_correct = False
+        if question_type == 'choice':
+            # 選擇題：比較標籤（A/B/C/D）
+            is_correct = user_answer.upper() == correct_answer.upper()
+            # 取得選項文字顯示
+            try:
+                answer_index = current_q['labels'].index(correct_answer.upper())
+                correct_option_text = current_q['options'][answer_index]
+                user_index = current_q['labels'].index(user_answer.upper())
+                user_option_text = current_q['options'][user_index]
+            except:
+                correct_option_text = correct_answer
+                user_option_text = user_answer
+        else:
+            # 填空題：不區分大小寫比較
+            is_correct = user_answer.lower() == correct_answer.lower()
+            correct_option_text = correct_answer
+            user_option_text = user_answer
+
+        if is_correct:
             # 答對
             self.score += 1
 
@@ -1000,7 +1202,18 @@ class MinecraftQuizGame:
 
             self.coins += coin_reward
 
-            result_text = f"""
+            if question_type == 'choice':
+                result_text = f"""
+✅ 答對了！
+
+你的選擇：{user_answer}. {user_option_text}
+正確答案：{correct_answer}. {correct_option_text}
+
+💰 獲得 {coin_reward} 金幣！
+太棒了！繼續加油！ 💎
+                """
+            else:
+                result_text = f"""
 ✅ 答對了！
 
 你的答案：{user_answer}
@@ -1008,13 +1221,24 @@ class MinecraftQuizGame:
 
 💰 獲得 {coin_reward} 金幣！
 太棒了！繼續加油！ 💎
-            """
+                """
             messagebox.showinfo("正確", f"答對了！🎉\n獲得 {coin_reward} 金幣！")
         else:
             # 答錯
             self.health -= 1
 
-            result_text = f"""
+            if question_type == 'choice':
+                result_text = f"""
+❌ 答錯了！
+
+你的選擇：{user_answer}. {user_option_text}
+正確答案：{correct_answer}. {correct_option_text}
+
+💔 扣除 1 體力（剩餘 {self.health}/{self.max_health}）
+沒關係，下次會更好！ ⛏️
+                """
+            else:
+                result_text = f"""
 ❌ 答錯了！
 
 你的答案：{user_answer}
@@ -1022,13 +1246,14 @@ class MinecraftQuizGame:
 
 💔 扣除 1 體力（剩餘 {self.health}/{self.max_health}）
 沒關係，下次會更好！ ⛏️
-            """
+                """
             messagebox.showwarning("錯誤", f"答錯了！\n正確答案是：{correct_answer}\n\n體力 -1")
 
         self.update_question_display(result_text)
         self.update_ui()
         self.save_game_data()
         self.answer_entry.delete(0, tk.END)
+        self.selected_choice = None
 
         # 檢查是否體力耗盡
         if self.health <= 0:
