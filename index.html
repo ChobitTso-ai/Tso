@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub 新手學習平台</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- 導覽列 -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="git-icon">⎇</span> GitHub 新手學習
+    </div>
+    <div class="nav-progress">
+      <span id="progress-text">進度：0 / 6 完成</span>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </nav>
+
+  <!-- 英雄區 -->
+  <header class="hero">
+    <h1>從零開始學 Git & GitHub</h1>
+    <p>專為新手設計的互動學習平台，一步一步帶你掌握版本控制</p>
+    <a href="#lessons" class="btn-start">開始學習</a>
+  </header>
+
+  <!-- 課程清單 -->
+  <section id="lessons" class="lessons-section">
+    <h2>學習路線</h2>
+    <div class="lessons-grid" id="lessons-grid">
+
+      <div class="lesson-card" data-lesson="1" onclick="openLesson(1)">
+        <div class="lesson-number">01</div>
+        <div class="lesson-icon">🌐</div>
+        <h3>什麼是 Git 與 GitHub？</h3>
+        <p>了解版本控制的概念，以及 Git 和 GitHub 的差別</p>
+        <div class="lesson-status" id="status-1">未開始</div>
+      </div>
+
+      <div class="lesson-card" data-lesson="2" onclick="openLesson(2)">
+        <div class="lesson-number">02</div>
+        <div class="lesson-icon">⚙️</div>
+        <h3>安裝與設定 Git</h3>
+        <p>下載並設定 Git，讓電腦準備好進行版本控制</p>
+        <div class="lesson-status" id="status-2">未開始</div>
+      </div>
+
+      <div class="lesson-card" data-lesson="3" onclick="openLesson(3)">
+        <div class="lesson-number">03</div>
+        <div class="lesson-icon">📁</div>
+        <h3>第一個 Commit</h3>
+        <p>學習 git init、git add、git commit 的基本操作</p>
+        <div class="lesson-status" id="status-3">未開始</div>
+      </div>
+
+      <div class="lesson-card" data-lesson="4" onclick="openLesson(4)">
+        <div class="lesson-number">04</div>
+        <div class="lesson-icon">☁️</div>
+        <h3>推送到 GitHub</h3>
+        <p>建立遠端倉庫，把本地程式碼推送到 GitHub</p>
+        <div class="lesson-status" id="status-4">未開始</div>
+      </div>
+
+      <div class="lesson-card" data-lesson="5" onclick="openLesson(5)">
+        <div class="lesson-number">05</div>
+        <div class="lesson-icon">🌿</div>
+        <h3>分支（Branch）</h3>
+        <p>學會建立分支，安全地開發新功能</p>
+        <div class="lesson-status" id="status-5">未開始</div>
+      </div>
+
+      <div class="lesson-card" data-lesson="6" onclick="openLesson(6)">
+        <div class="lesson-number">06</div>
+        <div class="lesson-icon">🔀</div>
+        <h3>Pull Request</h3>
+        <p>了解如何發起 PR，和他人協作開發</p>
+        <div class="lesson-status" id="status-6">未開始</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 模態視窗：課程內容 -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeLesson(event)">
+    <div class="modal" id="modal">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div id="modal-content"></div>
+      <div class="modal-footer">
+        <button class="btn-complete" onclick="completeLesson()">✅ 標記為完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頁尾 -->
+  <footer class="footer">
+    <p>GitHub 新手學習平台 · 用 Claude Code 建立</p>
+  </footer>
+
+  <script src="js/lessons.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
