@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛏️ Minecraft 測驗遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Minecraft', Arial, sans-serif;
+            background: #2C2C2C;
+            color: #FFFFFF;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 標題區 */
+        .header {
+            background: linear-gradient(135deg, #5FAD41 0%, #4A8B35 100%);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* 狀態列 */
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: #7F7F7F;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            border: 3px solid #4A4A4A;
+        }
+
+        .stat-box.coins {
+            background: #FFD700;
+            color: #2C2C2C;
+        }
+
+        .stat-box.health {
+            background: #FF5555;
+        }
+
+        .stat-box.score {
+            background: #5DADE2;
+            color: #2C2C2C;
+        }
+
+        .stat-label {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        /* 主遊戲區 */
+        .game-area {
+            background: #4A4A4A;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .welcome-screen, .question-screen {
+            text-align: center;
+        }
+
+        .welcome-screen h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen p {
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        /* 題目顯示 */
+        .question-text {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #2C2C2C;
+            border-radius: 8px;
+            border-left: 5px solid #5FAD41;
+        }
+
+        /* 選項按鈕 */
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: #7F7F7F;
+            color: white;
+            border: 3px solid #4A4A4A;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .option-btn:hover {
+            background: #6A6A6A;
+            transform: translateX(10px);
+        }
+
+        .option-btn.selected {
+            background: #5FAD41;
+            border-color: #4A8B35;
+        }
+
+        .option-btn.correct {
+            background: #4CAF50;
+            border-color: #2E7D32;
+        }
+
+        .option-btn.wrong {
+            background: #F44336;
+            border-color: #C62828;
+        }
+
+        /* 文字輸入 */
+        .text-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 3px solid #7F7F7F;
+            border-radius: 8px;
+            background: #2C2C2C;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        /* 按鈕 */
+        .btn {
+            background: #5DADE2;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover {
+            background: #4A9CD1;
+            transform: translateY(-2px);
+        }
+
+        .btn.primary {
+            background: #5FAD41;
+        }
+
+        .btn.primary:hover {
+            background: #4A8B35;
+        }
+
+        .btn.secondary {
+            background: #8B6F47;
+        }
+
+        .btn.danger {
+            background: #DC143C;
+        }
+
+        /* 控制面板 */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .controls .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        /* 題庫管理 */
+        .question-manager {
+            background: #7F7F7F;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .question-manager h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 3px solid #4A4A4A;
+            border-radius: 8px;
+            background: #2C2C2C;
+            color: white;
+            font-family: monospace;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 回饋訊息 */
+        .feedback {
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .feedback.correct {
+            background: #4CAF50;
+        }
+
+        .feedback.wrong {
+            background: #F44336;
+        }
+
+        /* 商店 */
+        .shop {
+            background: #7F7F7F;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .shop-item {
+            background: #4A4A4A;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shop-item-info h4 {
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .status-bar {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 標題 -->
+        <div class="header">
+            <h1>⛏️ Minecraft 測驗遊戲 ⛏️</h1>
+            <p>學習即挖礦，知識即財富！</p>
+        </div>
+
+        <!-- 狀態列 -->
+        <div class="status-bar">
+            <div class="stat-box coins">
+                <div class="stat-label">💰 金幣</div>
+                <div class="stat-value" id="coins">0</div>
+            </div>
+            <div class="stat-box health">
+                <div class="stat-label">❤️ 體力</div>
+                <div class="stat-value" id="health">100/100</div>
+            </div>
+            <div class="stat-box score">
+                <div class="stat-label">💎 分數</div>
+                <div class="stat-value" id="score">0/0</div>
+            </div>
+        </div>
+
+        <!-- 主遊戲區 -->
+        <div class="game-area" id="gameArea">
+            <!-- 歡迎畫面 -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <h2>🎮 歡迎來到 Minecraft 測驗遊戲！</h2>
+                <p>📚 點擊下方按鈕開始你的學習冒險</p>
+                <p>💡 答對題目獲得金幣，答錯扣除體力</p>
+                <p>🏪 使用金幣在商店購買道具幫助通關</p>
+            </div>
+
+            <!-- 題目畫面 -->
+            <div class="question-screen hidden" id="questionScreen">
+                <div class="question-text" id="questionText"></div>
+
+                <!-- 選擇題選項 -->
+                <div class="options hidden" id="optionsContainer"></div>
+
+                <!-- 填空題輸入 -->
+                <div class="text-answer hidden" id="textAnswerContainer">
+                    <input type="text" class="text-input" id="answerInput" placeholder="輸入你的答案...">
+                </div>
+
+                <div class="feedback hidden" id="feedback"></div>
+            </div>
+        </div>
+
+        <!-- 控制按鈕 -->
+        <div class="controls">
+            <button class="btn primary" onclick="startQuiz()">🎯 開始測驗</button>
+            <button class="btn" onclick="showQuestionManager()">✏️ 輸入題目</button>
+            <button class="btn secondary" onclick="showShop()">🏪 商店</button>
+            <button class="btn" onclick="nextQuestion()">➡️ 下一題</button>
+        </div>
+
+        <!-- 題目管理器（初始隱藏） -->
+        <div class="question-manager hidden" id="questionManager">
+            <h3>📝 輸入題目</h3>
+            <p>格式範例：</p>
+            <pre style="background: #2C2C2C; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+選擇題：
+問題？
+A. 選項1
+B. 選項2
+C. 選項3
+D. 選項4
+答：A
+
+填空題：
+問題？|答案
+            </pre>
+            <textarea id="questionInput" placeholder="在這裡貼上或輸入題目..."></textarea>
+            <button class="btn primary" onclick="loadQuestions()">💾 載入題目</button>
+            <button class="btn" onclick="hideQuestionManager()">❌ 關閉</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態
+        let gameState = {
+            coins: 0,
+            health: 100,
+            maxHealth: 100,
+            score: 0,
+            totalAnswered: 0,
+            questions: [],
+            currentQuestionIndex: -1,
+            inventory: {
+                healthPotion: 0,
+                skipTicket: 0
+            }
+        };
+
+        // 載入遊戲狀態
+        function loadGameState() {
+            const saved = localStorage.getItem('minecraftQuizGame');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                updateUI();
+            }
+        }
+
+        // 儲存遊戲狀態
+        function saveGameState() {
+            localStorage.setItem('minecraftQuizGame', JSON.stringify(gameState));
+        }
+
+        // 更新 UI
+        function updateUI() {
+            document.getElementById('coins').textContent = gameState.coins;
+            document.getElementById('health').textContent = `${gameState.health}/${gameState.maxHealth}`;
+            document.getElementById('score').textContent = `${gameState.score}/${gameState.totalAnswered}`;
+        }
+
+        // 解析題目
+        function parseQuestions(text) {
+            const questions = [];
+            const lines = text.split('\n');
+            let i = 0;
+
+            while (i < lines.length) {
+                let line = lines[i].trim();
+
+                if (!line) {
+                    i++;
+                    continue;
+                }
+
+                // 檢查是否是選擇題（多行格式）
+                if (i + 1 < lines.length) {
+                    const nextLines = [];
+                    let j = i + 1;
+
+                    // 收集可能的選項
+                    while (j < lines.length && j < i + 10) {
+                        const optLine = lines[j].trim();
+                        if (/^[A-D][\.)、]\s*.+/.test(optLine)) {
+                            nextLines.push(optLine);
+                            j++;
+                        } else if (optLine === '') {
+                            j++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // 如果找到選項，這是選擇題
+                    if (nextLines.length >= 2) {
+                        const options = [];
+                        const labels = [];
+
+                        nextLines.forEach(opt => {
+                            const match = opt.match(/^([A-D])[\.)、]\s*(.+)/);
+                            if (match) {
+                                labels.push(match[1]);
+                                options.push(match[2]);
+                            }
+                        });
+
+                        // 找答案
+                        let answer = null;
+                        while (j < lines.length && j < i + 15) {
+                            const ansLine = lines[j].trim();
+                            const ansMatch = ansLine.match(/答[案]?[:：]\s*([A-D])/i);
+                            if (ansMatch) {
+                                answer = ansMatch[1].toUpperCase();
+                                j++;
+                                break;
+                            }
+                            j++;
+                        }
+
+                        if (answer && labels.includes(answer)) {
+                            questions.push({
+                                type: 'choice',
+                                question: line,
+                                options: options,
+                                labels: labels,
+                                answer: answer
+                            });
+                            i = j;
+                            continue;
+                        }
+                    }
+                }
+
+                // 填空題格式：問題|答案
+                if (line.includes('|')) {
+                    const parts = line.split('|');
+                    if (parts.length >= 2) {
+                        questions.push({
+                            type: 'text',
+                            question: parts[0].trim(),
+                            answer: parts[1].trim()
+                        });
+                        i++;
+                        continue;
+                    }
+                }
+
+                i++;
+            }
+
+            return questions;
+        }
+
+        // 載入題目
+        function loadQuestions() {
+            const input = document.getElementById('questionInput').value;
+            const newQuestions = parseQuestions(input);
+
+            if (newQuestions.length > 0) {
+                gameState.questions = gameState.questions.concat(newQuestions);
+                saveGameState();
+                alert(`成功載入 ${newQuestions.length} 題！\n目前題庫共有 ${gameState.questions.length} 題。`);
+                document.getElementById('questionInput').value = '';
+                hideQuestionManager();
+            } else {
+                alert('沒有找到有效的題目！\n請確認格式正確。');
+            }
+        }
+
+        // 顯示/隱藏題目管理器
+        function showQuestionManager() {
+            document.getElementById('questionManager').classList.remove('hidden');
+        }
+
+        function hideQuestionManager() {
+            document.getElementById('questionManager').classList.add('hidden');
+        }
+
+        // 開始測驗
+        function startQuiz() {
+            if (gameState.questions.length === 0) {
+                alert('請先輸入題目！');
+                showQuestionManager();
+                return;
+            }
+
+            if (gameState.health <= 0) {
+                alert('體力已耗盡！請使用生命藥水恢復體力。');
+                return;
+            }
+
+            nextQuestion();
+        }
+
+        // 下一題
+        function nextQuestion() {
+            if (gameState.questions.length === 0) {
+                alert('請先輸入題目！');
+                return;
+            }
+
+            if (gameState.health <= 0) {
+                gameOver();
+                return;
+            }
+
+            // 隨機選題
+            gameState.currentQuestionIndex = Math.floor(Math.random() * gameState.questions.length);
+            const question = gameState.questions[gameState.currentQuestionIndex];
+
+            // 隱藏歡迎畫面，顯示題目
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('questionScreen').classList.remove('hidden');
+            document.getElementById('feedback').classList.add('hidden');
+
+            // 顯示題目
+            const questionType = question.type === 'choice' ? '(選擇題)' : '';
+            document.getElementById('questionText').textContent =
+                `📝 題目 #${gameState.currentQuestionIndex + 1} ${questionType}\n\n${question.question}`;
+
+            // 根據題型顯示不同的輸入方式
+            if (question.type === 'choice') {
+                showChoiceOptions(question);
+            } else {
+                showTextInput();
+            }
+        }
+
+        // 顯示選擇題選項
+        function showChoiceOptions(question) {
+            document.getElementById('optionsContainer').classList.remove('hidden');
+            document.getElementById('textAnswerContainer').classList.add('hidden');
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = `${question.labels[index]}. ${option}`;
+                btn.onclick = () => submitAnswer(question.labels[index]);
+                container.appendChild(btn);
+            });
+        }
+
+        // 顯示文字輸入
+        function showTextInput() {
+            document.getElementById('optionsContainer').classList.add('hidden');
+            document.getElementById('textAnswerContainer').classList.remove('hidden');
+            document.getElementById('answerInput').value = '';
+            document.getElementById('answerInput').focus();
+
+            // 綁定 Enter 鍵提交
+            document.getElementById('answerInput').onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    const answer = document.getElementById('answerInput').value;
+                    submitAnswer(answer);
+                }
+            };
+        }
+
+        // 提交答案
+        function submitAnswer(userAnswer) {
+            if (!userAnswer || !userAnswer.trim()) {
+                alert('請輸入答案！');
+                return;
+            }
+
+            const question = gameState.questions[gameState.currentQuestionIndex];
+            const correctAnswer = question.answer;
+            const isCorrect = userAnswer.trim().toUpperCase() === correctAnswer.toUpperCase();
+
+            gameState.totalAnswered++;
+
+            const feedbackDiv = document.getElementById('feedback');
+            feedbackDiv.classList.remove('hidden');
+
+            if (isCorrect) {
+                // 答對
+                gameState.score++;
+                gameState.coins += 10;
+
+                feedbackDiv.className = 'feedback correct';
+                feedbackDiv.textContent = `✅ 答對了！獲得 10 金幣！\n正確答案：${correctAnswer}`;
+            } else {
+                // 答錯
+                gameState.health -= 1;
+
+                feedbackDiv.className = 'feedback wrong';
+                feedbackDiv.textContent = `❌ 答錯了！扣除 1 體力\n你的答案：${userAnswer}\n正確答案：${correctAnswer}`;
+
+                if (gameState.health <= 0) {
+                    setTimeout(gameOver, 2000);
+                }
+            }
+
+            updateUI();
+            saveGameState();
+        }
+
+        // 遊戲結束
+        function gameOver() {
+            alert(`遊戲結束！\n\n💎 最終分數：${gameState.score}/${gameState.totalAnswered}\n💰 剩餘金幣：${gameState.coins}`);
+
+            const restart = confirm('是否重置遊戲？');
+            if (restart) {
+                gameState.health = 100;
+                gameState.score = 0;
+                gameState.totalAnswered = 0;
+                updateUI();
+                saveGameState();
+                document.getElementById('questionScreen').classList.add('hidden');
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+            }
+        }
+
+        // 商店
+        function showShop() {
+            alert('商店功能開發中！敬請期待 🏪');
+        }
+
+        // 初始化
+        window.onload = () => {
+            loadGameState();
+
+            // 載入範例題目（如果題庫是空的）
+            if (gameState.questions.length === 0) {
+                const examples = `台灣的首都是？
+A. 台北
+B. 台中
+C. 高雄
+D. 台南
+答：A
+
+1+1=?
+A. 1
+B. 2
+C. 3
+D. 4
+答：B
+
+水的化學式是？|H2O
+地球繞太陽一圈需要多久？|一年`;
+
+                gameState.questions = parseQuestions(examples);
+                saveGameState();
+            }
+        };
+    </script>
+</body>
+</html>
