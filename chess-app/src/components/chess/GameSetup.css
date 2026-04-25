@@ -1,0 +1,127 @@
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.setup-card {
+  background: #16213e;
+  border-radius: 16px;
+  padding: 32px;
+  width: 380px;
+  max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  color: #e0e0e0;
+}
+
+.setup-card h2 {
+  margin: 0 0 24px;
+  text-align: center;
+  font-size: 22px;
+  color: #e4c97e;
+}
+
+.setup-section {
+  margin-bottom: 20px;
+}
+
+.setup-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.setup-options {
+  display: flex;
+  gap: 8px;
+}
+
+.setup-options button {
+  flex: 1;
+  padding: 10px;
+  background: #1e2a3a;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.setup-options button:hover { background: #243040; }
+.setup-options button.active { border-color: #e4c97e; color: #e4c97e; background: #1e2a3a; }
+
+.difficulty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.difficulty-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #1e2a3a;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #ccc;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.difficulty-btn:hover { background: #243040; }
+.difficulty-btn.active { border-color: #e4c97e; color: #e4c97e; }
+
+.diff-level {
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 32px;
+}
+
+.diff-label { font-size: 13px; }
+
+.setup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btn-start {
+  flex: 1;
+  padding: 14px;
+  background: #e4c97e;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-start:hover { background: #f0d88a; }
+
+.btn-cancel {
+  padding: 14px 20px;
+  background: #2c3e50;
+  color: #aaa;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-cancel:hover { background: #3d5166; }
