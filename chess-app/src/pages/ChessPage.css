@@ -1,0 +1,29 @@
+.chess-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.chess-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #0f1729;
+  border-bottom: 1px solid #1e2a3a;
+}
+
+.nav-home {
+  color: #888;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.nav-home:hover { color: #e4c97e; }
+
+.nav-title {
+  color: #e4c97e;
+  font-weight: 700;
+  font-size: 16px;
+}

@@ -1,0 +1,87 @@
+.chess-game {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.game-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.board-wrapper {
+  position: relative;
+}
+
+.ai-thinking {
+  position: absolute;
+  top: -36px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 14px;
+  color: #e4c97e;
+  font-weight: 500;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6 }
+  50% { opacity: 1 }
+}
+
+.promo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.promo-card {
+  background: #16213e;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.promo-title {
+  color: #e4c97e;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.promo-btn {
+  width: 72px;
+  height: 72px;
+  background: #1e2a3a;
+  border: 2px solid #2c3e50;
+  border-radius: 12px;
+  font-size: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.promo-btn:hover { border-color: #e4c97e; background: #243040; }
+
+@media (max-width: 700px) {
+  .game-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  .chess-game { padding: 10px; }
+}
