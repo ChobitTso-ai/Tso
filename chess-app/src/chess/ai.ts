@@ -87,13 +87,18 @@ function orderMoves(state: GameState, moves: Move[]): Move[] {
   return moves.sort((a, b) => {
     const capA = state.board[a.to[0]][a.to[1]]
     const capB = state.board[b.to[0]][b.to[1]]
-    const valA = capA ? PIECE_VALUE[capA.type] : 0
-    const valB = capB ? PIECE_VALUE[capB.type] : 0
-    return valB - valA
+    return (capB ? PIECE_VALUE[capB.type] : 0) - (capA ? PIECE_VALUE[capA.type] : 0)
   })
 }
 
-function minimax(state: GameState, depth: number, alpha: number, beta: number): number {
+function minimax(
+  state: GameState,
+  depth: number,
+  alpha: number,
+  beta: number,
+  deadline: number
+): number {
+  if (Date.now() > deadline) return evaluate(state)
   if (depth === 0 || ['checkmate', 'stalemate', 'draw'].includes(state.status))
     return evaluate(state)
 
@@ -103,7 +108,7 @@ function minimax(state: GameState, depth: number, alpha: number, beta: number): 
   if (state.turn === 'w') {
     let best = -Infinity
     for (const move of moves) {
-      best = Math.max(best, minimax(applyMove(state, move), depth - 1, alpha, beta))
+      best = Math.max(best, minimax(applyMove(state, move), depth - 1, alpha, beta, deadline))
       alpha = Math.max(alpha, best)
       if (beta <= alpha) break
     }
@@ -111,12 +116,17 @@ function minimax(state: GameState, depth: number, alpha: number, beta: number): 
   } else {
     let best = Infinity
     for (const move of moves) {
-      best = Math.min(best, minimax(applyMove(state, move), depth - 1, alpha, beta))
+      best = Math.min(best, minimax(applyMove(state, move), depth - 1, alpha, beta, deadline))
       beta = Math.min(beta, best)
       if (beta <= alpha) break
     }
     return best
   }
+}
+
+// Time limits per difficulty (ms)
+const TIME_LIMIT: Record<Difficulty, number> = {
+  1: 0, 2: 0, 3: 1000, 4: 2000, 5: 3000,
 }
 
 export function getBestMove(state: GameState, level: Difficulty): Move | null {
@@ -137,17 +147,27 @@ export function getBestMove(state: GameState, level: Difficulty): Move | null {
     return moves[Math.floor(Math.random() * moves.length)]
   }
 
-  const depth = level === 3 ? 2 : level === 4 ? 4 : 6
+  // Level 3-5: iterative deepening with time limit
+  const maxDepth = level === 3 ? 3 : level === 4 ? 4 : 5
+  const deadline = Date.now() + TIME_LIMIT[level]
   const ordered = orderMoves(state, moves)
   let bestMove = ordered[0]
-  let bestVal = state.turn === 'w' ? -Infinity : Infinity
 
-  for (const move of ordered) {
-    const val = minimax(applyMove(state, move), depth - 1, -Infinity, Infinity)
-    if (state.turn === 'w' ? val > bestVal : val < bestVal) {
-      bestVal = val
-      bestMove = move
+  for (let depth = 1; depth <= maxDepth; depth++) {
+    if (Date.now() > deadline) break
+    let bestVal = state.turn === 'w' ? -Infinity : Infinity
+    let depthBest = ordered[0]
+
+    for (const move of ordered) {
+      if (Date.now() > deadline) break
+      const val = minimax(applyMove(state, move), depth - 1, -Infinity, Infinity, deadline)
+      if (state.turn === 'w' ? val > bestVal : val < bestVal) {
+        bestVal = val
+        depthBest = move
+      }
     }
+    bestMove = depthBest
   }
+
   return bestMove
 }
