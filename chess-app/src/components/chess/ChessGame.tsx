@@ -17,8 +17,10 @@ export default function ChessGame() {
   const [showSetup, setShowSetup] = useState(true)
   const [promotionPending, setPromotionPending] = useState<Move | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
+
+  // Ref-based lock to prevent re-triggering (must not be in effect deps)
+  const isThinkingRef = useRef(false)
   const workerRef = useRef<Worker | null>(null)
-  const aiTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Load from URL share on mount
   useEffect(() => {
@@ -31,35 +33,41 @@ export default function ChessGame() {
     }
   }, [])
 
-  // Create Web Worker once
+  // Create Web Worker once on mount
   useEffect(() => {
     const worker = new Worker(
       new URL('../../chess/ai.worker.ts', import.meta.url),
       { type: 'module' }
     )
     worker.onmessage = (e: MessageEvent<Move | null>) => {
-      const move = e.data
-      if (move) setState(prev => applyMove(prev, move))
+      isThinkingRef.current = false
+      setAiThinking(false)
+      if (e.data) setState(prev => applyMove(prev, e.data!))
+    }
+    worker.onerror = () => {
+      isThinkingRef.current = false
       setAiThinking(false)
     }
     workerRef.current = worker
     return () => { worker.terminate(); workerRef.current = null }
   }, [])
 
-  // AI move trigger
+  // AI move trigger — aiThinking intentionally NOT in deps to avoid timer cancellation
   useEffect(() => {
     const isAITurn = config.mode === 'pvc' && state.turn !== config.playerColor
     const isPlaying = state.status === 'playing' || state.status === 'check'
-    if (!isAITurn || !isPlaying || showSetup || aiThinking) return
+    if (!isAITurn || !isPlaying || showSetup || isThinkingRef.current) return
 
+    isThinkingRef.current = true
     setAiThinking(true)
-    clearTimeout(aiTimer.current)
-    aiTimer.current = setTimeout(() => {
+
+    const timer = setTimeout(() => {
       workerRef.current?.postMessage({ state, level: config.difficulty })
     }, 300)
 
-    return () => clearTimeout(aiTimer.current)
-  }, [state, config, showSetup, aiThinking])
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, config, showSetup])
 
   const findKingInCheck = useCallback(() => {
     if (state.status !== 'check' && state.status !== 'checkmate') return null
@@ -71,12 +79,9 @@ export default function ChessGame() {
   }, [state])
 
   const handleSquareClick = useCallback((r: number, f: number) => {
-    if (aiThinking || showSetup) return
-    const isGameOver = !['playing', 'check'].includes(state.status)
-    if (isGameOver) return
-
-    const isMyTurn = config.mode === 'pvp' || state.turn === config.playerColor
-    if (!isMyTurn) return
+    if (isThinkingRef.current || showSetup) return
+    if (!['playing', 'check'].includes(state.status)) return
+    if (config.mode === 'pvc' && state.turn !== config.playerColor) return
 
     if (selected) {
       const move = legalMoves.find(m => m.to[0] === r && m.to[1] === f)
@@ -103,7 +108,7 @@ export default function ChessGame() {
       setSelected(null)
       setLegalMoves([])
     }
-  }, [selected, legalMoves, state, config, aiThinking, showSetup])
+  }, [selected, legalMoves, state, config, showSetup])
 
   const handlePromotion = (type: PieceType) => {
     if (!promotionPending) return
@@ -118,48 +123,44 @@ export default function ChessGame() {
     setLegalMoves([])
   }
 
-  const handleUndo = () => {
-    if (state.history.length === 0) return
+  const resetWorker = () => {
     workerRef.current?.terminate()
     const worker = new Worker(
       new URL('../../chess/ai.worker.ts', import.meta.url),
       { type: 'module' }
     )
     worker.onmessage = (e: MessageEvent<Move | null>) => {
-      if (e.data) setState(prev => applyMove(prev, e.data!))
+      isThinkingRef.current = false
       setAiThinking(false)
+      if (e.data) setState(prev => applyMove(prev, e.data!))
     }
+    worker.onerror = () => { isThinkingRef.current = false; setAiThinking(false) }
     workerRef.current = worker
+  }
 
+  const handleUndo = () => {
+    if (state.history.length === 0) return
+    resetWorker()
+    isThinkingRef.current = false
+    setAiThinking(false)
     const undoCount = config.mode === 'pvc' && state.history.length >= 2 ? 2 : 1
     const targetIdx = Math.max(0, state.history.length - undoCount)
     const targetFen = state.history[targetIdx]?.fen
     const restored = targetFen ? parseFen(targetFen) : createInitialState()
     setState({ ...restored, history: state.history.slice(0, targetIdx) })
-    setAiThinking(false)
     setSelected(null)
     setLegalMoves([])
   }
 
   const handleNewGame = (cfg?: GameConfig) => {
-    clearTimeout(aiTimer.current)
-    workerRef.current?.terminate()
-    const worker = new Worker(
-      new URL('../../chess/ai.worker.ts', import.meta.url),
-      { type: 'module' }
-    )
-    worker.onmessage = (e: MessageEvent<Move | null>) => {
-      if (e.data) setState(prev => applyMove(prev, e.data!))
-      setAiThinking(false)
-    }
-    workerRef.current = worker
-
+    resetWorker()
+    isThinkingRef.current = false
+    setAiThinking(false)
     const newConfig = cfg ?? config
     setState(createInitialState())
     setConfig(newConfig)
     setSelected(null)
     setLegalMoves([])
-    setAiThinking(false)
     setShowSetup(false)
     setFlipped(newConfig.mode === 'pvc' && newConfig.playerColor === 'b')
   }
