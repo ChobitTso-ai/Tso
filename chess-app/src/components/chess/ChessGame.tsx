@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameConfig, GameState, Move, PieceType } from '../../chess/types'
 import { createInitialState, applyMove, parseFen } from '../../chess/board'
 import { getLegalMoves } from '../../chess/moves'
-import { getBestMove } from '../../chess/ai'
 import { parseShareUrl } from '../../chess/save'
 import ChessBoard from './ChessBoard'
 import Sidebar from './Sidebar'
@@ -18,6 +17,7 @@ export default function ChessGame() {
   const [showSetup, setShowSetup] = useState(true)
   const [promotionPending, setPromotionPending] = useState<Move | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
+  const workerRef = useRef<Worker | null>(null)
   const aiTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Load from URL share on mount
@@ -31,6 +31,21 @@ export default function ChessGame() {
     }
   }, [])
 
+  // Create Web Worker once
+  useEffect(() => {
+    const worker = new Worker(
+      new URL('../../chess/ai.worker.ts', import.meta.url),
+      { type: 'module' }
+    )
+    worker.onmessage = (e: MessageEvent<Move | null>) => {
+      const move = e.data
+      if (move) setState(prev => applyMove(prev, move))
+      setAiThinking(false)
+    }
+    workerRef.current = worker
+    return () => { worker.terminate(); workerRef.current = null }
+  }, [])
+
   // AI move trigger
   useEffect(() => {
     const isAITurn = config.mode === 'pvc' && state.turn !== config.playerColor
@@ -40,10 +55,8 @@ export default function ChessGame() {
     setAiThinking(true)
     clearTimeout(aiTimer.current)
     aiTimer.current = setTimeout(() => {
-      const move = getBestMove(state, config.difficulty)
-      if (move) setState(prev => applyMove(prev, move))
-      setAiThinking(false)
-    }, 400)
+      workerRef.current?.postMessage({ state, level: config.difficulty })
+    }, 300)
 
     return () => clearTimeout(aiTimer.current)
   }, [state, config, showSetup, aiThinking])
@@ -63,16 +76,11 @@ export default function ChessGame() {
     if (isGameOver) return
 
     const isMyTurn = config.mode === 'pvp' || state.turn === config.playerColor
-
     if (!isMyTurn) return
 
     if (selected) {
       const move = legalMoves.find(m => m.to[0] === r && m.to[1] === f)
       if (move) {
-        if (move.promotion && !move.promotion) {
-          setPromotionPending({ ...move })
-          return
-        }
         const promoMoves = legalMoves.filter(m => m.to[0] === r && m.to[1] === f && m.promotion)
         if (promoMoves.length > 0) {
           setPromotionPending(promoMoves[0])
@@ -112,18 +120,40 @@ export default function ChessGame() {
 
   const handleUndo = () => {
     if (state.history.length === 0) return
+    workerRef.current?.terminate()
+    const worker = new Worker(
+      new URL('../../chess/ai.worker.ts', import.meta.url),
+      { type: 'module' }
+    )
+    worker.onmessage = (e: MessageEvent<Move | null>) => {
+      if (e.data) setState(prev => applyMove(prev, e.data!))
+      setAiThinking(false)
+    }
+    workerRef.current = worker
+
     const undoCount = config.mode === 'pvc' && state.history.length >= 2 ? 2 : 1
     const targetIdx = Math.max(0, state.history.length - undoCount)
     const targetFen = state.history[targetIdx]?.fen
     const restored = targetFen ? parseFen(targetFen) : createInitialState()
     setState({ ...restored, history: state.history.slice(0, targetIdx) })
-
+    setAiThinking(false)
     setSelected(null)
     setLegalMoves([])
   }
 
   const handleNewGame = (cfg?: GameConfig) => {
     clearTimeout(aiTimer.current)
+    workerRef.current?.terminate()
+    const worker = new Worker(
+      new URL('../../chess/ai.worker.ts', import.meta.url),
+      { type: 'module' }
+    )
+    worker.onmessage = (e: MessageEvent<Move | null>) => {
+      if (e.data) setState(prev => applyMove(prev, e.data!))
+      setAiThinking(false)
+    }
+    workerRef.current = worker
+
     const newConfig = cfg ?? config
     setState(createInitialState())
     setConfig(newConfig)
@@ -131,17 +161,14 @@ export default function ChessGame() {
     setLegalMoves([])
     setAiThinking(false)
     setShowSetup(false)
-    if (newConfig.mode === 'pvc' && newConfig.playerColor === 'b') setFlipped(true)
-    else setFlipped(false)
+    setFlipped(newConfig.mode === 'pvc' && newConfig.playerColor === 'b')
   }
 
   const lastMove = state.history.length > 0 ? state.history[state.history.length - 1].move : null
 
   return (
     <div className="chess-game">
-      {showSetup && (
-        <GameSetup onStart={cfg => handleNewGame(cfg)} />
-      )}
+      {showSetup && <GameSetup onStart={cfg => handleNewGame(cfg)} />}
 
       {promotionPending && (
         <div className="promo-overlay">
