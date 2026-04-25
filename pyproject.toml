@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "agent-mcp"
+version = "1.0.0"
+description = "AI Agent with MCP server — API / CLI / MCP connection modes"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.97.0",
+    "fastapi>=0.136.0",
+    "uvicorn[standard]>=0.46.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.0.0",
+    "sse-starlette>=2.0.0",
+    "cryptography>=41.0.0",
+    "click>=8.0.0",
+    "python-multipart>=0.0.26",
+]
+
+[project.scripts]
+agent = "cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*", "mcp_server*", "tools*"]
