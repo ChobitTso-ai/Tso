@@ -510,7 +510,7 @@ export default function MinecraftGame() {
                   placeholder="輸入你的答案..."
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter' && !feedback.show) {
                       submitAnswer(userAnswer)
                     }
@@ -518,6 +518,14 @@ export default function MinecraftGame() {
                   disabled={feedback.show}
                   autoFocus
                 />
+                {!feedback.show && (
+                  <button
+                    className="mc-btn mc-btn-primary mc-submit-btn"
+                    onClick={() => submitAnswer(userAnswer)}
+                  >
+                    ✅ 確認答案
+                  </button>
+                )}
               </div>
             )}
 

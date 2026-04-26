@@ -57,6 +57,11 @@
   color: white;
 }
 
+.mc-stat-box.mc-score {
+  background: #5DADE2;
+  color: #2C2C2C;
+}
+
 .mc-stat-box.mc-questions {
   background: #8B6F47;
   color: white;
@@ -297,6 +302,11 @@
 /* Text Input */
 .mc-text-answer {
   margin-bottom: 20px;
+}
+
+.mc-submit-btn {
+  margin-top: 15px;
+  width: 100%;
 }
 
 .mc-text-input {
