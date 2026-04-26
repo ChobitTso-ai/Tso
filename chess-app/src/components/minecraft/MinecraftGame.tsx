@@ -20,28 +20,40 @@ interface GameState {
   inventory: {
     healthPotion: number
     skipTicket: number
+    doubleCoins: number
   }
+  doubleCoinsRemaining: number
 }
 
 const STORAGE_KEY = 'minecraftQuizGame'
 
-const EXAMPLE_QUESTIONS = `台灣的首都是？
-A. 台北
-B. 台中
-C. 高雄
-D. 台南
-答：A
-
-1+1=?
-A. 1
-B. 2
-C. 3
-D. 4
-答：B
-
-What is Minecraft?|沙盒遊戲
-Creeper會爆炸嗎？|會
-鑽石工具耐久度多少？|1561`
+// 商店物品定義
+const SHOP_ITEMS = [
+  {
+    id: 'healthPotion',
+    name: '❤️ 生命藥水',
+    description: '恢復 20 點體力',
+    price: 50,
+    effect: 'heal',
+    value: 20
+  },
+  {
+    id: 'skipTicket',
+    name: '⏭️ 跳過券',
+    description: '跳過當前題目（不扣分也不扣血）',
+    price: 30,
+    effect: 'skip',
+    value: 1
+  },
+  {
+    id: 'doubleCoins',
+    name: '💰 雙倍金幣卡',
+    description: '接下來 5 題答對獲得雙倍金幣',
+    price: 100,
+    effect: 'double',
+    value: 5
+  }
+]
 
 export default function MinecraftGame() {
   const [gameState, setGameState] = useState<GameState>({
@@ -54,12 +66,15 @@ export default function MinecraftGame() {
     currentQuestionIndex: -1,
     inventory: {
       healthPotion: 0,
-      skipTicket: 0
-    }
+      skipTicket: 0,
+      doubleCoins: 0
+    },
+    doubleCoinsRemaining: 0
   })
 
   const [showWelcome, setShowWelcome] = useState(true)
   const [showQuestionManager, setShowQuestionManager] = useState(false)
+  const [showShop, setShowShop] = useState(false)
   const [questionInput, setQuestionInput] = useState('')
   const [userAnswer, setUserAnswer] = useState('')
   const [feedback, setFeedback] = useState<{ show: boolean; correct: boolean; message: string }>({
@@ -195,21 +210,6 @@ export default function MinecraftGame() {
     }
   }
 
-  // Load example questions
-  const loadExamples = () => {
-    if (gameState.questions.length === 0) {
-      const examples = parseQuestions(EXAMPLE_QUESTIONS)
-      setGameState(prev => ({
-        ...prev,
-        questions: examples
-      }))
-    }
-  }
-
-  useEffect(() => {
-    loadExamples()
-  }, [])
-
   // Start quiz
   const startQuiz = () => {
     if (gameState.questions.length === 0) {
@@ -261,19 +261,30 @@ export default function MinecraftGame() {
     const correctAnswer = question.answer
     const isCorrect = answer.trim().toUpperCase() === correctAnswer.toUpperCase()
 
+    let coinsEarned = 10
+    if (isCorrect && gameState.doubleCoinsRemaining > 0) {
+      coinsEarned = 20
+    }
+
     setGameState(prev => ({
       ...prev,
       totalAnswered: prev.totalAnswered + 1,
       score: isCorrect ? prev.score + 1 : prev.score,
-      coins: isCorrect ? prev.coins + 10 : prev.coins,
-      health: isCorrect ? prev.health : Math.max(0, prev.health - 10)
+      coins: isCorrect ? prev.coins + coinsEarned : prev.coins,
+      health: isCorrect ? prev.health : Math.max(0, prev.health - 10),
+      doubleCoinsRemaining: isCorrect && prev.doubleCoinsRemaining > 0
+        ? prev.doubleCoinsRemaining - 1
+        : prev.doubleCoinsRemaining
     }))
 
     if (isCorrect) {
+      const doubleMsg = gameState.doubleCoinsRemaining > 0
+        ? `（雙倍金幣！剩餘 ${gameState.doubleCoinsRemaining - 1} 題）`
+        : ''
       setFeedback({
         show: true,
         correct: true,
-        message: `✅ 答對了！獲得 10 金幣！\n正確答案：${correctAnswer}`
+        message: `✅ 答對了！獲得 ${coinsEarned} 金幣${doubleMsg}！\n正確答案：${correctAnswer}`
       })
     } else {
       setFeedback({
@@ -305,6 +316,94 @@ export default function MinecraftGame() {
     }
   }
 
+  // Buy item
+  const buyItem = (itemId: string) => {
+    const item = SHOP_ITEMS.find(i => i.id === itemId)
+    if (!item) return
+
+    if (gameState.coins < item.price) {
+      alert('金幣不足！')
+      return
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      coins: prev.coins - item.price,
+      inventory: {
+        ...prev.inventory,
+        [itemId]: prev.inventory[itemId as keyof typeof prev.inventory] + 1
+      }
+    }))
+
+    alert(`購買成功！獲得 ${item.name}`)
+  }
+
+  // Use item
+  const useItem = (itemId: string) => {
+    const inventoryKey = itemId as keyof typeof gameState.inventory
+    if (gameState.inventory[inventoryKey] <= 0) {
+      alert('沒有此道具！')
+      return
+    }
+
+    if (itemId === 'healthPotion') {
+      const healAmount = Math.min(20, gameState.maxHealth - gameState.health)
+      setGameState(prev => ({
+        ...prev,
+        health: Math.min(prev.maxHealth, prev.health + 20),
+        inventory: {
+          ...prev.inventory,
+          healthPotion: prev.inventory.healthPotion - 1
+        }
+      }))
+      alert(`使用生命藥水！恢復 ${healAmount} 點體力`)
+    } else if (itemId === 'skipTicket') {
+      setGameState(prev => ({
+        ...prev,
+        inventory: {
+          ...prev.inventory,
+          skipTicket: prev.inventory.skipTicket - 1
+        }
+      }))
+      alert('使用跳過券！')
+      nextQuestion()
+    } else if (itemId === 'doubleCoins') {
+      setGameState(prev => ({
+        ...prev,
+        doubleCoinsRemaining: 5,
+        inventory: {
+          ...prev.inventory,
+          doubleCoins: prev.inventory.doubleCoins - 1
+        }
+      }))
+      alert('使用雙倍金幣卡！接下來 5 題答對獲得雙倍金幣！')
+    }
+  }
+
+  // Reset game data
+  const resetGame = () => {
+    if (confirm('確定要重置所有遊戲資料嗎？此操作無法復原！')) {
+      setGameState({
+        coins: 0,
+        health: 100,
+        maxHealth: 100,
+        score: 0,
+        totalAnswered: 0,
+        questions: [],
+        currentQuestionIndex: -1,
+        inventory: {
+          healthPotion: 0,
+          skipTicket: 0,
+          doubleCoins: 0
+        },
+        doubleCoinsRemaining: 0
+      })
+      setShowWelcome(true)
+      setFeedback({ show: false, correct: false, message: '' })
+      alert('遊戲資料已重置！')
+    }
+  }
+
   const currentQuestion = gameState.currentQuestionIndex >= 0
     ? gameState.questions[gameState.currentQuestionIndex]
     : null
@@ -331,21 +430,61 @@ export default function MinecraftGame() {
           <div className="mc-stat-label">💎 分數</div>
           <div className="mc-stat-value">{gameState.score}/{gameState.totalAnswered}</div>
         </div>
+        <div className="mc-stat-box mc-questions">
+          <div className="mc-stat-label">📚 題庫</div>
+          <div className="mc-stat-value">{gameState.questions.length}</div>
+        </div>
       </div>
+
+      {/* Inventory */}
+      {(gameState.inventory.healthPotion > 0 || gameState.inventory.skipTicket > 0 || gameState.inventory.doubleCoins > 0) && (
+        <div className="mc-inventory">
+          <div className="mc-inventory-title">🎒 道具背包</div>
+          <div className="mc-inventory-items">
+            {gameState.inventory.healthPotion > 0 && (
+              <button className="mc-inventory-item" onClick={() => useItem('healthPotion')}>
+                ❤️ 生命藥水 x{gameState.inventory.healthPotion}
+              </button>
+            )}
+            {gameState.inventory.skipTicket > 0 && (
+              <button className="mc-inventory-item" onClick={() => useItem('skipTicket')}>
+                ⏭️ 跳過券 x{gameState.inventory.skipTicket}
+              </button>
+            )}
+            {gameState.inventory.doubleCoins > 0 && (
+              <button className="mc-inventory-item" onClick={() => useItem('doubleCoins')}>
+                💰 雙倍金幣 x{gameState.inventory.doubleCoins}
+              </button>
+            )}
+          </div>
+          {gameState.doubleCoinsRemaining > 0 && (
+            <div className="mc-buff-indicator">
+              ✨ 雙倍金幣效果中！剩餘 {gameState.doubleCoinsRemaining} 題
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Game Area */}
       <div className="mc-game-area">
         {showWelcome ? (
           <div className="mc-welcome-screen">
             <h2>🎮 歡迎來到 Minecraft 測驗遊戲！</h2>
-            <p>📚 點擊下方按鈕開始你的學習冒險</p>
+            <p>📚 點擊「輸入題目」開始建立你的題庫</p>
             <p>💡 答對題目獲得金幣，答錯扣除體力</p>
             <p>🏪 使用金幣在商店購買道具幫助通關</p>
+            <div className="mc-welcome-stats">
+              <p>📊 目前狀態：</p>
+              <p>💰 金幣: {gameState.coins}</p>
+              <p>❤️ 體力: {gameState.health}/{gameState.maxHealth}</p>
+              <p>📚 題庫: {gameState.questions.length} 題</p>
+              <p>💎 答對率: {gameState.score}/{gameState.totalAnswered}</p>
+            </div>
           </div>
         ) : currentQuestion ? (
           <div className="mc-question-screen">
             <div className="mc-question-text">
-              📝 題目 #{gameState.currentQuestionIndex + 1} {currentQuestion.type === 'choice' ? '(選擇題)' : ''}
+              📝 題目 #{gameState.currentQuestionIndex + 1} {currentQuestion.type === 'choice' ? '(選擇題)' : '(填空題)'}
               <br /><br />
               {currentQuestion.question}
             </div>
@@ -372,11 +511,12 @@ export default function MinecraftGame() {
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !feedback.show) {
                       submitAnswer(userAnswer)
                     }
                   }}
                   disabled={feedback.show}
+                  autoFocus
                 />
               </div>
             )}
@@ -394,8 +534,9 @@ export default function MinecraftGame() {
       <div className="mc-controls">
         <button className="mc-btn mc-btn-primary" onClick={startQuiz}>🎯 開始測驗</button>
         <button className="mc-btn" onClick={() => setShowQuestionManager(!showQuestionManager)}>✏️ 輸入題目</button>
-        <button className="mc-btn mc-btn-secondary" onClick={() => alert('商店功能開發中！敬請期待 🏪')}>🏪 商店</button>
+        <button className="mc-btn mc-btn-secondary" onClick={() => setShowShop(!showShop)}>🏪 商店</button>
         <button className="mc-btn" onClick={nextQuestion}>➡️ 下一題</button>
+        <button className="mc-btn mc-btn-danger" onClick={resetGame}>🔄 重置遊戲</button>
       </div>
 
       {/* Question Manager */}
@@ -413,7 +554,9 @@ D. 選項4
 答：A
 
 填空題：
-問題？|答案`}
+問題？|答案
+apple|蘋果
+1+1=?|2`}
           </pre>
           <textarea
             className="mc-textarea"
@@ -425,6 +568,33 @@ D. 選項4
             <button className="mc-btn mc-btn-primary" onClick={loadQuestions}>💾 載入題目</button>
             <button className="mc-btn" onClick={() => setShowQuestionManager(false)}>❌ 關閉</button>
           </div>
+        </div>
+      )}
+
+      {/* Shop */}
+      {showShop && (
+        <div className="mc-shop">
+          <h3>🏪 Minecraft 商店</h3>
+          <p className="mc-shop-balance">💰 你的金幣: {gameState.coins}</p>
+          <div className="mc-shop-items">
+            {SHOP_ITEMS.map(item => (
+              <div key={item.id} className="mc-shop-item">
+                <div className="mc-shop-item-info">
+                  <h4>{item.name}</h4>
+                  <p>{item.description}</p>
+                  <p className="mc-shop-price">💰 價格: {item.price} 金幣</p>
+                </div>
+                <button
+                  className="mc-btn mc-btn-buy"
+                  onClick={() => buyItem(item.id)}
+                  disabled={gameState.coins < item.price}
+                >
+                  購買
+                </button>
+              </div>
+            ))}
+          </div>
+          <button className="mc-btn mc-btn-danger" onClick={() => setShowShop(false)}>❌ 關閉商店</button>
         </div>
       )}
     </div>
