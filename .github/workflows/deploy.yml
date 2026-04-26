@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/chess-software-planning-n3syp]
+    branches: [main, claude/chess-software-planning-n3syp, claude/minecraft-quiz-game-UaK8n]
   workflow_dispatch:
 
 permissions:
