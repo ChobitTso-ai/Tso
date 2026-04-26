@@ -26,8 +26,7 @@ const GAMES: GameCard[] = [
     description: '測試你對 Minecraft 的了解，包含中英文題庫與多種題型。',
     icon: '⛏',
     path: '/minecraft',
-    available: false,
-    tag: '即將推出',
+    available: true,
   },
 ]
 
