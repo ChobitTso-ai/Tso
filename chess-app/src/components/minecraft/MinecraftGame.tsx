@@ -75,6 +75,7 @@ export default function MinecraftGame() {
   const [showWelcome, setShowWelcome] = useState(true)
   const [showQuestionManager, setShowQuestionManager] = useState(false)
   const [showShop, setShowShop] = useState(false)
+  const [autoConvertToChoice, setAutoConvertToChoice] = useState(true) // 自動轉選擇題
   const [questionInput, setQuestionInput] = useState('')
   const [userAnswer, setUserAnswer] = useState('')
   const [feedback, setFeedback] = useState<{ show: boolean; correct: boolean; message: string }>({
@@ -106,6 +107,9 @@ export default function MinecraftGame() {
     const questions: Question[] = []
     const lines = text.split('\n')
     let i = 0
+
+    // 收集所有答案用於生成錯誤選項
+    const allAnswers: string[] = []
 
     while (i < lines.length) {
       let line = lines[i].trim()
@@ -177,17 +181,57 @@ export default function MinecraftGame() {
       if (line.includes('|')) {
         const parts = line.split('|')
         if (parts.length >= 2) {
-          questions.push({
-            type: 'text',
-            question: parts[0].trim(),
-            answer: parts[1].trim()
-          })
+          const questionText = parts[0].trim()
+          const correctAnswer = parts[1].trim()
+
+          allAnswers.push(correctAnswer)
+
+          if (autoConvertToChoice) {
+            // 自動轉換成選擇題
+            questions.push({
+              type: 'choice',
+              question: questionText,
+              options: [], // 稍後填充
+              labels: ['A', 'B', 'C', 'D'],
+              answer: 'A', // 正確答案固定在 A
+              correctAnswerText: correctAnswer // 保存正確答案文字
+            } as any)
+          } else {
+            questions.push({
+              type: 'text',
+              question: questionText,
+              answer: correctAnswer
+            })
+          }
           i++
           continue
         }
       }
 
       i++
+    }
+
+    // 為自動轉換的選擇題生成選項
+    if (autoConvertToChoice && allAnswers.length > 0) {
+      questions.forEach((q: any) => {
+        if (q.type === 'choice' && q.options.length === 0 && q.correctAnswerText) {
+          const wrongAnswers = allAnswers
+            .filter(a => a !== q.correctAnswerText)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+
+          const options = [q.correctAnswerText, ...wrongAnswers]
+            .sort(() => Math.random() - 0.5)
+
+          const correctIndex = options.indexOf(q.correctAnswerText)
+          const labels = ['A', 'B', 'C', 'D']
+
+          q.options = options.slice(0, 4)
+          q.labels = labels.slice(0, q.options.length)
+          q.answer = labels[correctIndex]
+          delete q.correctAnswerText
+        }
+      })
     }
 
     return questions
@@ -551,9 +595,33 @@ export default function MinecraftGame() {
       {showQuestionManager && (
         <div className="mc-question-manager">
           <h3>📝 輸入題目</h3>
+
+          <div className="mc-convert-option">
+            <label>
+              <input
+                type="checkbox"
+                checked={autoConvertToChoice}
+                onChange={(e) => setAutoConvertToChoice(e.target.checked)}
+              />
+              <span>自動將填空題轉換成選擇題（推薦）</span>
+            </label>
+          </div>
+
           <p>格式範例：</p>
           <pre className="mc-format-example">
-{`選擇題：
+{autoConvertToChoice ? `填空題（自動轉選擇題）：
+apple|蘋果
+banana|香蕉
+cat|貓
+dog|狗
+
+選擇題（標準格式）：
+問題？
+A. 選項1
+B. 選項2
+C. 選項3
+D. 選項4
+答：A` : `選擇題：
 問題？
 A. 選項1
 B. 選項2
