@@ -34,7 +34,6 @@
 .kb-level-btn:hover { border-color: #7ec87e; color: #7ec87e; }
 .kb-level-btn.active { border-color: #7ec87e; background: #2a4a2a; color: #7ec87e; }
 .kb-level-btn.done { background: #1a3a1a; border-color: #4a8a4a; color: #4a8a4a; }
-.kb-level-btn.done::after { content: '✓'; font-size: 10px; display: block; margin-top: -4px; }
 
 /* Title */
 .kb-title-row {
@@ -86,9 +85,8 @@
 }
 
 .kb-cell {
-  width: 64px;
-  height: 64px;
   border-radius: 6px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -266,8 +264,7 @@
 
 /* Responsive */
 @media (max-width: 600px) {
-  .kb-cell { width: 52px; height: 52px; }
-  .kb-tile-emoji { font-size: 20px; }
-  .kb-robot { font-size: 22px; }
+  .kb-tile-emoji { font-size: 18px; }
+  .kb-robot { font-size: 20px; }
   .kb-panel { max-width: 100%; }
 }

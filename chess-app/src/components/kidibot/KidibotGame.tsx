@@ -71,6 +71,7 @@ export default function KidibotGame() {
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set())
 
   const stepRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cellSize = level.size <= 4 ? 72 : level.size <= 5 ? 64 : level.size <= 6 ? 56 : 48
 
   useEffect(() => {
     setPlaced(Array.from({ length: level.size }, () => Array(level.size).fill(null)))
@@ -105,10 +106,16 @@ export default function KidibotGame() {
       const existingTile = placed[row][col]
 
       if (existingTile === newTile) {
-        // toggling same tile off — return it to hand without consuming
+        // toggling same tile off — remove from grid AND return it to hand
         setPlaced(prev => {
           const next = prev.map(r => [...r])
           next[row][col] = null
+          return next
+        })
+        setHand(prev => {
+          const next = prev.map(h => ({ ...h }))
+          const idx = next.findIndex(h => h.type === existingTile && h.used)
+          if (idx >= 0) next[idx].used = false
           return next
         })
         setSelected(null)
@@ -320,12 +327,12 @@ export default function KidibotGame() {
         <div className="kb-grid-wrap">
           <div
             className="kb-grid"
-            style={{ gridTemplateColumns: `repeat(${level.size}, 1fr)` }}
+            style={{ gridTemplateColumns: `repeat(${level.size}, ${cellSize}px)` }}
           >
             {level.grid.map((row, r) =>
               row.map((fixedTile, c) => {
                 if (fixedTile === 'empty') {
-                  return <div key={`${r}-${c}`} className="kb-cell kb-cell-empty" />
+                  return <div key={`${r}-${c}`} className="kb-cell kb-cell-empty" style={{ width: cellSize, height: cellSize }} />
                 }
 
                 const placedTile = placed[r][c]
@@ -347,7 +354,7 @@ export default function KidibotGame() {
                       isPlaceable && selected !== null ? 'kb-cell-selectable' : '',
                       selected !== null && !isPlaceable ? 'kb-cell-blocked' : '',
                     ].join(' ')}
-                    style={{ background: TILE_DISPLAY[displayTile].bg }}
+                    style={{ background: TILE_DISPLAY[displayTile].bg, width: cellSize, height: cellSize }}
                     onClick={() => handleCellClick(r, c)}
                   >
                     {isRobot
