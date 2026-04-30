@@ -123,7 +123,7 @@ export const LEVELS: Level[] = [
   },
 
   // ── L8: longer path around monster ───────────────────────────────
-  // Path: GO[1,1]→R→[1,2](right)→R→[1,3](right)→R→[1,4](turn_dr,L→D)
+  // Path: GO[1,1]→R→[1,2](right,L→R)→R→[1,3](right,L→R)→R→[1,4](turn_dr,L→D)
   //       →D→[2,4](down,U→D)→D→HOME[3,4]
   {
     id: 8, name: '第八關：繞路高手', size: 6, startDir: 'right',
@@ -136,7 +136,7 @@ export const LEVELS: Level[] = [
       [E, E,  E,  E,  E,  E],
     ],
     hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_down'],
-    hint: '往上繞過怪獸，再轉彎向下到家',
+    hint: '怪獸在下方！沿上方路線繞過，再轉彎往下到家',
   },
 
   // ── L9: zigzag with star ──────────────────────────────────────────
@@ -157,9 +157,10 @@ export const LEVELS: Level[] = [
   },
 
   // ── L10: final challenge with heart + star + monsters ────────────
-  // Path: GO[1,1]→R→[1,2](right)→R→[1,3]=HT(turn_dr,L→D,collect heart)
-  //       →D→[2,3](down,U→D)→D→[3,3](right,L→R)→R→[3,4](turn_dr,L→D)
+  // Path: GO[1,1]→R→[1,2](right,L→R)→R→[1,3]=HT(turn_dr,L→D,collect heart)
+  //       →D→[2,3](down,U→D)→D→[3,3](turn_dr,U→R)→R→[3,4](turn_dr,L→D)
   //       →D→[4,4]=ST(down,U→D,collect star)→D→HOME[5,4]
+  // NOTE: [3,3] entered from UP (not left), needs turn_dr (U→R), NOT path_right
   {
     id: 10, name: '第十關：終極挑戰', size: 7, startDir: 'right',
     grid: [
@@ -171,7 +172,7 @@ export const LEVELS: Level[] = [
       [E,  E,  E,  F,  H,  E,  E],
       [E,  E,  E,  E,  E,  E,  E],
     ],
-    hand: ['path_right', 'path_turn_dr', 'path_turn_dr', 'path_down', 'path_down', 'path_right'],
+    hand: ['path_right', 'path_turn_dr', 'path_turn_dr', 'path_turn_dr', 'path_down', 'path_down'],
     hint: '收集愛心和星星，繞過怪獸，安全回家！',
   },
 ]

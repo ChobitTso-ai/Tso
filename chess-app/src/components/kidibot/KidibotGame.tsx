@@ -18,10 +18,10 @@ const TILE_DISPLAY: Record<TileType, { emoji: string; label: string; bg: string 
   path_down:    { emoji: '↓',  label: '下',    bg: '#2a3a4a' },
   path_left:    { emoji: '←',  label: '左',    bg: '#2a3a4a' },
   path_right:   { emoji: '→',  label: '右',    bg: '#2a3a4a' },
-  path_turn_ul: { emoji: '↰',  label: '↰',    bg: '#2a3a4a' },
-  path_turn_ur: { emoji: '↱',  label: '↱',    bg: '#2a3a4a' },
-  path_turn_dl: { emoji: '↲',  label: '↲',    bg: '#2a3a4a' },
-  path_turn_dr: { emoji: '↳',  label: '↳',    bg: '#2a3a4a' },
+  path_turn_ul: { emoji: '↰',  label: '左→上',  bg: '#2a3a4a' },
+  path_turn_ur: { emoji: '↱',  label: '右→上',  bg: '#2a3a4a' },
+  path_turn_dl: { emoji: '↲',  label: '左→下',  bg: '#2a3a4a' },
+  path_turn_dr: { emoji: '↳',  label: '右→下',  bg: '#2a3a4a' },
 }
 
 const OBSTACLE_TILES = new Set<TileType>(['monster', 'fire', 'trap'])
