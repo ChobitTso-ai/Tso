@@ -28,9 +28,19 @@ const GAMES: GameCard[] = [
     path: '/minecraft',
     available: true,
   },
+  {
+    id: 'kidibot',
+    title: '回家之路',
+    description: '排列路徑磁力片，引導機器人避開怪獸與陷阱，安全回家！10 關程式思維冒險。',
+    icon: '🤖',
+    path: '/kidibot',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
+  document.title = 'TSO'
   return (
     <div className="home">
       <header className="home-header">
