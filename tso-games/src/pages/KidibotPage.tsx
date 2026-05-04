@@ -3,6 +3,7 @@ import KidibotGame from '../components/kidibot/KidibotGame'
 import './KidibotPage.css'
 
 export default function KidibotPage() {
+  document.title = '回家之路 | TSO'
   return (
     <div className="kidibot-page">
       <nav className="kidibot-nav">
