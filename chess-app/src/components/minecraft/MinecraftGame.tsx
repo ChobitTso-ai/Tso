@@ -315,7 +315,7 @@ export default function MinecraftGame() {
       totalAnswered: prev.totalAnswered + 1,
       score: isCorrect ? prev.score + 1 : prev.score,
       coins: isCorrect ? prev.coins + coinsEarned : prev.coins,
-      health: isCorrect ? prev.health : Math.max(0, prev.health - 10),
+      health: isCorrect ? prev.health : Math.max(0, prev.health - 1), // 答錯扣 1 點體力
       doubleCoinsRemaining: isCorrect && prev.doubleCoinsRemaining > 0
         ? prev.doubleCoinsRemaining - 1
         : prev.doubleCoinsRemaining
@@ -334,10 +334,10 @@ export default function MinecraftGame() {
       setFeedback({
         show: true,
         correct: false,
-        message: `❌ 答錯了！扣除 10 體力\n你的答案：${answer}\n正確答案：${correctAnswer}`
+        message: `❌ 答錯了！扣除 1 體力\n你的答案：${answer}\n正確答案：${correctAnswer}`
       })
 
-      if (gameState.health - 10 <= 0) {
+      if (gameState.health - 1 <= 0) {
         setTimeout(gameOver, 2000)
       }
     }
@@ -446,6 +446,43 @@ export default function MinecraftGame() {
       setFeedback({ show: false, correct: false, message: '' })
       alert('遊戲資料已重置！')
     }
+  }
+
+  // Export save data
+  const exportSave = () => {
+    const saveData = JSON.stringify(gameState, null, 2)
+    const blob = new Blob([saveData], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `minecraft-quiz-save-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    alert('存檔已匯出！')
+  }
+
+  // Import save data
+  const importSave = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string)
+            setGameState(data)
+            alert('存檔已載入！')
+          } catch (err) {
+            alert('存檔檔案格式錯誤！')
+          }
+        }
+        reader.readAsText(file)
+      }
+    }
+    input.click()
   }
 
   const currentQuestion = gameState.currentQuestionIndex >= 0
@@ -588,7 +625,13 @@ export default function MinecraftGame() {
         <button className="mc-btn" onClick={() => setShowQuestionManager(!showQuestionManager)}>✏️ 輸入題目</button>
         <button className="mc-btn mc-btn-secondary" onClick={() => setShowShop(!showShop)}>🏪 商店</button>
         <button className="mc-btn" onClick={nextQuestion}>➡️ 下一題</button>
-        <button className="mc-btn mc-btn-danger" onClick={resetGame}>🔄 重置遊戲</button>
+      </div>
+
+      {/* Save/Load Controls */}
+      <div className="mc-save-controls">
+        <button className="mc-btn-small mc-btn-save" onClick={exportSave}>💾 匯出存檔</button>
+        <button className="mc-btn-small mc-btn-load" onClick={importSave}>📂 載入存檔</button>
+        <button className="mc-btn-small mc-btn-danger" onClick={resetGame}>🔄 重置遊戲</button>
       </div>
 
       {/* Question Manager */}

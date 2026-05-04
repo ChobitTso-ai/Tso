@@ -220,6 +220,42 @@
   background: #B01030;
 }
 
+/* Save Controls */
+.mc-save-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.mc-btn-small {
+  padding: 10px 20px;
+  font-size: 0.95em;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  border: none;
+  color: white;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.mc-btn-save {
+  background: #5FAD41;
+}
+
+.mc-btn-save:hover {
+  background: #4A8B35;
+}
+
+.mc-btn-load {
+  background: #5DADE2;
+}
+
+.mc-btn-load:hover {
+  background: #4A9CD1;
+}
+
 .mc-stat-label {
   font-size: 1.2em;
   font-weight: bold;
