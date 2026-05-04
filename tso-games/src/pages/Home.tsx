@@ -31,6 +31,7 @@ const GAMES: GameCard[] = [
 ]
 
 export default function Home() {
+  document.title = 'TSO'
   return (
     <div className="home">
       <header className="home-header">
