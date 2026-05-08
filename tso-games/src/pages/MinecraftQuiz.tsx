@@ -3,6 +3,7 @@ import MinecraftGame from '../components/minecraft/MinecraftGame'
 import './MinecraftQuiz.css'
 
 export default function MinecraftQuiz() {
+  document.title = 'Minecraft 知識競賽 | TSO'
   return (
     <div className="minecraft-page">
       <nav className="minecraft-nav">
