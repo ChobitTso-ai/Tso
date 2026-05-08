@@ -9,6 +9,19 @@ import Sidebar from './Sidebar'
 import GameSetup from './GameSetup'
 import './ChessGame.css'
 
+function createAiWorker(
+  onMove: (move: Move | null) => void,
+  onError: () => void
+): Worker {
+  const w = new Worker(
+    new URL('../../chess/ai.worker.ts', import.meta.url),
+    { type: 'module' }
+  )
+  w.onmessage = (e: MessageEvent<Move | null>) => onMove(e.data)
+  w.onerror = () => onError()
+  return w
+}
+
 export default function ChessGame() {
   const [state, setState] = useState<GameState>(() => createInitialState())
   const [config, setConfig] = useState<GameConfig>({ mode: 'pvc', difficulty: 3, playerColor: 'w' })
@@ -19,13 +32,28 @@ export default function ChessGame() {
   const [promotionPending, setPromotionPending] = useState<Move | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
 
-  // Refs prevent stale closures and keep isThinkingRef out of effect deps
   const isThinkingRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const stateRef = useRef(state)
   const configRef = useRef(config)
+  const workerRef = useRef<Worker | null>(null)
   stateRef.current = state
   configRef.current = config
+
+  // Create Web Worker once on mount; recreate on error
+  useEffect(() => {
+    const handleMove = (move: Move | null) => {
+      isThinkingRef.current = false
+      setAiThinking(false)
+      if (move) setState(prev => applyMove(prev, move))
+    }
+    const handleError = () => {
+      isThinkingRef.current = false
+      setAiThinking(false)
+    }
+    workerRef.current = createAiWorker(handleMove, handleError)
+    return () => { workerRef.current?.terminate(); workerRef.current = null }
+  }, [])
 
   // Load from URL share on mount
   useEffect(() => {
@@ -54,14 +82,21 @@ export default function ChessGame() {
     timerRef.current = setTimeout(() => {
       const currentState = stateRef.current
       const currentConfig = configRef.current
-      try {
-        const move = getBestMove(currentState, currentConfig.difficulty)
-        if (move) setState(prev => applyMove(prev, move))
-      } catch {
-        // ignore errors
-      } finally {
-        isThinkingRef.current = false
-        setAiThinking(false)
+      if (currentConfig.difficulty <= 2) {
+        // Levels 1-2 are instant — run on main thread
+        try {
+          const move = getBestMove(currentState, currentConfig.difficulty)
+          if (move) setState(prev => applyMove(prev, move))
+        } catch {
+          // ignore
+        } finally {
+          isThinkingRef.current = false
+          setAiThinking(false)
+        }
+      } else {
+        // Levels 3-5: off-load to Web Worker so UI stays responsive
+        workerRef.current?.postMessage({ state: currentState, level: currentConfig.difficulty })
+        // isThinkingRef stays true until worker's onmessage/onerror resets it
       }
     }, 300)
 
@@ -112,11 +147,7 @@ export default function ChessGame() {
 
   const handlePromotion = (type: PieceType) => {
     if (!promotionPending) return
-    const move = legalMoves.find(m =>
-      m.to[0] === promotionPending.to[0] &&
-      m.to[1] === promotionPending.to[1] &&
-      m.promotion === type
-    ) ?? { ...promotionPending, promotion: type }
+    const move = { ...promotionPending, promotion: type }
     setState(prev => applyMove(prev, move))
     setPromotionPending(null)
     setSelected(null)
@@ -127,6 +158,16 @@ export default function ChessGame() {
     clearTimeout(timerRef.current)
     isThinkingRef.current = false
     setAiThinking(false)
+    // Terminate in-progress worker computation and create fresh worker
+    workerRef.current?.terminate()
+    workerRef.current = createAiWorker(
+      (move) => {
+        isThinkingRef.current = false
+        setAiThinking(false)
+        if (move) setState(prev => applyMove(prev, move))
+      },
+      () => { isThinkingRef.current = false; setAiThinking(false) }
+    )
   }
 
   const handleUndo = () => {
