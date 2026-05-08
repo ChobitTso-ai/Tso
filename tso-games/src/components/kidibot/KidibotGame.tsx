@@ -96,7 +96,7 @@ export default function KidibotGame() {
     setRobotPos(null)
     setMessage('')
     setStarsEarned(0)
-  }, [levelIdx, level])
+  }, [levelIdx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => { if (stepRef.current) clearTimeout(stepRef.current) }, [])
 
