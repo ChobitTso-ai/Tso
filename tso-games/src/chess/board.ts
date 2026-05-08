@@ -2,6 +2,34 @@ import type { BoardArray, Color, GameState, Move, Piece, PieceType } from './typ
 import { getLegalMoves, isInCheck } from './moves'
 import { moveToNotation } from './notation'
 
+// First 4 FEN fields (board, turn, castling, en-passant) uniquely identify a position
+function positionKey(fen: string): string {
+  return fen.split(' ').slice(0, 4).join(' ')
+}
+
+function isInsufficientMaterial(board: BoardArray): boolean {
+  const pieces: { type: string; color: string; r: number; f: number }[] = []
+  for (let r = 0; r < 8; r++)
+    for (let f = 0; f < 8; f++)
+      if (board[r][f]) pieces.push({ ...board[r][f]!, r, f })
+
+  if (pieces.length === 2) return true  // K vs K
+
+  if (pieces.length === 3) {
+    const minor = pieces.find(p => p.type !== 'K')
+    return minor?.type === 'B' || minor?.type === 'N'  // K+B vs K  or  K+N vs K
+  }
+
+  if (pieces.length === 4) {
+    const bishops = pieces.filter(p => p.type === 'B')
+    if (bishops.length === 2 && pieces.every(p => p.type === 'K' || p.type === 'B')) {
+      return (bishops[0].r + bishops[0].f) % 2 === (bishops[1].r + bishops[1].f) % 2  // same colour squares
+    }
+  }
+
+  return false
+}
+
 export function createInitialState(): GameState {
   return parseFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
 }
@@ -141,10 +169,17 @@ export function applyMove(state: GameState, move: Move): GameState {
 
   const legalNext = getLegalMoves(next)
   const inCheck = isInCheck(next.board, next.turn)
-  if (legalNext.length === 0) next.status = inCheck ? 'checkmate' : 'stalemate'
-  else if (inCheck) next.status = 'check'
-  else if (next.halfMove >= 100) next.status = 'draw'
-  else next.status = 'playing'
+  if (legalNext.length === 0) {
+    next.status = inCheck ? 'checkmate' : 'stalemate'
+  } else if (next.halfMove >= 100 || isInsufficientMaterial(next.board)) {
+    next.status = 'draw'
+  } else {
+    const newKey = positionKey(boardToFen(next))
+    const seen = next.history.filter(h => positionKey(h.fen) === newKey).length + 1
+    if (seen >= 3) next.status = 'draw'
+    else if (inCheck) next.status = 'check'
+    else next.status = 'playing'
+  }
 
   next.history.push({ move, notation, fen })
   return next
