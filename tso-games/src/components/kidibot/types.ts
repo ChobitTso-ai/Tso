@@ -73,10 +73,10 @@ export const TILE_LABEL: Record<TileType, string> = {
   path_down: '下',
   path_left: '左',
   path_right: '右',
-  path_turn_ul: '↰',
-  path_turn_ur: '↱',
-  path_turn_dl: '↲',
-  path_turn_dr: '↳',
+  path_turn_ul: '→↑ ↓←',
+  path_turn_ur: '←↑ ↓→',
+  path_turn_dl: '→↓ ↑←',
+  path_turn_dr: '←↓ ↑→',
 }
 
 // given a tile, returns [entryDir, exitDir] pairs (can enter from, exits toward)
