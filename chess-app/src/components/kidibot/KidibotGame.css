@@ -33,42 +33,7 @@
 
 .kb-level-btn:hover { border-color: #7ec87e; color: #7ec87e; }
 .kb-level-btn.active { border-color: #7ec87e; background: #2a4a2a; color: #7ec87e; }
-.kb-level-btn.done   { background: #1a3a1a; }
-.kb-level-btn.done-1 { border-color: #4a7a4a; color: #6aaa6a; }
-.kb-level-btn.done-2 { border-color: #5a9a5a; color: #7ec87e; }
-.kb-level-btn.done-3 { border-color: #c4a94e; color: #e4c97e; background: #2a3a1a; }
-
-/* All-done banner */
-.kb-all-done {
-  background: linear-gradient(135deg, #2a3a1a, #3a4a1a);
-  border: 2px solid #c4a94e;
-  border-radius: 12px;
-  padding: 10px 20px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #e4c97e;
-  text-align: center;
-  margin-bottom: 12px;
-  max-width: 700px;
-  width: 100%;
-  animation: shimmer 2s ease-in-out infinite alternate;
-}
-
-@keyframes shimmer {
-  from { box-shadow: 0 0 8px rgba(228, 201, 126, 0.2); }
-  to   { box-shadow: 0 0 20px rgba(228, 201, 126, 0.5); }
-}
-
-/* Best stars display */
-.kb-best {
-  font-size: 13px;
-  color: #e4c97e;
-  background: #1a2a0a;
-  border: 1px solid #3a4a1a;
-  border-radius: 8px;
-  padding: 6px 12px;
-  text-align: center;
-}
+.kb-level-btn.done { background: #1a3a1a; border-color: #4a8a4a; color: #4a8a4a; }
 
 /* Title */
 .kb-title-row {

@@ -18,10 +18,10 @@ const TILE_DISPLAY: Record<TileType, { emoji: string; label: string; bg: string 
   path_down:    { emoji: '↓',  label: '下',    bg: '#2a3a4a' },
   path_left:    { emoji: '←',  label: '左',    bg: '#2a3a4a' },
   path_right:   { emoji: '→',  label: '右',    bg: '#2a3a4a' },
-  path_turn_ul: { emoji: '↰',  label: '右→上',  bg: '#2a3a4a' },
-  path_turn_ur: { emoji: '↱',  label: '左→上',  bg: '#2a3a4a' },
-  path_turn_dl: { emoji: '↲',  label: '右→下',  bg: '#2a3a4a' },
-  path_turn_dr: { emoji: '↳',  label: '左→下',  bg: '#2a3a4a' },
+  path_turn_ul: { emoji: '↰',  label: '左→上',  bg: '#2a3a4a' },
+  path_turn_ur: { emoji: '↱',  label: '右→上',  bg: '#2a3a4a' },
+  path_turn_dl: { emoji: '↲',  label: '左→下',  bg: '#2a3a4a' },
+  path_turn_dr: { emoji: '↳',  label: '右→下',  bg: '#2a3a4a' },
 }
 
 const OBSTACLE_TILES = new Set<TileType>(['monster', 'fire', 'trap'])
@@ -49,20 +49,6 @@ function getExitDir(tile: TileType, entryDir: Direction): Direction | null {
   return null
 }
 
-const STORAGE_KEY = 'kidibot_best_stars'
-
-function loadBestStars(): number[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    const result = Array(LEVELS.length).fill(0)
-    for (let i = 0; i < result.length; i++) result[i] = parsed[i] ?? 0
-    return result
-  } catch {
-    return Array(LEVELS.length).fill(0)
-  }
-}
-
 type GamePhase = 'edit' | 'running' | 'success' | 'fail'
 interface HandTile { type: TileType; used: boolean }
 
@@ -79,14 +65,13 @@ export default function KidibotGame() {
   const [selected, setSelected] = useState<number | null>(null)
   const [phase, setPhase] = useState<GamePhase>('edit')
   const [robotPos, setRobotPos] = useState<Cell | null>(null)
+  const [_robotDir, setRobotDir] = useState<Direction>('right')
   const [message, setMessage] = useState('')
   const [starsEarned, setStarsEarned] = useState(0)
-  const [bestStars, setBestStars] = useState<number[]>(loadBestStars)
+  const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set())
 
   const stepRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cellSize = level.size <= 4 ? 72 : level.size <= 5 ? 64 : level.size <= 6 ? 56 : 48
-
-  const allDone = bestStars.every(s => s > 0)
 
   useEffect(() => {
     setPlaced(Array.from({ length: level.size }, () => Array(level.size).fill(null)))
@@ -145,10 +130,12 @@ export default function KidibotGame() {
       })
       setHand(prev => {
         const next = prev.map(h => ({ ...h }))
+        // return old tile if present
         if (existingTile) {
           const oldIdx = next.findIndex(h => h.type === existingTile && h.used)
           if (oldIdx >= 0) next[oldIdx].used = false
         }
+        // consume selected tile
         next[selected].used = true
         return next
       })
@@ -182,16 +169,19 @@ export default function KidibotGame() {
   function runSimulation() {
     if (phase !== 'edit') return
 
+    // Snapshot placed for the closure (state won't change during simulation)
     const placedSnapshot = placed.map(r => [...r])
 
     setPhase('running')
     setMessage('')
 
     const start = findStart()
+    const initDir = level.startDir
     setRobotPos(start)
+    setRobotDir(initDir)
 
     let pos = start
-    let dir = level.startDir
+    let dir = initDir
     let collected = 0
     const totalCollectible = level.grid.flat().filter(t => COLLECTIBLE_TILES.has(t)).length
     const visitedCollect = new Set<string>()
@@ -222,6 +212,7 @@ export default function KidibotGame() {
         return
       }
 
+      // Obstacle check
       if (OBSTACLE_TILES.has(fixedTile)) {
         setRobotPos(nb)
         setTimeout(() => {
@@ -231,27 +222,21 @@ export default function KidibotGame() {
         return
       }
 
+      // Collectible check (before path check, uses fixed tile)
       const key = `${nb.row},${nb.col}`
       if (COLLECTIBLE_TILES.has(fixedTile) && !visitedCollect.has(key)) {
         visitedCollect.add(key)
         collected++
       }
 
+      // Win check
       if (fixedTile === 'home') {
         setRobotPos(nb)
         const stars = totalCollectible === 0 ? 3
           : collected === totalCollectible ? 3
           : collected > 0 ? 2 : 1
         setStarsEarned(stars)
-        // save best stars to localStorage
-        setBestStars(prev => {
-          const next = [...prev]
-          if (stars > (next[levelIdx] ?? 0)) {
-            next[levelIdx] = stars
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* noop */ }
-          }
-          return next
-        })
+        setCompletedLevels(prev => new Set(prev).add(levelIdx))
         setTimeout(() => {
           setPhase('success')
           setMessage(
@@ -263,6 +248,7 @@ export default function KidibotGame() {
         return
       }
 
+      // Path navigation: placed tile takes precedence over fixed floor
       const pathTile = placedSnapshot[nb.row][nb.col] ?? (
         PATH_CONNECTIONS[fixedTile] ? fixedTile : null
       )
@@ -291,6 +277,7 @@ export default function KidibotGame() {
       pos = nb
       dir = exitDir
       setRobotPos({ ...pos })
+      setRobotDir(dir)
       stepRef.current = setTimeout(step, 450)
     }
 
@@ -308,14 +295,6 @@ export default function KidibotGame() {
     setStarsEarned(0)
   }
 
-  function starClass(idx: number) {
-    const s = bestStars[idx]
-    if (s === 3) return 'done done-3'
-    if (s === 2) return 'done done-2'
-    if (s === 1) return 'done done-1'
-    return ''
-  }
-
   return (
     <div className="kb-game">
       {/* Level selector */}
@@ -323,21 +302,13 @@ export default function KidibotGame() {
         {LEVELS.map((lv, i) => (
           <button
             key={lv.id}
-            className={`kb-level-btn ${i === levelIdx ? 'active' : ''} ${starClass(i)}`}
+            className={`kb-level-btn ${i === levelIdx ? 'active' : ''} ${completedLevels.has(i) ? 'done' : ''}`}
             onClick={() => { if (stepRef.current) clearTimeout(stepRef.current); setLevelIdx(i) }}
-            title={lv.name}
           >
-            {bestStars[i] ? '★' : lv.id}
+            {completedLevels.has(i) ? '✓' : lv.id}
           </button>
         ))}
       </div>
-
-      {/* All-done banner */}
-      {allDone && (
-        <div className="kb-all-done">
-          🏆 恭喜！全部 {LEVELS.length} 關完成！你是程式思維大師！
-        </div>
-      )}
 
       {/* Title */}
       <div className="kb-title-row">
@@ -465,13 +436,6 @@ export default function KidibotGame() {
           {message && (
             <div className={`kb-message ${phase === 'success' ? 'success' : phase === 'fail' ? 'fail' : ''}`}>
               {message}
-            </div>
-          )}
-
-          {/* Best stars for current level */}
-          {bestStars[levelIdx] > 0 && phase === 'edit' && (
-            <div className="kb-best">
-              最佳成績：{'★'.repeat(bestStars[levelIdx])}{'☆'.repeat(3 - bestStars[levelIdx])}
             </div>
           )}
         </div>
