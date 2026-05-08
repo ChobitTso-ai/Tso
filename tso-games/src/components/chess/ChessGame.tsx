@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameConfig, GameState, Move, PieceType } from '../../chess/types'
 import { createInitialState, applyMove, parseFen } from '../../chess/board'
 import { getLegalMoves } from '../../chess/moves'
+import { getBestMove } from '../../chess/ai'
 import { parseShareUrl } from '../../chess/save'
 import ChessBoard from './ChessBoard'
 import Sidebar from './Sidebar'
@@ -18,9 +19,13 @@ export default function ChessGame() {
   const [promotionPending, setPromotionPending] = useState<Move | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
 
-  // Ref-based lock to prevent re-triggering (must not be in effect deps)
+  // Refs prevent stale closures and keep isThinkingRef out of effect deps
   const isThinkingRef = useRef(false)
-  const workerRef = useRef<Worker | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const stateRef = useRef(state)
+  const configRef = useRef(config)
+  stateRef.current = state
+  configRef.current = config
 
   // Load from URL share on mount
   useEffect(() => {
@@ -33,41 +38,36 @@ export default function ChessGame() {
     }
   }, [])
 
-  // Create Web Worker once on mount
+  // AI move trigger — aiThinking NOT in deps to prevent self-cancellation loop
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../../chess/ai.worker.ts', import.meta.url),
-      { type: 'module' }
-    )
-    worker.onmessage = (e: MessageEvent<Move | null>) => {
-      isThinkingRef.current = false
-      setAiThinking(false)
-      if (e.data) setState(prev => applyMove(prev, e.data!))
-    }
-    worker.onerror = () => {
-      isThinkingRef.current = false
-      setAiThinking(false)
-    }
-    workerRef.current = worker
-    return () => { worker.terminate(); workerRef.current = null }
-  }, [])
+    const s = stateRef.current
+    const c = configRef.current
+    const isAITurn = c.mode === 'pvc' && s.turn !== c.playerColor
+    const isPlaying = s.status === 'playing' || s.status === 'check'
 
-  // AI move trigger — aiThinking intentionally NOT in deps to avoid timer cancellation
-  useEffect(() => {
-    const isAITurn = config.mode === 'pvc' && state.turn !== config.playerColor
-    const isPlaying = state.status === 'playing' || state.status === 'check'
     if (!isAITurn || !isPlaying || showSetup || isThinkingRef.current) return
 
     isThinkingRef.current = true
     setAiThinking(true)
 
-    const timer = setTimeout(() => {
-      workerRef.current?.postMessage({ state, level: config.difficulty })
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      const currentState = stateRef.current
+      const currentConfig = configRef.current
+      try {
+        const move = getBestMove(currentState, currentConfig.difficulty)
+        if (move) setState(prev => applyMove(prev, move))
+      } catch {
+        // ignore errors
+      } finally {
+        isThinkingRef.current = false
+        setAiThinking(false)
+      }
     }, 300)
 
-    return () => clearTimeout(timer)
+    return () => clearTimeout(timerRef.current)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, config, showSetup])
+  }, [state, showSetup])
 
   const findKingInCheck = useCallback(() => {
     if (state.status !== 'check' && state.status !== 'checkmate') return null
@@ -81,7 +81,7 @@ export default function ChessGame() {
   const handleSquareClick = useCallback((r: number, f: number) => {
     if (isThinkingRef.current || showSetup) return
     if (!['playing', 'check'].includes(state.status)) return
-    if (config.mode === 'pvc' && state.turn !== config.playerColor) return
+    if (configRef.current.mode === 'pvc' && state.turn !== configRef.current.playerColor) return
 
     if (selected) {
       const move = legalMoves.find(m => m.to[0] === r && m.to[1] === f)
@@ -108,7 +108,7 @@ export default function ChessGame() {
       setSelected(null)
       setLegalMoves([])
     }
-  }, [selected, legalMoves, state, config, showSetup])
+  }, [selected, legalMoves, state, showSetup])
 
   const handlePromotion = (type: PieceType) => {
     if (!promotionPending) return
@@ -123,26 +123,15 @@ export default function ChessGame() {
     setLegalMoves([])
   }
 
-  const resetWorker = () => {
-    workerRef.current?.terminate()
-    const worker = new Worker(
-      new URL('../../chess/ai.worker.ts', import.meta.url),
-      { type: 'module' }
-    )
-    worker.onmessage = (e: MessageEvent<Move | null>) => {
-      isThinkingRef.current = false
-      setAiThinking(false)
-      if (e.data) setState(prev => applyMove(prev, e.data!))
-    }
-    worker.onerror = () => { isThinkingRef.current = false; setAiThinking(false) }
-    workerRef.current = worker
+  const cancelAI = () => {
+    clearTimeout(timerRef.current)
+    isThinkingRef.current = false
+    setAiThinking(false)
   }
 
   const handleUndo = () => {
     if (state.history.length === 0) return
-    resetWorker()
-    isThinkingRef.current = false
-    setAiThinking(false)
+    cancelAI()
     const undoCount = config.mode === 'pvc' && state.history.length >= 2 ? 2 : 1
     const targetIdx = Math.max(0, state.history.length - undoCount)
     const targetFen = state.history[targetIdx]?.fen
@@ -153,12 +142,10 @@ export default function ChessGame() {
   }
 
   const handleNewGame = (cfg?: GameConfig) => {
-    resetWorker()
-    isThinkingRef.current = false
-    setAiThinking(false)
+    cancelAI()
     const newConfig = cfg ?? config
-    setState(createInitialState())
     setConfig(newConfig)
+    setState(createInitialState())
     setSelected(null)
     setLegalMoves([])
     setShowSetup(false)
@@ -204,7 +191,7 @@ export default function ChessGame() {
           onNewGame={() => setShowSetup(true)}
           onUndo={handleUndo}
           onFlip={() => setFlipped(f => !f)}
-          onLoadState={(s, c) => { setState(s); setConfig(c); setShowSetup(false) }}
+          onLoadState={(s, c) => { cancelAI(); setState(s); setConfig(c); setShowSetup(false) }}
         />
       </div>
     </div>
