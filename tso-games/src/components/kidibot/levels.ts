@@ -175,4 +175,97 @@ export const LEVELS: Level[] = [
     hand: ['path_right', 'path_turn_dr', 'path_turn_dr', 'path_turn_dr', 'path_down', 'path_down'],
     hint: '收集愛心和星星，繞過怪獸，安全回家！',
   },
+
+  // ── L11: U-turn — introduces path_left ───────────────────────────
+  // Path: GO[1,1]→R→[1,2](right,L→R)→R→[1,3](turn_dr,L→D)
+  //       →D→[2,3](down,U→D)→D→[3,3](turn_dl,U→L)
+  //       →L→[3,2](left,R→L)→L→HOME[3,1]
+  {
+    id: 11, name: '第十一關：U形迴轉', size: 5, startDir: 'right',
+    grid: [
+      [E, E, E, E, E],
+      [E, G, F, F, E],
+      [E, E, E, F, E],
+      [E, H, F, F, E],
+      [E, E, E, E, E],
+    ],
+    hand: ['path_right', 'path_turn_dr', 'path_down', 'path_turn_dl', 'path_left'],
+    hint: '向右走到底，轉彎向下，再向左回家！',
+  },
+
+  // ── L12: going upward — introduces path_up and path_turn_ur/ul ──
+  // Path: GO[4,1]→R→[4,2](turn_ur,L→U)→U→[3,2](up,D→U)→U→[2,2]=HT(up,D→U,collect)
+  //       →U→[1,2](turn_ul,D→L)→L→HOME[1,1]
+  // Monsters flank the vertical corridor at [2,1] and [2,3]
+  {
+    id: 12, name: '第十二關：往上收集愛心', size: 5, startDir: 'right',
+    grid: [
+      [E, E, E, E, E],
+      [E, H, F, E, E],
+      [E, M, HT,M, E],
+      [E, E, F, E, E],
+      [E, G, F, E, E],
+    ],
+    hand: ['path_turn_ur', 'path_up', 'path_up', 'path_turn_ul'],
+    hint: '先右轉向上，沿垂直路線收集愛心，最後左轉回家！',
+  },
+
+  // ── L13: S-curve — two direction changes, collect star ───────────
+  // Path: GO[1,1]→R→[1,2](right,L→R)→R→[1,3](turn_dr,L→D)
+  //       →D→[2,3](down,U→D)→D→[3,3]=ST(turn_dr,U→R,collect)
+  //       →R→[3,4](right,L→R)→R→[3,5](turn_dr,L→D)→D→HOME[4,5]
+  // Monster at [2,2] blocks shortcut; fire at [3,2] for atmosphere
+  {
+    id: 13, name: '第十三關：S形收集星星', size: 6, startDir: 'right',
+    grid: [
+      [E,  E,  E,  E,  E,  E],
+      [E,  G,  F,  F,  E,  E],
+      [E,  E,  M,  F,  E,  E],
+      [E,  FR, E,  ST, F,  F],
+      [E,  E,  E,  E,  E,  H],
+      [E,  E,  E,  E,  E,  E],
+    ],
+    hand: ['path_right', 'path_turn_dr', 'path_down', 'path_turn_dr', 'path_right', 'path_turn_dr'],
+    hint: '向右→向下→右轉收集星星→再向右→再向下到家，S形路線！',
+  },
+
+  // ── L14: big loop — right+down+left, collect heart ───────────────
+  // Path: GO[1,1]→R→[1,2](right)→R→[1,3](right)→R→[1,4](turn_dr,L→D)
+  //       →D→[2,4]=HT(down,collect)→D→[3,4](down)→D→[4,4](turn_dl,U→L)
+  //       →L→[4,3](left)→L→[4,2](left)→L→HOME[4,1]
+  // Monsters at [2,1] and [3,1] guard the interior
+  {
+    id: 14, name: '第十四關：大迴圈', size: 6, startDir: 'right',
+    grid: [
+      [E, E, E, E, E, E],
+      [E, G, F, F, F, E],
+      [E, M, E, E, HT,E],
+      [E, M, E, E, F, E],
+      [E, H, F, F, F, E],
+      [E, E, E, E, E, E],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_down', 'path_turn_dl', 'path_left', 'path_left'],
+    hint: '繞一大圈：右→右→下→下→左→左，在右側收集愛心！',
+  },
+
+  // ── L15: grand finale — all directions, heart + star ─────────────
+  // Path: GO[1,1]→R→[1,2](right)→R→[1,3](right)→R→[1,4](turn_dr,L→D)
+  //       →D→[2,4]=HT(down,collect heart)→D→[3,4](down)
+  //       →D→[4,4]=ST(turn_dr,U→R,collect star)
+  //       →R→[4,5](turn_dr,L→D)→D→[5,5](down)→D→HOME[6,5]
+  // Monsters at [2,2],[4,3]; fire at [3,3] — all off the critical path
+  {
+    id: 15, name: '第十五關：最終大冒險', size: 7, startDir: 'right',
+    grid: [
+      [E,  E,  E,  E,  E,  E,  E],
+      [E,  G,  F,  F,  F,  E,  E],
+      [E,  E,  M,  E,  HT, E,  E],
+      [E,  E,  E,  FR, F,  E,  E],
+      [E,  E,  E,  M,  ST, F,  E],
+      [E,  E,  E,  E,  E,  F,  E],
+      [E,  E,  E,  E,  E,  H,  E],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_down', 'path_turn_dr', 'path_turn_dr', 'path_down'],
+    hint: '全方位冒險：收集愛心和星星，繞過怪獸與火焰，英雄回家！',
+  },
 ]
