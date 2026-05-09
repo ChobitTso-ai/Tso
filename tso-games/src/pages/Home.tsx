@@ -37,6 +37,15 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'endgames',
+    title: '西洋棋殘局練習',
+    description: '100 題經典殘局——兵局、車局、象局、馬局、后局與複合殘局，搭配 AI 對手與提示。',
+    icon: '♜',
+    path: '/endgames',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
