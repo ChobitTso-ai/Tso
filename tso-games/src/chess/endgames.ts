@@ -73,7 +73,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 10, category: '兵局', name: '方格法則', difficulty: 1,
-    fen: '8/8/8/8/p7/8/8/4K3 b - - 0 1',
+    fen: '8/8/8/8/p7/8/7k/4K3 b - - 0 1',
     goal: '黑方獲勝', playerColor: 'b',
     hint: '黑王是否在兵的"方格"內？若是，黑王可追上兵',
   },
@@ -97,7 +97,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 14, category: '兵局', name: '黑兵升變護送', difficulty: 1,
-    fen: '4K3/4k3/8/8/8/8/4p3/8 b - - 0 1',
+    fen: '3K4/8/4k3/8/8/8/4p3/8 b - - 0 1',
     goal: '黑方獲勝', playerColor: 'b',
     hint: '黑王護送兵到升變，同時阻擋白王',
   },
@@ -115,7 +115,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 17, category: '兵局', name: '對稱位置和棋', difficulty: 2,
-    fen: '8/8/8/8/8/p7/P7/kK6 w - - 0 1',
+    fen: '8/8/8/8/8/p7/P7/2k1K3 w - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: '白方無法突破對稱防守，正確應對即可和棋',
   },
@@ -127,7 +127,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 19, category: '兵局', name: '阻擋兵（對攻）', difficulty: 3,
-    fen: '8/8/8/p7/P7/8/8/Kk6 w - - 0 1',
+    fen: '8/8/8/p7/P7/8/8/2K1k3 w - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: '互相阻擋的兵型通常導致和棋',
   },
@@ -141,7 +141,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   // ===== 車局 (25) =====
   {
     id: 21, category: '車局', name: '車王殺局——基礎', difficulty: 1,
-    fen: '8/8/8/8/8/3K4/8/R6k w - - 0 1',
+    fen: '8/8/8/8/8/3K4/7k/R7 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '用車將黑王限制在邊緣，再配合王將軍',
   },
@@ -171,7 +171,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 26, category: '車局', name: '橫向切割', difficulty: 2,
-    fen: '8/8/8/8/R7/8/4k3/4K3 w - - 0 1',
+    fen: '8/8/8/8/R7/8/4k3/6K1 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '車橫向切割黑王，讓白王靠近後再配合',
   },
@@ -195,7 +195,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 30, category: '車局', name: '車王殺局——第七排', difficulty: 2,
-    fen: '3k4/3R4/8/3K4/8/8/8/8 w - - 0 1',
+    fen: '3k4/8/4R3/3K4/8/8/8/8 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '車霸佔第七排，白王配合逼殺黑王',
   },
@@ -207,7 +207,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 32, category: '車局', name: '車+兵對車——和棋', difficulty: 3,
-    fen: '8/8/4k3/8/4P3/8/8/r3K2R b - - 0 1',
+    fen: '8/8/4k3/8/4P3/8/r7/4K2R b - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: '黑車從後方不斷騷擾，防止白兵升變',
   },
@@ -219,19 +219,19 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 34, category: '車局', name: '車的活躍性', difficulty: 2,
-    fen: '8/8/8/8/8/k7/r7/K7 b - - 0 1',
+    fen: '8/8/8/8/8/k7/1r6/K7 b - - 0 1',
     goal: '黑方獲勝', playerColor: 'b',
     hint: '黑車+王積極進攻，逼白王入角',
   },
   {
     id: 35, category: '車局', name: '三個兵對車', difficulty: 2,
-    fen: '8/8/8/8/2P5/1P6/P7/R3k1K1 w - - 0 1',
+    fen: '8/8/8/8/2P5/1P6/P7/4k1KR w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '多個連通兵加上車的威力無窮',
   },
   {
     id: 36, category: '車局', name: 'g兵和棋', difficulty: 2,
-    fen: '8/8/8/8/8/8/6p1/R5Kk b - - 0 1',
+    fen: '8/8/8/8/8/7k/6p1/R5K1 b - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: 'g兵在 g2，黑王在 h1——白車無法阻止升變嗎？',
   },
@@ -279,7 +279,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 44, category: '車局', name: '車對遠端通路兵', difficulty: 2,
-    fen: '8/8/8/p7/8/8/8/KR3k2 w - - 0 1',
+    fen: '8/8/8/p7/8/8/1R6/K5k1 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '車從後追趕通路兵，比黑王先到達',
   },
@@ -311,7 +311,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 49, category: '象局', name: '兩個象殺局', difficulty: 2,
-    fen: '7k/8/8/8/8/8/8/BBK5 w - - 0 1',
+    fen: '8/8/7k/8/8/8/8/BBK5 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '兩象配合可強制逼殺，需把黑王推到角落',
   },
@@ -341,7 +341,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 54, category: '象局', name: '象錯色+邊兵——和棋', difficulty: 2,
-    fen: 'k7/8/K7/P7/8/8/8/7B w - - 0 1',
+    fen: 'k7/8/K7/P7/8/8/8/5B2 w - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: 'a兵加上錯色象（升變格是暗色，象是亮色）——和棋',
   },
@@ -409,7 +409,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 65, category: '馬局', name: 'h兵+馬——難題', difficulty: 3,
-    fen: '8/8/8/8/8/7k/7p/6KN b - - 0 1',
+    fen: '8/8/8/8/8/7k/5K1p/7N b - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: 'h兵到達第二排，黑王在 h3——白馬能阻止嗎？',
   },
@@ -465,7 +465,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 74, category: '后局', name: '后對c2兵——和棋風險', difficulty: 3,
-    fen: '8/8/8/8/8/8/2p5/k2K2Q1 b - - 0 1',
+    fen: '8/8/8/8/8/8/2p1K3/k5Q1 b - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: 'c兵同樣有逼和危險，比 d 兵更棘手',
   },
@@ -489,7 +489,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 78, category: '后局', name: '后+兵——快速升變', difficulty: 1,
-    fen: '8/8/8/8/8/8/3P4/3KQ2k w - - 0 1',
+    fen: '8/8/8/8/8/8/3P3k/3KQ3 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '后+兵配合，或直接殺局或升變為雙后',
   },
@@ -563,7 +563,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 90, category: '複合殘局', name: '后對雙車', difficulty: 3,
-    fen: '3k4/3rr3/8/8/8/8/8/Q3K3 b - - 0 1',
+    fen: '3k4/3r1r2/8/8/8/8/8/Q3K3 b - - 0 1',
     goal: '和棋', playerColor: 'b',
     hint: '兩個車協防對抗后，黑方尋求和棋',
   },
@@ -617,7 +617,7 @@ export const ENDGAME_POSITIONS: EndgamePosition[] = [
   },
   {
     id: 99, category: '複合殘局', name: '全力衝刺——兵升變競賽', difficulty: 2,
-    fen: '8/8/8/8/8/8/PPPPPPPP/4K3 w - - 0 1',
+    fen: '7k/8/8/8/8/8/PPPPPPPP/4K3 w - - 0 1',
     goal: '白方獲勝', playerColor: 'w',
     hint: '白方有完整兵陣，如何最快升變？',
   },
