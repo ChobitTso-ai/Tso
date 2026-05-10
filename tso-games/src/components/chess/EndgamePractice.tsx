@@ -11,7 +11,7 @@ import './EndgamePractice.css'
 type Progress = Record<number, 'solved' | 'attempted'>
 
 const STORAGE_KEY = 'chess_endgame_progress'
-const AI_DIFFICULTY = 3
+const AI_DIFFICULTY = 4
 
 function loadProgress(): Progress {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') } catch { return {} }
