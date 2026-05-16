@@ -62,4 +62,43 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+## 5. Project-Specific: TSO Games (tso-games/)
+
+### 架構
+- `src/pages/` — 路由頁面（每個遊戲一個，搭配同名 `.css`）
+- `src/components/<game>/` — 遊戲 UI 元件，同樣搭配同名 `.css`
+- `src/chess/` — 純棋局邏輯（無 React），包含 board、moves、ai、notation、types
+- 所有使用者介面文字用**繁體中文**
+
+### 新增遊戲的標準步驟
+1. `src/pages/<Name>Page.tsx` + `.css`（含導航列）
+2. `src/components/<name>/`（元件與 CSS）
+3. `src/App.tsx` 加路由
+4. `src/pages/Home.tsx` 加卡片（GAMES 陣列）
+
+### TypeScript 習慣
+- 字面量聯合型別：`Color = 'w' | 'b'`、`Difficulty = 1|2|3|4|5`
+- 棋盤座標一律用 `[number, number]`（rank, file）
+- `Record<PieceType, T>` 取代 enum
+- Props 型別在元件檔案內定義，不另行 export
+
+### React 習慣
+- 所有元件為函式元件，單一 `export default`
+- 狀態更新用純函式：`setState(prev => applyMove(prev, move))`
+- 不應觸發 re-render 的可變值用 `useRef`（isThinkingRef、timerRef、stateRef）
+- `useCallback` 用於傳遞給子元件的 handler
+- ESLint deps 刻意省略時加 `// eslint-disable-next-line react-hooks/exhaustive-deps` 並在上方說明原因
+
+### CSS 習慣
+- 類別名稱用 kebab-case，以元件縮寫為前綴（`ep-`、`cb-`、`cg-`）
+- 深色主題：背景 `#0f1729`、金色強調 `#e4c97e`
+- 棋盤格：亮格 `#f0d9b5`、暗格 `#b58863`
+- RWD 斷點 600px（棋盤類）、900px（三欄改單欄）
+
+### 棋局特有慣例
+- rank 0 = 第 8 橫列（棋盤頂部）、file 0 = a 行
+- 新增殘局位置前必須驗證 FEN 合法性（雙王存在、不相鄰、非行動方不被將）
+- AI 在殘局位置同步執行（pieces 少，< 100ms）；完整棋局使用 Web Worker
+- `AI_DIFFICULTY` 對應搜尋深度：1-2 同步，3-5 Worker
+- localStorage 用於進度與存檔，key 名稱格式：`chess_<feature>`
+
