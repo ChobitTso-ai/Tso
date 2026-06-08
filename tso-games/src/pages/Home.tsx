@@ -46,6 +46,15 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'mathquest',
+    title: '數學冒險',
+    description: '棋盤走路打怪物！選擇 Alan 或 Ryan T，答對數學題才能打倒怪物、挑戰 Boss！',
+    icon: '🔢',
+    path: '/mathquest',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
