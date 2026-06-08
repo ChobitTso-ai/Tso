@@ -266,6 +266,137 @@
   margin: 12px 0 0;
 }
 
+/* 跳過券按鈕 */
+.mq-skip-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: #2a5a2a;
+  border: 1px solid #4a9a4a;
+  border-radius: 8px;
+  color: #aaffaa;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mq-skip-btn:hover { background: #3a7a3a; }
+
+/* ── 動畫 ─────────────────────────────────────────────────────────────── */
+
+/* 答錯搖晃 */
+@keyframes mq-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  35%       { transform: translateX(8px); }
+  55%       { transform: translateX(-6px); }
+  75%       { transform: translateX(6px); }
+  90%       { transform: translateX(-3px); }
+}
+.mq-shake { animation: mq-shake 0.45s ease-in-out; }
+
+/* 怪物消滅閃光 */
+@keyframes mq-sparkle {
+  0%   { background: #ffdd44; transform: scale(1.3); }
+  40%  { background: #ffaa00; transform: scale(1.15); }
+  100% { background: #16213e; transform: scale(1); }
+}
+.mq-cell-sparkle { animation: mq-sparkle 0.55s ease-out forwards; }
+
+/* Combo 徽章彈入 */
+@keyframes mq-combo-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.mq-combo { animation: mq-combo-pop 0.3s ease-out; }
+
+/* ── Combo 顯示 ────────────────────────────────────────────────────────── */
+.mq-combo {
+  background: #ff6600;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.mq-combo-fire {
+  background: linear-gradient(135deg, #ff4400, #ffaa00);
+  box-shadow: 0 0 8px #ff6600aa;
+}
+
+/* ── 道具欄 ───────────────────────────────────────────────────────────── */
+.mq-items-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mq-item-btn {
+  font-size: 1.4rem;
+  background: #16213e;
+  border: 2px solid #4a9a4a;
+  border-radius: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+.mq-item-btn:hover { background: #1e3a2e; transform: scale(1.1); }
+
+/* ── Toast 通知 ───────────────────────────────────────────────────────── */
+@keyframes mq-toast-in {
+  0%   { opacity: 0; transform: translateY(10px); }
+  20%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.mq-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e3a2e;
+  border: 1px solid #4a9a4a;
+  color: #aaffaa;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  z-index: 200;
+  animation: mq-toast-in 1.8s ease-out forwards;
+}
+
+/* ── 排行榜 ───────────────────────────────────────────────────────────── */
+.mq-lb, .mq-lb-mini {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 8px;
+}
+.mq-lb-mini { margin-top: 24px; }
+
+.mq-lb-title {
+  color: #FFD700;
+  font-size: 0.95rem;
+  font-weight: bold;
+  margin: 0 0 8px;
+  text-align: center;
+}
+.mq-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+  color: #ccc;
+  border-bottom: 1px solid #0f3460;
+}
+.mq-lb-row:last-child { border-bottom: none; }
+.mq-lb-current { color: #FFD700; font-weight: bold; }
+.mq-lb-rank { width: 24px; text-align: center; }
+.mq-lb-score { margin-left: auto; color: #FFD700; }
+.mq-lb-combo { color: #ff9944; min-width: 40px; text-align: right; }
+.mq-lb-date { color: #666; font-size: 0.75rem; min-width: 52px; text-align: right; }
+
 /* ── 結算 ─────────────────────────────────────────────────────────────── */
 .mq-end {
   min-height: 100vh;
@@ -274,17 +405,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   padding: 24px;
+  box-sizing: border-box;
 }
 
 .mq-end-icon { font-size: 5rem; margin: 0; }
 .mq-end-title { font-size: 2rem; color: #FFD700; margin: 0; }
 .mq-end-score { font-size: 1.2rem; color: #eee; margin: 0; }
+.mq-end-combo { font-size: 0.95rem; color: #ff9944; margin: 0; }
 .mq-end-char { font-size: 1rem; margin: 0; }
 
 .mq-end-btn {
-  margin-top: 16px;
+  margin-top: 12px;
   padding: 14px 40px;
   background: #4A90D9;
   border: none;
@@ -303,4 +436,5 @@
   .mq-char-card { width: 155px; padding: 18px 12px; }
   .mq-question { font-size: 1.25rem; }
   .mq-option { font-size: 1rem; padding: 12px; }
+  .mq-lb-date { display: none; }
 }

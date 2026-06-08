@@ -1,20 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getQuestion, type CharacterId, type Question } from './questions'
+import { Sfx } from './sounds'
 import './MathQuest.css'
 
 // ── 型別 ──────────────────────────────────────────────────────────────────────
 
-type CellType = 'empty' | 'monster' | 'heal' | 'boss' | 'start'
+type CellType = 'empty' | 'monster' | 'item' | 'boss' | 'start'
 type Screen = 'select' | 'map' | 'battle' | 'boss' | 'win' | 'lose'
+type ItemType = 'heal' | 'skip'
 
-interface Cell {
-  type: CellType
-  defeated: boolean
-}
+interface Cell { type: CellType; defeated: boolean }
 
 interface GameState {
   char: CharacterId
-  level: 1 | 2
+  level: 1 | 2 | 3
   board: Cell[][]
   pos: [number, number]
   hp: number
@@ -26,18 +25,33 @@ interface GameState {
   bossQ: Question[]
   bossIndex: number
   bossWrongOptions: number[]
+  combo: number
+  maxCombo: number
+  items: ItemType[]
 }
 
-// ── constants ────────────────────────────────────────────────────────────────
+interface ScoreEntry {
+  char: CharacterId
+  score: number
+  maxCombo: number
+  level: number
+  date: string
+}
+
+// ── 常數 ──────────────────────────────────────────────────────────────────────
 
 const CHAR_INFO = {
   alan: { name: 'Alan', maxHp: 4, color: '#4A90D9', emoji: '🧒', subject: '九九乘法', desc: '專攻乘法表，穩健冷靜' },
   ryan: { name: 'Ryan T', maxHp: 5, color: '#E8A020', emoji: '😄', subject: '小學數學', desc: '活潑挑戰，四五六年級題目' },
 }
 
-const STORAGE_KEY = 'mathQuestGame'
+const LEVEL_SIZE: Record<1 | 2 | 3, number> = { 1: 5, 2: 7, 3: 9 }
+const BOSS_Q: Record<1 | 2 | 3, number> = { 1: 3, 2: 4, 3: 5 }
 
-// ── 棋盤生成 ──────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'mathQuestGame'
+const LEADERBOARD_KEY = 'mathQuestLeaderboard'
+
+// ── 工具 ──────────────────────────────────────────────────────────────────────
 
 function buildBoard(size: number): Cell[][] {
   const board: Cell[][] = Array.from({ length: size }, () =>
@@ -46,10 +60,6 @@ function buildBoard(size: number): Cell[][] {
   board[0][0] = { type: 'start', defeated: false }
   board[size - 1][size - 1] = { type: 'boss', defeated: false }
 
-  // 放怪物（約 40% 格子）
-  const total = size * size - 2
-  const monsterCount = Math.floor(total * 0.4)
-  const healCount = Math.floor(total * 0.08)
   const positions: [number, number][] = []
   for (let r = 0; r < size; r++)
     for (let c = 0; c < size; c++)
@@ -57,67 +67,60 @@ function buildBoard(size: number): Cell[][] {
         positions.push([r, c])
 
   const shuffled = positions.sort(() => Math.random() - 0.5)
+  const total = shuffled.length
+  const monsterCount = Math.floor(total * 0.42)
+  const itemCount = Math.floor(total * 0.1)
+
   for (let i = 0; i < monsterCount; i++) board[shuffled[i][0]][shuffled[i][1]].type = 'monster'
-  for (let i = monsterCount; i < monsterCount + healCount; i++) board[shuffled[i][0]][shuffled[i][1]].type = 'heal'
+  for (let i = monsterCount; i < monsterCount + itemCount; i++) board[shuffled[i][0]][shuffled[i][1]].type = 'item'
 
   return board
 }
 
-function buildBossQuestions(char: CharacterId, level: 1 | 2): Question[] {
-  return [getQuestion(char, level), getQuestion(char, level), getQuestion(char, level)]
+function buildBossQs(char: CharacterId, level: 1 | 2 | 3): Question[] {
+  return Array.from({ length: BOSS_Q[level] }, () => getQuestion(char, level))
+}
+
+function comboBonus(combo: number): number {
+  if (combo >= 5) return 10
+  if (combo >= 3) return 5
+  return 0
+}
+
+function saveScore(entry: Omit<ScoreEntry, 'date'>) {
+  const saved = localStorage.getItem(LEADERBOARD_KEY)
+  const board: ScoreEntry[] = saved ? JSON.parse(saved) : []
+  board.push({ ...entry, date: new Date().toLocaleDateString('zh-TW') })
+  board.sort((a, b) => b.score - a.score)
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board.slice(0, 5)))
+}
+
+function loadLeaderboard(): ScoreEntry[] {
+  const saved = localStorage.getItem(LEADERBOARD_KEY)
+  return saved ? JSON.parse(saved) : []
 }
 
 // ── 主元件 ────────────────────────────────────────────────────────────────────
 
 export default function MathQuest() {
   const [state, setState] = useState<GameState | null>(null)
+  const [shaking, setShaking] = useState(false)
+  const [sparkleCell, setSparkleCell] = useState<string | null>(null)
+  const [itemToast, setItemToast] = useState<string | null>(null)
+  const shakingRef = useRef(false)
 
-  // 載入存檔
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      try { setState(JSON.parse(saved)) } catch { /* 壞掉就算了 */ }
+      try { setState(JSON.parse(saved)) } catch { /* 損壞就算了 */ }
     }
   }, [])
 
-  // 存檔
   useEffect(() => {
     if (state && state.screen !== 'select') localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  // 鍵盤操作
-  const handleKey = useCallback((e: KeyboardEvent) => {
-    if (!state || state.screen !== 'map') return
-    const dirs: Record<string, [number, number]> = {
-      ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
-    }
-    const d = dirs[e.key]
-    if (d) { e.preventDefault(); tryMove(d[0], d[1]) }
-  }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [handleKey])
-
-  // ── 動作 ──────────────────────────────────────────────────────────────────
-
-  function startGame(char: CharacterId) {
-    const info = CHAR_INFO[char]
-    const level = 1
-    setState({
-      char, level,
-      board: buildBoard(5),
-      pos: [0, 0],
-      hp: info.maxHp, maxHp: info.maxHp,
-      score: 0,
-      screen: 'map',
-      question: null, wrongOptions: [],
-      bossQ: [], bossIndex: 0, bossWrongOptions: [],
-    })
-  }
-
-  function tryMove(dr: number, dc: number) {
+  const tryMove = useCallback((dr: number, dc: number) => {
     setState(prev => {
       if (!prev || prev.screen !== 'map') return prev
       const size = prev.board.length
@@ -135,59 +138,182 @@ export default function MathQuest() {
       if (cell.type === 'monster' && !cell.defeated) {
         newQ = getQuestion(prev.char, prev.level)
         newScreen = 'battle'
-      } else if (cell.type === 'heal' && !cell.defeated) {
-        newHp = Math.min(prev.maxHp, prev.hp + 1)
+        Sfx.move()
+      } else if (cell.type === 'item' && !cell.defeated) {
+        const item: ItemType = Math.random() < 0.5 ? 'heal' : 'skip'
+        const newItems = prev.items.length < 3 ? [...prev.items, item] : prev.items
         newBoard[nr][nc].defeated = true
-        newScore += 5
+        Sfx.item()
+        // toast handled outside via effect
+        setTimeout(() => {
+          setItemToast(item === 'heal' ? '💊 獲得回血藥！' : '🎫 獲得跳過券！')
+          setTimeout(() => setItemToast(null), 1800)
+        }, 0)
+        return { ...prev, pos: [nr, nc], board: newBoard, hp: newHp, score: newScore + 5, items: newItems }
       } else if (cell.type === 'boss' && !cell.defeated) {
-        // 檢查是否有未打倒的怪物
         const hasMonsters = newBoard.some(row => row.some(c => c.type === 'monster' && !c.defeated))
-        if (hasMonsters) return prev // 不能直接挑戰 Boss
-        newScreen = 'boss'
+        if (hasMonsters) return prev
+        Sfx.boss()
         return {
           ...prev, pos: [nr, nc],
-          bossQ: buildBossQuestions(prev.char, prev.level),
+          bossQ: buildBossQs(prev.char, prev.level),
           bossIndex: 0, bossWrongOptions: [],
           screen: 'boss',
         }
+      } else {
+        if (!cell.defeated) Sfx.move()
       }
 
       return {
-        ...prev,
-        pos: [nr, nc],
-        board: newBoard,
-        hp: newHp, score: newScore,
-        screen: newScreen,
+        ...prev, pos: [nr, nc], board: newBoard,
+        hp: newHp, score: newScore, screen: newScreen,
         question: newQ, wrongOptions: [],
       }
     })
+  }, [])
+
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    const dirs: Record<string, [number, number]> = {
+      ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
+    }
+    const d = dirs[e.key]
+    if (d) { e.preventDefault(); tryMove(d[0], d[1]) }
+  }, [tryMove])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [handleKey])
+
+  // ── 動作 ──────────────────────────────────────────────────────────────────
+
+  function startGame(char: CharacterId) {
+    const info = CHAR_INFO[char]
+    setState({
+      char, level: 1,
+      board: buildBoard(LEVEL_SIZE[1]),
+      pos: [0, 0],
+      hp: info.maxHp, maxHp: info.maxHp,
+      score: 0, screen: 'map',
+      question: null, wrongOptions: [],
+      bossQ: [], bossIndex: 0, bossWrongOptions: [],
+      combo: 0, maxCombo: 0,
+      items: [],
+    })
+  }
+
+  function triggerShake() {
+    if (shakingRef.current) return
+    shakingRef.current = true
+    setShaking(true)
+    setTimeout(() => { setShaking(false); shakingRef.current = false }, 500)
+  }
+
+  function triggerSparkle(r: number, c: number) {
+    const key = `${r},${c}`
+    setSparkleCell(key)
+    setTimeout(() => setSparkleCell(null), 600)
   }
 
   function clickCell(r: number, c: number) {
     if (!state || state.screen !== 'map') return
     const [pr, pc] = state.pos
-    const dr = r - pr, dc = c - pc
-    if (Math.abs(dr) + Math.abs(dc) === 1) tryMove(dr, dc)
+    if (Math.abs(r - pr) + Math.abs(c - pc) === 1) tryMove(r - pr, c - pc)
+  }
+
+  function useItem(item: ItemType) {
+    setState(prev => {
+      if (!prev) return prev
+      const idx = prev.items.indexOf(item)
+      if (idx === -1) return prev
+      const newItems = prev.items.filter((_, i) => i !== idx)
+      if (item === 'heal') {
+        Sfx.item()
+        return { ...prev, items: newItems, hp: Math.min(prev.maxHp, prev.hp + 1) }
+      }
+      return { ...prev, items: newItems }
+    })
+  }
+
+  function useSkipInBattle() {
+    setState(prev => {
+      if (!prev) return prev
+      const idx = prev.items.indexOf('skip')
+      if (idx === -1) return prev
+      const newItems = prev.items.filter((_, i) => i !== idx)
+      const newBoard = prev.board.map(row => row.map(c => ({ ...c })))
+      const [r, c] = prev.pos
+      newBoard[r][c].defeated = true
+      triggerSparkle(r, c)
+      Sfx.correct()
+      return { ...prev, items: newItems, board: newBoard, screen: 'map', question: null, wrongOptions: [] }
+    })
+  }
+
+  function useSkipInBoss() {
+    setState(prev => {
+      if (!prev) return prev
+      const idx = prev.items.indexOf('skip')
+      if (idx === -1) return prev
+      const newItems = prev.items.filter((_, i) => i !== idx)
+      const next = prev.bossIndex + 1
+      if (next >= prev.bossQ.length) {
+        return resolveWin({ ...prev, items: newItems })
+      }
+      return { ...prev, items: newItems, bossIndex: next, bossWrongOptions: [] }
+    })
+  }
+
+  function resolveWin(prev: GameState): GameState {
+    const newBoard = prev.board.map(row => row.map(c => ({ ...c })))
+    const [r, c] = prev.pos
+    newBoard[r][c].defeated = true
+    const nextLevel = (prev.level + 1) as 1 | 2 | 3
+    if (nextLevel > 3) {
+      Sfx.win()
+      saveScore({ char: prev.char, score: prev.score + 50, maxCombo: prev.maxCombo, level: prev.level })
+      return { ...prev, board: newBoard, score: prev.score + 50, screen: 'win' }
+    }
+    Sfx.win()
+    return {
+      ...prev,
+      level: nextLevel,
+      board: buildBoard(LEVEL_SIZE[nextLevel]),
+      pos: [0, 0],
+      score: prev.score + 50,
+      screen: 'map',
+      bossQ: [], bossIndex: 0, bossWrongOptions: [],
+    }
   }
 
   function answerQuestion(option: number) {
     setState(prev => {
       if (!prev || !prev.question) return prev
       if (option === prev.question.answer) {
-        // 答對
+        const newCombo = prev.combo + 1
+        const newMaxCombo = Math.max(prev.maxCombo, newCombo)
+        const bonus = comboBonus(newCombo)
         const newBoard = prev.board.map(row => row.map(c => ({ ...c })))
         const [r, c] = prev.pos
         newBoard[r][c].defeated = true
+        if (newCombo >= 3) Sfx.combo(); else Sfx.correct()
+        triggerSparkle(r, c)
         return {
           ...prev, board: newBoard,
-          score: prev.score + 10,
+          score: prev.score + 10 + bonus,
+          combo: newCombo, maxCombo: newMaxCombo,
           screen: 'map', question: null, wrongOptions: [],
         }
       } else {
-        // 答錯
+        Sfx.wrong()
+        triggerShake()
         const newHp = prev.hp - 1
-        if (newHp <= 0) return { ...prev, hp: 0, screen: 'lose' }
-        return { ...prev, hp: newHp, wrongOptions: [...prev.wrongOptions, option] }
+        if (newHp <= 0) {
+          Sfx.lose()
+          saveScore({ char: prev.char, score: prev.score, maxCombo: prev.maxCombo, level: prev.level })
+          return { ...prev, hp: 0, combo: 0, screen: 'lose' }
+        }
+        return { ...prev, hp: newHp, combo: 0, wrongOptions: [...prev.wrongOptions, option] }
       }
     })
   }
@@ -197,32 +323,22 @@ export default function MathQuest() {
       if (!prev) return prev
       const q = prev.bossQ[prev.bossIndex]
       if (option === q.answer) {
+        const newCombo = prev.combo + 1
+        const newMaxCombo = Math.max(prev.maxCombo, newCombo)
+        if (newCombo >= 3) Sfx.combo(); else Sfx.correct()
         const next = prev.bossIndex + 1
-        if (next >= prev.bossQ.length) {
-          // Boss 打倒
-          const newBoard = prev.board.map(row => row.map(c => ({ ...c })))
-          const [r, c] = prev.pos
-          newBoard[r][c].defeated = true
-          const nextLevel = prev.level + 1
-          if (nextLevel > 2) {
-            return { ...prev, board: newBoard, score: prev.score + 50, screen: 'win' }
-          }
-          // 進入下一關
-          return {
-            ...prev,
-            level: nextLevel as 1 | 2,
-            board: buildBoard(7),
-            pos: [0, 0],
-            score: prev.score + 50,
-            screen: 'map',
-            bossQ: [], bossIndex: 0, bossWrongOptions: [],
-          }
-        }
-        return { ...prev, bossIndex: next, bossWrongOptions: [] }
+        if (next >= prev.bossQ.length) return resolveWin({ ...prev, combo: newCombo, maxCombo: newMaxCombo })
+        return { ...prev, bossIndex: next, bossWrongOptions: [], combo: newCombo, maxCombo: newMaxCombo }
       } else {
+        Sfx.wrong()
+        triggerShake()
         const newHp = prev.hp - 1
-        if (newHp <= 0) return { ...prev, hp: 0, screen: 'lose' }
-        return { ...prev, hp: newHp, bossWrongOptions: [...prev.bossWrongOptions, option] }
+        if (newHp <= 0) {
+          Sfx.lose()
+          saveScore({ char: prev.char, score: prev.score, maxCombo: prev.maxCombo, level: prev.level })
+          return { ...prev, hp: 0, combo: 0, screen: 'lose' }
+        }
+        return { ...prev, hp: newHp, combo: 0, bossWrongOptions: [...prev.bossWrongOptions, option] }
       }
     })
   }
@@ -235,11 +351,11 @@ export default function MathQuest() {
   // ── 渲染 ──────────────────────────────────────────────────────────────────
 
   if (!state || state.screen === 'select') return <SelectScreen onSelect={startGame} />
-
-  if (state.screen === 'win') return <EndScreen win score={state.score} onReset={resetGame} char={state.char} />
-  if (state.screen === 'lose') return <EndScreen win={false} score={state.score} onReset={resetGame} char={state.char} />
+  if (state.screen === 'win') return <EndScreen win score={state.score} maxCombo={state.maxCombo} char={state.char} onReset={resetGame} />
+  if (state.screen === 'lose') return <EndScreen win={false} score={state.score} maxCombo={state.maxCombo} char={state.char} onReset={resetGame} />
 
   const info = CHAR_INFO[state.char]
+  const hasMonsters = state.board.some(row => row.some(c => c.type === 'monster' && !c.defeated))
 
   return (
     <div className="mq-game">
@@ -252,22 +368,40 @@ export default function MathQuest() {
           ))}
         </div>
         <span className="mq-score">⭐ {state.score}</span>
-        <span className="mq-level">關卡 {state.level}</span>
+        {state.combo >= 2 && (
+          <span className={`mq-combo ${state.combo >= 5 ? 'mq-combo-fire' : ''}`}>
+            🔥 x{state.combo}
+          </span>
+        )}
+        <span className="mq-level">Lv.{state.level}</span>
         <button className="mq-reset-btn" onClick={resetGame}>🔄</button>
       </div>
 
-      {/* 地圖 */}
-      <Board board={state.board} pos={state.pos} onClickCell={clickCell} level={state.level} />
+      {/* 道具欄 */}
+      {state.items.length > 0 && (
+        <div className="mq-items-bar">
+          {state.items.map((item, i) => (
+            <button
+              key={i}
+              className="mq-item-btn"
+              title={item === 'heal' ? '回血 +1' : '跳過當前題目'}
+              onClick={() => state.screen === 'map' && item === 'heal' ? useItem('heal') : undefined}
+            >
+              {item === 'heal' ? '💊' : '🎫'}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Boss 提示 */}
-      {state.screen === 'map' && (() => {
-        const size = state.board.length
-        const bossCell = state.board[size - 1][size - 1]
-        const hasMonsters = state.board.some(row => row.some(c => c.type === 'monster' && !c.defeated))
-        return !bossCell.defeated && hasMonsters ? (
-          <p className="mq-boss-hint">⚠️ 打倒所有怪物才能挑戰 Boss！</p>
-        ) : null
-      })()}
+      {/* 地圖 */}
+      <Board board={state.board} pos={state.pos} onClickCell={clickCell} level={state.level} sparkleCell={sparkleCell} />
+
+      {hasMonsters && state.screen === 'map' && (
+        <p className="mq-boss-hint">⚠️ 打倒所有怪物才能進城堡！</p>
+      )}
+
+      {/* 道具 toast */}
+      {itemToast && <div className="mq-toast">{itemToast}</div>}
 
       {/* 戰鬥覆蓋層 */}
       {state.screen === 'battle' && state.question && (
@@ -276,9 +410,11 @@ export default function MathQuest() {
           wrongOptions={state.wrongOptions}
           onAnswer={answerQuestion}
           isBoss={false}
+          shaking={shaking}
+          hasSkip={state.items.includes('skip')}
+          onSkip={useSkipInBattle}
         />
       )}
-
       {state.screen === 'boss' && state.bossQ[state.bossIndex] && (
         <BattleOverlay
           question={state.bossQ[state.bossIndex]}
@@ -286,6 +422,9 @@ export default function MathQuest() {
           onAnswer={answerBoss}
           isBoss
           bossProgress={[state.bossIndex, state.bossQ.length]}
+          shaking={shaking}
+          hasSkip={state.items.includes('skip')}
+          onSkip={useSkipInBoss}
         />
       )}
     </div>
@@ -295,6 +434,7 @@ export default function MathQuest() {
 // ── 子元件 ────────────────────────────────────────────────────────────────────
 
 function SelectScreen({ onSelect }: { onSelect: (c: CharacterId) => void }) {
+  const lb = loadLeaderboard()
   return (
     <div className="mq-select">
       <h1 className="mq-select-title">🔢 數學冒險</h1>
@@ -303,6 +443,20 @@ function SelectScreen({ onSelect }: { onSelect: (c: CharacterId) => void }) {
         <CharCard id="alan" onSelect={onSelect} />
         <CharCard id="ryan" onSelect={onSelect} />
       </div>
+      {lb.length > 0 && (
+        <div className="mq-lb-mini">
+          <p className="mq-lb-title">🏆 最高分排行</p>
+          {lb.map((e, i) => (
+            <div key={i} className="mq-lb-row">
+              <span className="mq-lb-rank">{['🥇','🥈','🥉','4.','5.'][i]}</span>
+              <span>{CHAR_INFO[e.char].name}</span>
+              <span className="mq-lb-score">⭐{e.score}</span>
+              <span className="mq-lb-combo">🔥{e.maxCombo}</span>
+              <span className="mq-lb-date">{e.date}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -317,9 +471,7 @@ function CharCard({ id, onSelect }: { id: CharacterId; onSelect: (c: CharacterId
       <h2 className="mq-char-name-big">{info.name}</h2>
       <p className="mq-char-subject">📚 {info.subject}</p>
       <p className="mq-char-desc">{info.desc}</p>
-      <div className="mq-char-stats">
-        <span>❤️ {info.maxHp} 顆心</span>
-      </div>
+      <div className="mq-char-stats"><span>❤️ {info.maxHp} 顆心</span></div>
       <button className="mq-select-btn" style={{ background: info.color }}>選擇</button>
     </div>
   )
@@ -329,26 +481,18 @@ function CharCard({ id, onSelect }: { id: CharacterId; onSelect: (c: CharacterId
 function AlanAvatar() {
   return (
     <svg viewBox="0 0 80 80" width="80" height="80">
-      {/* 頭 */}
       <circle cx="40" cy="44" r="23" fill="#FDDBB4" />
-      {/* 耳朵 */}
       <ellipse cx="17" cy="46" rx="4" ry="5" fill="#FDDBB4" />
       <ellipse cx="63" cy="46" rx="4" ry="5" fill="#FDDBB4" />
-      {/* 栗子頭：圓頂，比頭略窄 */}
       <ellipse cx="40" cy="30" rx="22" ry="17" fill="#5C3317" />
-      {/* 兩側薄片剛好蓋住耳朵上緣 */}
       <rect x="18" y="30" width="9" height="18" rx="5" fill="#5C3317" />
       <rect x="53" y="30" width="9" height="18" rx="5" fill="#5C3317" />
-      {/* 劉海底線 */}
       <rect x="18" y="37" width="44" height="6" rx="2" fill="#5C3317" />
-      {/* 眼睛 */}
       <ellipse cx="32" cy="48" rx="3.5" ry="4" fill="#2C1810" />
       <ellipse cx="48" cy="48" rx="3.5" ry="4" fill="#2C1810" />
       <circle cx="33.2" cy="46.8" r="1.1" fill="white" />
       <circle cx="49.2" cy="46.8" r="1.1" fill="white" />
-      {/* 微笑 */}
       <path d="M33 57 Q40 63 47 57" stroke="#C77" strokeWidth="2" fill="none" strokeLinecap="round" />
-      {/* 身體 */}
       <rect x="22" y="66" width="36" height="12" rx="6" fill="#B0B0B0" />
     </svg>
   )
@@ -358,17 +502,12 @@ function AlanAvatar() {
 function RyanAvatar() {
   return (
     <svg viewBox="0 0 80 80" width="80" height="80">
-      {/* 頭 */}
       <circle cx="40" cy="42" r="25" fill="#FDDBB4" />
-      {/* 耳朵 */}
       <ellipse cx="15" cy="44" rx="4" ry="5" fill="#FDDBB4" />
       <ellipse cx="65" cy="44" rx="4" ry="5" fill="#FDDBB4" />
-      {/* 髮基（寬厚橢圓） */}
       <ellipse cx="40" cy="22" rx="25" ry="13" fill="#1a0f0a" />
-      {/* 側邊髮片 */}
       <rect x="15" y="20" width="9" height="14" rx="5" fill="#1a0f0a" />
       <rect x="56" y="20" width="9" height="14" rx="5" fill="#1a0f0a" />
-      {/* 7 支刺（從左到右） */}
       <polygon points="17,23 12,5 25,20" fill="#1a0f0a" />
       <polygon points="26,17 24,2 33,15" fill="#1a0f0a" />
       <polygon points="33,13 32,0 39,12" fill="#1a0f0a" />
@@ -376,32 +515,32 @@ function RyanAvatar() {
       <polygon points="47,13 48,0 55,13" fill="#1a0f0a" />
       <polygon points="54,17 56,2 63,15" fill="#1a0f0a" />
       <polygon points="63,23 68,5 55,20" fill="#1a0f0a" />
-      {/* 閉眼笑 */}
       <path d="M28 40 Q32 36 36 40" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
       <path d="M44 40 Q48 36 52 40" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      {/* 大笑嘴 */}
       <path d="M30 52 Q40 62 50 52" stroke="#C77" strokeWidth="2" fill="#FF9999" strokeLinecap="round" />
-      {/* 身體 */}
       <rect x="22" y="65" width="36" height="13" rx="6" fill="#B0B0B0" />
-      {/* 比YA */}
       <line x1="62" y1="57" x2="69" y2="46" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
       <line x1="65" y1="59" x2="73" y2="50" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
     </svg>
   )
 }
 
-// 隱藏地形圖示（隨位置固定，不洩漏格子類型）
+// 地形圖示（固定隨位置，隱藏格子類型）
 const TERRAIN = ['🌳', '🌲', '🏚️', '🪨', '🌿', '🌳', '🏚️', '🌲']
 function terrainIcon(r: number, c: number) {
   return TERRAIN[(r * 7 + c * 3) % TERRAIN.length]
 }
 
-function Board({ board, pos, onClickCell, level }: {
-  board: Cell[][], pos: [number, number], onClickCell: (r: number, c: number) => void, level: number
+function Board({ board, pos, onClickCell, level, sparkleCell }: {
+  board: Cell[][]
+  pos: [number, number]
+  onClickCell: (r: number, c: number) => void
+  level: number
+  sparkleCell: string | null
 }) {
   const size = board.length
   const [pr, pc] = pos
-  const fontSize = size === 5 ? '2.2rem' : '1.7rem'
+  const fontSize = size <= 5 ? '2.2rem' : size <= 7 ? '1.7rem' : '1.3rem'
 
   return (
     <div className="mq-map-wrap">
@@ -410,27 +549,28 @@ function Board({ board, pos, onClickCell, level }: {
         {board.map((row, r) =>
           row.map((cell, c) => {
             const isPlayer = r === pr && c === pc
-            const isAdjacent = !isPlayer && Math.abs(r - pr) + Math.abs(c - pc) === 1
+            const isAdj = !isPlayer && Math.abs(r - pr) + Math.abs(c - pc) === 1
             const isBossCell = r === size - 1 && c === size - 1
             const isStart = r === 0 && c === 0
+            const isSparkle = sparkleCell === `${r},${c}`
 
             let icon: string
-            if (isStart) {
-              icon = '🏠'
-            } else if (isBossCell) {
-              icon = cell.defeated ? '✅' : '🏰'
-            } else if (cell.defeated) {
-              icon = '🟫'
-            } else {
-              // 未探索：全部用地形圖示隱藏
-              icon = terrainIcon(r, c)
-            }
+            if (isStart) icon = '🏠'
+            else if (isBossCell) icon = cell.defeated ? '✅' : '🏰'
+            else if (cell.defeated) icon = '🟫'
+            else icon = terrainIcon(r, c)
 
             return (
               <div
                 key={`${r}-${c}`}
                 style={{ fontSize }}
-                className={`mq-cell ${isPlayer ? 'mq-cell-player' : ''} ${isAdjacent ? 'mq-cell-adj' : ''} ${cell.defeated ? 'mq-cell-done' : ''}`}
+                className={[
+                  'mq-cell',
+                  isPlayer ? 'mq-cell-player' : '',
+                  isAdj ? 'mq-cell-adj' : '',
+                  cell.defeated ? 'mq-cell-done' : '',
+                  isSparkle ? 'mq-cell-sparkle' : '',
+                ].join(' ')}
                 onClick={() => onClickCell(r, c)}
               >
                 {isPlayer ? '🧑' : icon}
@@ -444,16 +584,19 @@ function Board({ board, pos, onClickCell, level }: {
   )
 }
 
-function BattleOverlay({ question, wrongOptions, onAnswer, isBoss, bossProgress }: {
+function BattleOverlay({ question, wrongOptions, onAnswer, isBoss, bossProgress, shaking, hasSkip, onSkip }: {
   question: Question
   wrongOptions: number[]
   onAnswer: (n: number) => void
   isBoss: boolean
   bossProgress?: [number, number]
+  shaking: boolean
+  hasSkip: boolean
+  onSkip: () => void
 }) {
   return (
     <div className="mq-overlay">
-      <div className="mq-battle-box">
+      <div className={`mq-battle-box ${shaking ? 'mq-shake' : ''}`}>
         {isBoss && bossProgress && (
           <p className="mq-boss-prog">👹 Boss 戰 {bossProgress[0] + 1} / {bossProgress[1]}</p>
         )}
@@ -471,20 +614,43 @@ function BattleOverlay({ question, wrongOptions, onAnswer, isBoss, bossProgress 
             </button>
           ))}
         </div>
-        {wrongOptions.length > 0 && <p className="mq-wrong-hint">❌ 答錯了！扣 1 顆心，繼續選</p>}
+        {wrongOptions.length > 0 && <p className="mq-wrong-hint">❌ 答錯！扣 1 顆心，繼續選</p>}
+        {hasSkip && (
+          <button className="mq-skip-btn" onClick={onSkip}>🎫 使用跳過券</button>
+        )}
       </div>
     </div>
   )
 }
 
-function EndScreen({ win, score, onReset, char }: { win: boolean; score: number; onReset: () => void; char: CharacterId }) {
+function EndScreen({ win, score, maxCombo, char, onReset }: {
+  win: boolean; score: number; maxCombo: number; char: CharacterId; onReset: () => void
+}) {
   const info = CHAR_INFO[char]
+  const lb = loadLeaderboard()
   return (
     <div className="mq-end">
       <p className="mq-end-icon">{win ? '🏆' : '💀'}</p>
-      <h2 className="mq-end-title">{win ? '恭喜過關！' : '挑戰失敗'}</h2>
-      <p className="mq-end-score">⭐ 得分：{score}</p>
+      <h2 className="mq-end-title">{win ? '完全過關！' : '挑戰失敗'}</h2>
+      <p className="mq-end-score">⭐ {score} 分</p>
+      <p className="mq-end-combo">🔥 最高連答 {maxCombo} 題</p>
       <p className="mq-end-char" style={{ color: info.color }}>{info.emoji} {info.name}</p>
+
+      {lb.length > 0 && (
+        <div className="mq-lb">
+          <p className="mq-lb-title">🏆 歷史最高分</p>
+          {lb.map((e, i) => (
+            <div key={i} className={`mq-lb-row ${e.score === score && e.char === char ? 'mq-lb-current' : ''}`}>
+              <span className="mq-lb-rank">{['🥇','🥈','🥉','4.','5.'][i]}</span>
+              <span>{CHAR_INFO[e.char].name}</span>
+              <span className="mq-lb-score">⭐{e.score}</span>
+              <span className="mq-lb-combo">🔥{e.maxCombo}</span>
+              <span className="mq-lb-date">{e.date}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <button className="mq-end-btn" onClick={onReset}>重新開始</button>
     </div>
   )
