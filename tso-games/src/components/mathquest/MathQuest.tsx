@@ -325,27 +325,31 @@ function CharCard({ id, onSelect }: { id: CharacterId; onSelect: (c: CharacterId
   )
 }
 
-// Alan: 瀏海、微笑、穩重
+// Alan: 栗子頭（圓頂蓬鬆，兩側包耳）
 function AlanAvatar() {
   return (
     <svg viewBox="0 0 80 80" width="80" height="80">
       {/* 頭 */}
-      <circle cx="40" cy="38" r="26" fill="#FDDBB4" />
-      {/* 瀏海 */}
-      <rect x="14" y="18" width="52" height="14" rx="4" fill="#2C1810" />
-      <rect x="14" y="18" width="52" height="8" rx="4" fill="#1a0f0a" />
+      <circle cx="40" cy="42" r="24" fill="#FDDBB4" />
+      {/* 耳朵（在頭髮後面先畫）*/}
+      <ellipse cx="16" cy="44" rx="4" ry="5" fill="#FDDBB4" />
+      <ellipse cx="64" cy="44" rx="4" ry="5" fill="#FDDBB4" />
+      {/* 栗子頭：大圓頂 */}
+      <ellipse cx="40" cy="26" rx="26" ry="20" fill="#5C3317" />
+      {/* 兩側往下延伸蓋住耳朵 */}
+      <rect x="14" y="26" width="13" height="22" rx="6" fill="#5C3317" />
+      <rect x="53" y="26" width="13" height="22" rx="6" fill="#5C3317" />
+      {/* 劉海底邊（直線遮住額頭）*/}
+      <rect x="14" y="34" width="52" height="8" rx="2" fill="#5C3317" />
       {/* 眼睛 */}
-      <ellipse cx="31" cy="38" rx="4" ry="4.5" fill="#2C1810" />
-      <ellipse cx="49" cy="38" rx="4" ry="4.5" fill="#2C1810" />
-      <circle cx="32.5" cy="36.5" r="1.2" fill="white" />
-      <circle cx="50.5" cy="36.5" r="1.2" fill="white" />
+      <ellipse cx="32" cy="46" rx="3.5" ry="4" fill="#2C1810" />
+      <ellipse cx="48" cy="46" rx="3.5" ry="4" fill="#2C1810" />
+      <circle cx="33.2" cy="44.8" r="1.1" fill="white" />
+      <circle cx="49.2" cy="44.8" r="1.1" fill="white" />
       {/* 微笑 */}
-      <path d="M32 49 Q40 55 48 49" stroke="#C77" strokeWidth="2" fill="none" strokeLinecap="round" />
-      {/* 耳朵 */}
-      <ellipse cx="14" cy="40" rx="4" ry="5" fill="#FDDBB4" />
-      <ellipse cx="66" cy="40" rx="4" ry="5" fill="#FDDBB4" />
+      <path d="M33 55 Q40 61 47 55" stroke="#C77" strokeWidth="2" fill="none" strokeLinecap="round" />
       {/* 身體（灰色上衣）*/}
-      <rect x="22" y="62" width="36" height="16" rx="6" fill="#B0B0B0" />
+      <rect x="22" y="64" width="36" height="14" rx="6" fill="#B0B0B0" />
     </svg>
   )
 }
@@ -380,11 +384,18 @@ function RyanAvatar() {
   )
 }
 
+// 隱藏地形圖示（隨位置固定，不洩漏格子類型）
+const TERRAIN = ['🌳', '🌲', '🏚️', '🪨', '🌿', '🌳', '🏚️', '🌲']
+function terrainIcon(r: number, c: number) {
+  return TERRAIN[(r * 7 + c * 3) % TERRAIN.length]
+}
+
 function Board({ board, pos, onClickCell, level }: {
   board: Cell[][], pos: [number, number], onClickCell: (r: number, c: number) => void, level: number
 }) {
   const size = board.length
   const [pr, pc] = pos
+  const fontSize = size === 5 ? '2.2rem' : '1.7rem'
 
   return (
     <div className="mq-map-wrap">
@@ -394,16 +405,25 @@ function Board({ board, pos, onClickCell, level }: {
           row.map((cell, c) => {
             const isPlayer = r === pr && c === pc
             const isAdjacent = !isPlayer && Math.abs(r - pr) + Math.abs(c - pc) === 1
-            let icon = ''
-            if (cell.type === 'start') icon = '🏁'
-            else if (cell.type === 'boss') icon = cell.defeated ? '✅' : '👹'
-            else if (cell.type === 'monster') icon = cell.defeated ? '✅' : '👾'
-            else if (cell.type === 'heal') icon = cell.defeated ? '✅' : '💛'
-            else icon = '⬛'
+            const isBossCell = r === size - 1 && c === size - 1
+            const isStart = r === 0 && c === 0
+
+            let icon: string
+            if (isStart) {
+              icon = '🏠'
+            } else if (isBossCell) {
+              icon = cell.defeated ? '✅' : '🏰'
+            } else if (cell.defeated) {
+              icon = '🟫'
+            } else {
+              // 未探索：全部用地形圖示隱藏
+              icon = terrainIcon(r, c)
+            }
 
             return (
               <div
                 key={`${r}-${c}`}
+                style={{ fontSize }}
                 className={`mq-cell ${isPlayer ? 'mq-cell-player' : ''} ${isAdjacent ? 'mq-cell-adj' : ''} ${cell.defeated ? 'mq-cell-done' : ''}`}
                 onClick={() => onClickCell(r, c)}
               >
