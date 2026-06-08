@@ -325,61 +325,67 @@ function CharCard({ id, onSelect }: { id: CharacterId; onSelect: (c: CharacterId
   )
 }
 
-// Alan: 栗子頭（圓頂蓬鬆，兩側包耳）
+// Alan: 栗子頭（稍內斂，兩側貼耳）
 function AlanAvatar() {
   return (
     <svg viewBox="0 0 80 80" width="80" height="80">
       {/* 頭 */}
-      <circle cx="40" cy="42" r="24" fill="#FDDBB4" />
-      {/* 耳朵（在頭髮後面先畫）*/}
-      <ellipse cx="16" cy="44" rx="4" ry="5" fill="#FDDBB4" />
-      <ellipse cx="64" cy="44" rx="4" ry="5" fill="#FDDBB4" />
-      {/* 栗子頭：大圓頂 */}
-      <ellipse cx="40" cy="26" rx="26" ry="20" fill="#5C3317" />
-      {/* 兩側往下延伸蓋住耳朵 */}
-      <rect x="14" y="26" width="13" height="22" rx="6" fill="#5C3317" />
-      <rect x="53" y="26" width="13" height="22" rx="6" fill="#5C3317" />
-      {/* 劉海底邊（直線遮住額頭）*/}
-      <rect x="14" y="34" width="52" height="8" rx="2" fill="#5C3317" />
+      <circle cx="40" cy="44" r="23" fill="#FDDBB4" />
+      {/* 耳朵 */}
+      <ellipse cx="17" cy="46" rx="4" ry="5" fill="#FDDBB4" />
+      <ellipse cx="63" cy="46" rx="4" ry="5" fill="#FDDBB4" />
+      {/* 栗子頭：圓頂，比頭略窄 */}
+      <ellipse cx="40" cy="30" rx="22" ry="17" fill="#5C3317" />
+      {/* 兩側薄片剛好蓋住耳朵上緣 */}
+      <rect x="18" y="30" width="9" height="18" rx="5" fill="#5C3317" />
+      <rect x="53" y="30" width="9" height="18" rx="5" fill="#5C3317" />
+      {/* 劉海底線 */}
+      <rect x="18" y="37" width="44" height="6" rx="2" fill="#5C3317" />
       {/* 眼睛 */}
-      <ellipse cx="32" cy="46" rx="3.5" ry="4" fill="#2C1810" />
-      <ellipse cx="48" cy="46" rx="3.5" ry="4" fill="#2C1810" />
-      <circle cx="33.2" cy="44.8" r="1.1" fill="white" />
-      <circle cx="49.2" cy="44.8" r="1.1" fill="white" />
+      <ellipse cx="32" cy="48" rx="3.5" ry="4" fill="#2C1810" />
+      <ellipse cx="48" cy="48" rx="3.5" ry="4" fill="#2C1810" />
+      <circle cx="33.2" cy="46.8" r="1.1" fill="white" />
+      <circle cx="49.2" cy="46.8" r="1.1" fill="white" />
       {/* 微笑 */}
-      <path d="M33 55 Q40 61 47 55" stroke="#C77" strokeWidth="2" fill="none" strokeLinecap="round" />
-      {/* 身體（灰色上衣）*/}
-      <rect x="22" y="64" width="36" height="14" rx="6" fill="#B0B0B0" />
+      <path d="M33 57 Q40 63 47 57" stroke="#C77" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* 身體 */}
+      <rect x="22" y="66" width="36" height="12" rx="6" fill="#B0B0B0" />
     </svg>
   )
 }
 
-// Ryan T: 刺頭、大笑、比YA
+// Ryan T: 刺蝟頭（多刺、蓬鬆、側面也有）
 function RyanAvatar() {
   return (
     <svg viewBox="0 0 80 80" width="80" height="80">
       {/* 頭 */}
-      <circle cx="40" cy="40" r="26" fill="#FDDBB4" />
-      {/* 刺頭髮 */}
-      <ellipse cx="40" cy="17" rx="20" ry="8" fill="#1a0f0a" />
-      <polygon points="24,18 20,6 28,16" fill="#1a0f0a" />
-      <polygon points="32,15 30,3 36,14" fill="#1a0f0a" />
-      <polygon points="40,13 40,1 44,13" fill="#1a0f0a" />
-      <polygon points="48,15 50,3 44,14" fill="#1a0f0a" />
-      <polygon points="56,18 60,6 52,16" fill="#1a0f0a" />
-      {/* 閉眼笑（弧線） */}
-      <path d="M27 38 Q31 34 35 38" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <path d="M45 38 Q49 34 53 38" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      {/* 大笑嘴 */}
-      <path d="M30 50 Q40 60 50 50" stroke="#C77" strokeWidth="2" fill="#FF9999" strokeLinecap="round" />
+      <circle cx="40" cy="42" r="25" fill="#FDDBB4" />
       {/* 耳朵 */}
-      <ellipse cx="14" cy="42" rx="4" ry="5" fill="#FDDBB4" />
-      <ellipse cx="66" cy="42" rx="4" ry="5" fill="#FDDBB4" />
-      {/* 身體（灰色上衣）*/}
-      <rect x="22" y="63" width="36" height="15" rx="6" fill="#B0B0B0" />
-      {/* 比YA手指 */}
-      <line x1="62" y1="55" x2="68" y2="45" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
-      <line x1="65" y1="57" x2="72" y2="48" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="15" cy="44" rx="4" ry="5" fill="#FDDBB4" />
+      <ellipse cx="65" cy="44" rx="4" ry="5" fill="#FDDBB4" />
+      {/* 髮基（寬厚橢圓） */}
+      <ellipse cx="40" cy="22" rx="25" ry="13" fill="#1a0f0a" />
+      {/* 側邊髮片 */}
+      <rect x="15" y="20" width="9" height="14" rx="5" fill="#1a0f0a" />
+      <rect x="56" y="20" width="9" height="14" rx="5" fill="#1a0f0a" />
+      {/* 7 支刺（從左到右） */}
+      <polygon points="17,23 12,5 25,20" fill="#1a0f0a" />
+      <polygon points="26,17 24,2 33,15" fill="#1a0f0a" />
+      <polygon points="33,13 32,0 39,12" fill="#1a0f0a" />
+      <polygon points="40,12 40,0 47,12" fill="#1a0f0a" />
+      <polygon points="47,13 48,0 55,13" fill="#1a0f0a" />
+      <polygon points="54,17 56,2 63,15" fill="#1a0f0a" />
+      <polygon points="63,23 68,5 55,20" fill="#1a0f0a" />
+      {/* 閉眼笑 */}
+      <path d="M28 40 Q32 36 36 40" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M44 40 Q48 36 52 40" stroke="#2C1810" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      {/* 大笑嘴 */}
+      <path d="M30 52 Q40 62 50 52" stroke="#C77" strokeWidth="2" fill="#FF9999" strokeLinecap="round" />
+      {/* 身體 */}
+      <rect x="22" y="65" width="36" height="13" rx="6" fill="#B0B0B0" />
+      {/* 比YA */}
+      <line x1="62" y1="57" x2="69" y2="46" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
+      <line x1="65" y1="59" x2="73" y2="50" stroke="#FDDBB4" strokeWidth="4" strokeLinecap="round" />
     </svg>
   )
 }
