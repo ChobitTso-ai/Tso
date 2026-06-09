@@ -50,10 +50,14 @@
 
 .mq-select-sub {
   color: #aaa;
-  margin: 0 0 12px;
+  margin: 0 0 32px;
 }
 
 /* ── 每日登入獎勵橫幅 ─────────────────────────────────────────────────── */
+@keyframes mq-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .mq-login-banner {
   background: linear-gradient(135deg, #1a3a1a, #0f2a0f);
   border: 1px solid #4a9a4a;
@@ -61,10 +65,9 @@
   color: #aaffaa;
   font-size: 0.9rem;
   padding: 8px 20px;
-  margin-bottom: 16px;
+  margin: -16px 0 16px;
   text-align: center;
-  animation: mq-toast-in 0.5s ease-out forwards;
-  opacity: 1;
+  animation: mq-fade-in 0.4s ease-out;
 }
 
 .mq-chars {
