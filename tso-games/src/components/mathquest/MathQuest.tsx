@@ -572,7 +572,7 @@ export default function MathQuest() {
   const hasEnemies = state.board.some(row => row.some(c => (c.type === 'monster' || c.type === 'elite') && !c.defeated))
 
   return (
-    <div className={`mq-game ${THEME_CLASS[theme]}`}>
+    <div className={['mq-game', THEME_CLASS[theme]].filter(Boolean).join(' ')}>
       {/* 狀態列 */}
       <div className="mq-statusbar">
         <span className="mq-char-name" style={{ color: info.color }}>{info.emoji} {info.name}</span>
@@ -804,7 +804,7 @@ function Board({ board, pos, onClickCell, level, sparkleCell, mode, survivalRoun
       <p className="mq-map-label">
         {mode === 'survival' ? `生存 第 ${survivalRound + 1} 波` : `關卡 ${level} — ${size}×${size}`}
       </p>
-      <div className={`mq-board ${THEME_CLASS[theme]}`} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+      <div className={['mq-board', THEME_CLASS[theme]].filter(Boolean).join(' ')} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
         {board.map((row, r) =>
           row.map((cell, c) => {
             const isPlayer   = r === pr && c === pc
