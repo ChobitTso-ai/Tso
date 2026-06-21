@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import ChessPage from './pages/ChessPage'
 import MinecraftQuiz from './pages/MinecraftQuiz'
 import KidibotPage from './pages/KidibotPage'
+import ThreeKingdomsPage from './pages/ThreeKingdomsPage'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/chess" element={<ChessPage />} />
         <Route path="/minecraft" element={<MinecraftQuiz />} />
         <Route path="/kidibot" element={<KidibotPage />} />
+        <Route path="/threekingdoms" element={<ThreeKingdomsPage />} />
       </Routes>
     </HashRouter>
   )

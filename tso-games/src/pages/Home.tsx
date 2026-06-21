@@ -37,6 +37,14 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'threekingdoms',
+    title: '三國演義',
+    description: '策略、謀略、決戰天下。三國主題小遊戲合集，陸續加入中。',
+    icon: '⚔️',
+    path: '/threekingdoms',
+    available: true,
+  },
 ]
 
 export default function Home() {
