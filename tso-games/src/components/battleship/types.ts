@@ -4,6 +4,9 @@ export const BOARD_SIZE = 10
 
 export type Orientation = 'h' | 'v'
 
+/** AI 難度 */
+export type Difficulty = 'easy' | 'normal' | 'hard'
+
 export interface Coord {
   r: number
   c: number
@@ -25,9 +28,10 @@ export interface Board {
   shots: ShotState[][] // BOARD_SIZE x BOARD_SIZE，記錄此格被開火的結果
 }
 
-/** AI 的內部記憶：獵殺/追擊策略所需的待打目標佇列 */
+/** AI 的內部記憶：獵殺/追擊策略所需的待打目標佇列與當前命中紀錄 */
 export interface AiMemory {
   queue: Coord[]
+  hits: Coord[] // 當前未沉目標已命中的格子，用於困難模式沿線追擊
 }
 
 /** 開火結果 */

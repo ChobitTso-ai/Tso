@@ -1,7 +1,16 @@
 // 戰艦海戰棋 — 純邏輯（無 React 依賴，方便測試與重用）
 
 import { BOARD_SIZE } from './types'
-import type { AiMemory, Board, Coord, FireResult, Orientation, Ship, ShotState } from './types'
+import type {
+  AiMemory,
+  Board,
+  Coord,
+  Difficulty,
+  FireResult,
+  Orientation,
+  Ship,
+  ShotState,
+} from './types'
 
 /** 標準艦隊配置（經典戰艦規則） */
 export const FLEET: ReadonlyArray<{ id: string; name: string; size: number }> = [
@@ -114,19 +123,46 @@ const NEIGHBORS: Coord[] = [
   { r: 0, c: 1 },
 ]
 
+/** 尚未開火的鄰格 */
+function openNeighbors(board: Board, cell: Coord): Coord[] {
+  return NEIGHBORS.map(d => ({ r: cell.r + d.r, c: cell.c + d.c })).filter(
+    n => inBounds(n) && board.shots[n.r][n.c] === 'none',
+  )
+}
+
+/** 依當前命中的格子推算「沿同一直線」兩端的延伸格（困難模式用） */
+function lineExtensions(hits: Coord[], board: Board): Coord[] {
+  const sameRow = hits.every(h => h.r === hits[0].r)
+  const sameCol = hits.every(h => h.c === hits[0].c)
+  if (sameRow === sameCol) return [] // 單點或非直線，無法判斷方向
+  const ext: Coord[] = []
+  if (sameRow) {
+    const r = hits[0].r
+    const cs = hits.map(h => h.c)
+    for (const c of [Math.min(...cs) - 1, Math.max(...cs) + 1]) ext.push({ r, c })
+  } else {
+    const c = hits[0].c
+    const rs = hits.map(h => h.r)
+    for (const r of [Math.min(...rs) - 1, Math.max(...rs) + 1]) ext.push({ r, c })
+  }
+  return ext.filter(cell => inBounds(cell) && board.shots[cell.r][cell.c] === 'none')
+}
+
 /**
  * AI 選擇下一個攻擊座標。
- * 採「獵殺 / 追擊」策略：命中後將周圍格子排入佇列優先攻擊，
- * 否則以棋盤格（parity）方式隨機搜尋，提高效率。
+ * - easy：純隨機亂打，不追擊。
+ * - normal：「獵殺 / 追擊」——命中後打周圍格，搜尋時用棋盤格（parity）。
+ * - hard：在 normal 基礎上，連續命中後沿同一直線兩端追打，效率最高。
  */
-export function aiChooseTarget(board: Board, memory: AiMemory): Coord {
-  // 追擊模式：優先打佇列中尚未開火的格子
-  while (memory.queue.length > 0) {
-    const cell = memory.queue.shift()!
-    if (board.shots[cell.r][cell.c] === 'none') return cell
+export function aiChooseTarget(board: Board, memory: AiMemory, difficulty: Difficulty): Coord {
+  // 追擊模式：優先打佇列中尚未開火的格子（easy 不追擊）
+  if (difficulty !== 'easy') {
+    while (memory.queue.length > 0) {
+      const cell = memory.queue.shift()!
+      if (board.shots[cell.r][cell.c] === 'none') return cell
+    }
   }
 
-  // 獵殺模式：在尚未開火的格子中，優先選棋盤格位置（(r+c) 為偶數）
   const available: Coord[] = []
   const parity: Coord[] = []
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -137,27 +173,42 @@ export function aiChooseTarget(board: Board, memory: AiMemory): Coord {
       }
     }
   }
-  const pool = parity.length > 0 ? parity : available
+  // easy 完全隨機；其餘優先棋盤格位置
+  const pool = difficulty === 'easy' || parity.length === 0 ? available : parity
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-/** AI 開火後更新記憶：命中未沉則把鄰格排入追擊佇列；擊沉則清空佇列 */
+/** AI 開火後更新記憶：命中未沉則排入追擊目標；擊沉則清空 */
 export function updateAiMemory(
   memory: AiMemory,
   board: Board,
   shot: Coord,
   result: FireResult,
+  difficulty: Difficulty,
 ): void {
   if (result.sunk) {
     memory.queue = []
+    memory.hits = []
     return
   }
-  if (result.hit) {
-    for (const d of NEIGHBORS) {
-      const cell = { r: shot.r + d.r, c: shot.c + d.c }
-      if (inBounds(cell) && board.shots[cell.r][cell.c] === 'none') {
-        memory.queue.push(cell)
-      }
+  if (!result.hit) return
+
+  memory.hits.push(shot)
+  // 困難模式：已連續命中 2 格以上時，鎖定方向只打兩端
+  if (difficulty === 'hard' && memory.hits.length >= 2) {
+    const ext = lineExtensions(memory.hits, board)
+    if (ext.length > 0) {
+      memory.queue = ext
+      return
     }
+  }
+  memory.queue.push(...openNeighbors(board, shot))
+}
+
+/** 深拷貝棋盤，供「上一步」快照使用 */
+export function cloneBoard(board: Board): Board {
+  return {
+    ships: board.ships.map(s => ({ ...s, cells: s.cells.map(c => ({ ...c })) })),
+    shots: board.shots.map(row => [...row]),
   }
 }
