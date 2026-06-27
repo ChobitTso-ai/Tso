@@ -11,7 +11,6 @@ import {
   makeFleet,
   placeShip,
   randomFleet,
-  shipAt,
   shipCells,
   updateAiMemory,
 } from './logic'
@@ -22,14 +21,17 @@ type Phase = 'setup' | 'place' | 'handoff' | 'battle' | 'over'
 const STORAGE_KEY = 'battleshipStats'
 const COLS = 'ABCDEFGHIJ'.split('')
 
-/** 各艦的圖示，讓玩家一眼分辨不同船艦（顏色定義於 CSS 的 .ship-* class） */
-const SHIP_ICON: Record<string, string> = {
-  carrier: '✈️',
-  battleship: '⚓',
-  cruiser: '🚢',
-  submarine: '🤿',
-  destroyer: '🚤',
-}
+/** 各艦的俯視圖（水平與旋轉後的垂直版），放在 public/battleship/ */
+const SHIP_IDS = ['carrier', 'battleship', 'cruiser', 'submarine', 'destroyer'] as const
+const SHIP_IMG: Record<string, { h: string; v: string }> = Object.fromEntries(
+  SHIP_IDS.map(id => [
+    id,
+    {
+      h: `${import.meta.env.BASE_URL}battleship/${id}.png`,
+      v: `${import.meta.env.BASE_URL}battleship/${id}_v.png`,
+    },
+  ]),
+)
 
 const DIFF_LABEL: Record<Difficulty, string> = {
   easy: '😀 簡單',
@@ -421,12 +423,11 @@ export default function Battleship() {
               {draftShips.map(s => (
                 <li
                   key={s.id}
-                  className={`bs-fleet-item ship-${s.id} ${s.cells.length > 0 ? 'placed' : ''} ${nextShip?.id === s.id ? 'active' : ''}`}
+                  className={`bs-fleet-item ${s.cells.length > 0 ? 'placed' : ''} ${nextShip?.id === s.id ? 'active' : ''}`}
                 >
-                  <span className="bs-chip" />
-                  <span className="bs-fleet-icon">{SHIP_ICON[s.id]}</span>
+                  <img className="bs-fleet-thumb" src={SHIP_IMG[s.id].h} alt="" />
                   <span className="bs-fleet-name">{s.name}</span>
-                  <span className="bs-fleet-size">{'▣'.repeat(s.size)}</span>
+                  <span className="bs-fleet-size">{s.size} 格</span>
                   <span className="bs-fleet-state">{s.cells.length > 0 ? '✓' : '—'}</span>
                 </li>
               ))}
@@ -543,16 +544,6 @@ export default function Battleship() {
   )
 }
 
-/** 計算某格在船體中的位置，回傳對應的船首/船身/船尾、方向與艦別 class */
-function hullSegment(ship: Ship, r: number, c: number): string[] {
-  const base = [`ship-${ship.id}`, 'hull']
-  if (ship.size < 2) return [...base, 'hull-solo']
-  const idx = ship.cells.findIndex(cell => cell.r === r && cell.c === c)
-  const orient = ship.cells[0].r === ship.cells[1].r ? 'hull-h' : 'hull-v'
-  const part = idx === 0 ? 'hull-bow' : idx === ship.size - 1 ? 'hull-stern' : 'hull-mid'
-  return [...base, orient, part]
-}
-
 // ── 棋盤格元件 ──────────────────────────────────────────────
 interface GridProps {
   shots: Board['shots']
@@ -581,6 +572,11 @@ function Grid({
 }: GridProps) {
   const previewSet = new Set(preview.map(c => `${c.r},${c.c}`))
 
+  // 要繪製的船：我方海域顯示全部；敵方僅顯示已擊沉，對戰結束時全顯示
+  const drawnShips = ships.filter(
+    s => s.cells.length > 0 && (showShips || (revealSunk && s.hits >= s.size)),
+  )
+
   return (
     <div className={`bs-grid ${clickable ? 'clickable' : ''}`} onMouseLeave={onLeave}>
       <div className="bs-corner" />
@@ -595,14 +591,7 @@ function Grid({
           <div className="bs-axis">{r + 1}</div>
           {Array.from({ length: BOARD_SIZE }, (_, c) => {
             const shot = shots[r][c]
-            const ship = shipAt(ships, r, c)
-            const sunk = ship !== null && ship.hits >= ship.size
-            const showHull = (showShips && ship) || (revealSunk && sunk)
-            const isBow = !!showHull && ship!.cells[0].r === r && ship!.cells[0].c === c
-
             const classes = ['bs-cell']
-            if (showHull && ship) classes.push(...hullSegment(ship, r, c))
-            if (sunk) classes.push('sunk')
             if (shot === 'hit') classes.push('hit')
             if (shot === 'miss') classes.push('miss')
             if (previewSet.has(`${r},${c}`)) classes.push(previewValid ? 'preview' : 'preview-bad')
@@ -616,19 +605,45 @@ function Grid({
                 onClick={() => onCellClick?.(r, c)}
                 onMouseEnter={() => onCellHover?.(r, c)}
                 aria-label={`${COLS[c]}${r + 1}`}
-              >
-                {shot === 'hit' ? (
-                  <span className="bs-fire">🔥</span>
-                ) : shot === 'miss' ? (
-                  <span className="bs-splash" />
-                ) : isBow && ship ? (
-                  <span className="bs-ship-icon">{SHIP_ICON[ship.id]}</span>
-                ) : null}
-              </button>
+              />
             )
           })}
         </div>
       ))}
+
+      {/* 船艦俯視圖：橫跨佔據的格子漂浮於水面，點擊穿透至底下格子 */}
+      {drawnShips.map(s => {
+        const horizontal = s.size < 2 || s.cells[0].r === s.cells[1].r
+        const minR = Math.min(...s.cells.map(p => p.r))
+        const minC = Math.min(...s.cells.map(p => p.c))
+        return (
+          <img
+            key={s.id}
+            className={`bs-ship-img ${s.hits >= s.size ? 'sunk' : ''}`}
+            src={horizontal ? SHIP_IMG[s.id].h : SHIP_IMG[s.id].v}
+            alt={s.name}
+            style={{
+              gridColumn: `${minC + 2} / span ${horizontal ? s.size : 1}`,
+              gridRow: `${minR + 2} / span ${horizontal ? 1 : s.size}`,
+            }}
+          />
+        )
+      })}
+
+      {/* 命中火焰 / 落空水花，疊在最上層 */}
+      {shots.flatMap((row, r) =>
+        row.map((st, c) =>
+          st === 'none' ? null : (
+            <span
+              key={`m${r}-${c}`}
+              className="bs-marker"
+              style={{ gridColumn: `${c + 2}`, gridRow: `${r + 2}` }}
+            >
+              {st === 'hit' ? <span className="bs-fire">🔥</span> : <span className="bs-splash" />}
+            </span>
+          ),
+        ),
+      )}
     </div>
   )
 }
