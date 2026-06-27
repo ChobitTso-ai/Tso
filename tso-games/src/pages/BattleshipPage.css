@@ -1,0 +1,42 @@
+.bs-page {
+  min-height: 100vh;
+  background: #081826;
+  display: flex;
+  flex-direction: column;
+}
+
+.bs-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: #061320;
+  border-bottom: 1px solid #1d4a6b;
+  flex-wrap: wrap;
+}
+
+.bs-back {
+  color: #45c4ff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.bs-back:hover {
+  color: #9adcff;
+}
+
+.bs-nav-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #45c4ff;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.bs-nav-sub {
+  font-size: 12px;
+  color: #5f93b8;
+}

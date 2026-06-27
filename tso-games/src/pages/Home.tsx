@@ -55,6 +55,15 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'battleship',
+    title: '戰艦海戰棋',
+    description: '佈署你的艦隊，與 AI 對手互轟海域，最先擊沉對方所有戰艦者獲勝！經典策略對戰。',
+    icon: '🚢',
+    path: '/battleship',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
