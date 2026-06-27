@@ -278,6 +278,15 @@ export default function Battleship() {
   )
 }
 
+/** 計算某格在船體中的位置，回傳對應的船首/船身/船尾與方向 class */
+function hullSegment(ship: Ship, r: number, c: number): string[] {
+  if (ship.size < 2) return ['hull', 'hull-solo']
+  const idx = ship.cells.findIndex(cell => cell.r === r && cell.c === c)
+  const orient = ship.cells[0].r === ship.cells[1].r ? 'hull-h' : 'hull-v'
+  const part = idx === 0 ? 'hull-bow' : idx === ship.size - 1 ? 'hull-stern' : 'hull-mid'
+  return ['hull', orient, part]
+}
+
 // ── 棋盤格元件 ──────────────────────────────────────────────
 interface GridProps {
   shots: Board['shots']
@@ -325,7 +334,7 @@ function Grid({
             const showHull = (showShips && ship) || (revealSunk && sunk)
 
             const classes = ['bs-cell']
-            if (showHull) classes.push('ship')
+            if (showHull && ship) classes.push(...hullSegment(ship, r, c))
             if (sunk) classes.push('sunk')
             if (shot === 'hit') classes.push('hit')
             if (shot === 'miss') classes.push('miss')
@@ -341,8 +350,8 @@ function Grid({
                 onMouseEnter={() => onCellHover?.(r, c)}
                 aria-label={`${COLS[c]}${r + 1}`}
               >
-                {shot === 'hit' && '✕'}
-                {shot === 'miss' && '•'}
+                {shot === 'hit' && <span className="bs-fire">🔥</span>}
+                {shot === 'miss' && <span className="bs-splash" />}
               </button>
             )
           })}
