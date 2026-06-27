@@ -14,6 +14,7 @@ import {
   shipCells,
   updateAiMemory,
 } from './logic'
+import { Sfx } from './sounds'
 
 type Mode = 'ai' | 'pvp'
 type Phase = 'setup' | 'place' | 'handoff' | 'battle' | 'over'
@@ -104,10 +105,16 @@ export default function Battleship() {
   const [message, setMessage] = useState('選擇對戰模式，準備開戰！')
   const [winner, setWinner] = useState<0 | 1 | null>(null)
   const [stats, setStats] = useState<Stats>(loadStats)
+  const [muted, setMuted] = useState(() => localStorage.getItem('battleshipMuted') === '1')
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
   }, [stats])
+
+  useEffect(() => {
+    Sfx.setEnabled(!muted)
+    localStorage.setItem('battleshipMuted', muted ? '1' : '0')
+  }, [muted])
 
   const playerName = (i: 0 | 1) =>
     mode === 'ai' ? (i === 0 ? '你' : 'AI') : i === 0 ? '玩家 1' : '玩家 2'
@@ -136,6 +143,7 @@ export default function Battleship() {
     if (next) {
       setDraftShips(next)
       setHover(null)
+      Sfx.place()
     } else {
       setMessage('這裡放不下，換個位置或旋轉方向。')
     }
@@ -219,6 +227,8 @@ export default function Battleship() {
   function finishGame(win: 0 | 1) {
     setWinner(win)
     setPhase('over')
+    // 沉船音效後接勝/敗音效
+    setTimeout(() => (mode === 'pvp' || win === 0 ? Sfx.win() : Sfx.lose()), 500)
     if (mode === 'ai') {
       setMessage(win === 0 ? '🎉 全殲敵軍，你贏了！' : '💥 你的艦隊全滅，AI 獲勝。')
       setStats(s => (win === 0 ? { ...s, wins: s.wins + 1 } : { ...s, losses: s.losses + 1 }))
@@ -236,12 +246,18 @@ export default function Battleship() {
     if (!tb || tb.shots[r][c] !== 'none') return
 
     pushHistory()
+    Sfx.fire()
     const nb = cloneBoard(tb)
     const res = fire(nb, r, c)
     setBoards(b => (target === 0 ? [nb, b[1]] : [b[0], nb]))
     if (res.sunk) {
       const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
       setSinkFx({ board: target, r: ctr.r, c: ctr.c, key: Date.now() })
+      Sfx.sink()
+    } else if (res.hit) {
+      Sfx.hit()
+    } else {
+      Sfx.miss()
     }
 
     if (allSunk(nb.ships)) {
@@ -265,12 +281,18 @@ export default function Battleship() {
     const timer = setTimeout(() => {
       const nb = cloneBoard(myBoard)
       const shot = aiChooseTarget(nb, aiMemory.current, difficulty)
+      Sfx.fire()
       const res = fire(nb, shot.r, shot.c)
       updateAiMemory(aiMemory.current, nb, shot, res, difficulty)
       setBoards(b => [nb, b[1]])
       if (res.sunk) {
         const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
         setSinkFx({ board: 0, r: ctr.r, c: ctr.c, key: Date.now() })
+        Sfx.sink()
+      } else if (res.hit) {
+        Sfx.hit()
+      } else {
+        Sfx.miss()
       }
 
       if (allSunk(nb.ships)) {
@@ -340,13 +362,23 @@ export default function Battleship() {
     <div className="bs-game">
       <div className="bs-statusbar">
         <span className="bs-message">{message}</span>
-        {mode === 'ai' ? (
-          <span className="bs-record">
-            戰績 🏆 {stats.wins} 勝 / {stats.losses} 敗
-          </span>
-        ) : (
-          <span className="bs-record">👥 雙人同機</span>
-        )}
+        <span className="bs-status-right">
+          {mode === 'ai' ? (
+            <span className="bs-record">
+              戰績 🏆 {stats.wins} 勝 / {stats.losses} 敗
+            </span>
+          ) : (
+            <span className="bs-record">👥 雙人同機</span>
+          )}
+          <button
+            className="bs-mute"
+            onClick={() => setMuted(m => !m)}
+            aria-label={muted ? '開啟音效' : '關閉音效'}
+            title={muted ? '開啟音效' : '關閉音效'}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+        </span>
       </div>
 
       {/* 設定畫面 */}

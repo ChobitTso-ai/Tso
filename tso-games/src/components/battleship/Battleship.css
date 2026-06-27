@@ -35,6 +35,25 @@
   color: #9ec5e0;
 }
 
+.bs-status-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bs-mute {
+  background: transparent;
+  border: 1px solid var(--bs-water-line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.bs-mute:hover {
+  background: #103048;
+}
+
 /* 佈署與對戰版面 */
 .bs-place,
 .bs-battle {
