@@ -579,37 +579,42 @@ function Grid({
 
   return (
     <div className={`bs-grid ${clickable ? 'clickable' : ''}`} onMouseLeave={onLeave}>
-      <div className="bs-corner" />
-      {COLS.map(col => (
-        <div key={`h${col}`} className="bs-axis">
+      {/* 所有格子皆指定座標，避免覆蓋物干擾自動排列導致錯位 */}
+      <div className="bs-corner" style={{ gridColumn: 1, gridRow: 1 }} />
+      {COLS.map((col, ci) => (
+        <div key={`h${col}`} className="bs-axis" style={{ gridColumn: ci + 2, gridRow: 1 }}>
           {col}
         </div>
       ))}
 
       {Array.from({ length: BOARD_SIZE }, (_, r) => (
-        <div key={`row${r}`} className="bs-row" style={{ display: 'contents' }}>
-          <div className="bs-axis">{r + 1}</div>
-          {Array.from({ length: BOARD_SIZE }, (_, c) => {
-            const shot = shots[r][c]
-            const classes = ['bs-cell']
-            if (shot === 'hit') classes.push('hit')
-            if (shot === 'miss') classes.push('miss')
-            if (previewSet.has(`${r},${c}`)) classes.push(previewValid ? 'preview' : 'preview-bad')
-
-            const interactive = clickable || (!!onCellClick && !!onCellHover)
-            return (
-              <button
-                key={`${r}-${c}`}
-                className={classes.join(' ')}
-                disabled={!interactive}
-                onClick={() => onCellClick?.(r, c)}
-                onMouseEnter={() => onCellHover?.(r, c)}
-                aria-label={`${COLS[c]}${r + 1}`}
-              />
-            )
-          })}
+        <div key={`ax${r}`} className="bs-axis" style={{ gridColumn: 1, gridRow: r + 2 }}>
+          {r + 1}
         </div>
       ))}
+
+      {Array.from({ length: BOARD_SIZE }, (_, r) =>
+        Array.from({ length: BOARD_SIZE }, (_, c) => {
+          const shot = shots[r][c]
+          const classes = ['bs-cell']
+          if (shot === 'hit') classes.push('hit')
+          if (shot === 'miss') classes.push('miss')
+          if (previewSet.has(`${r},${c}`)) classes.push(previewValid ? 'preview' : 'preview-bad')
+
+          const interactive = clickable || (!!onCellClick && !!onCellHover)
+          return (
+            <button
+              key={`${r}-${c}`}
+              className={classes.join(' ')}
+              style={{ gridColumn: c + 2, gridRow: r + 2 }}
+              disabled={!interactive}
+              onClick={() => onCellClick?.(r, c)}
+              onMouseEnter={() => onCellHover?.(r, c)}
+              aria-label={`${COLS[c]}${r + 1}`}
+            />
+          )
+        }),
+      )}
 
       {/* 船艦俯視圖：橫跨佔據的格子漂浮於水面，點擊穿透至底下格子 */}
       {drawnShips.map(s => {
