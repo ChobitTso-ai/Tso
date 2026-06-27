@@ -5,6 +5,7 @@ import MinecraftQuiz from './pages/MinecraftQuiz'
 import KidibotPage from './pages/KidibotPage'
 import EndgamePage from './pages/EndgamePage'
 import MathQuestPage from './pages/MathQuestPage'
+import BattleshipPage from './pages/BattleshipPage'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/minecraft" element={<MinecraftQuiz />} />
         <Route path="/kidibot" element={<KidibotPage />} />
         <Route path="/mathquest" element={<MathQuestPage />} />
+        <Route path="/battleship" element={<BattleshipPage />} />
       </Routes>
     </HashRouter>
   )
