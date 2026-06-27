@@ -94,6 +94,9 @@ export default function Battleship() {
   const aiMemory = useRef<AiMemory>(emptyMemory())
   const [history, setHistory] = useState<Snapshot[]>([])
   const [pendingEnd, setPendingEnd] = useState(false) // PvP：本回合已開火，等待「結束回合」
+  const [sinkFx, setSinkFx] = useState<{ board: 0 | 1; r: number; c: number; key: number } | null>(
+    null,
+  ) // 擊沉爆炸特效的位置
   const [handoff, setHandoff] = useState<{ player: 0 | 1; to: 'place' | 'battle'; label: string } | null>(
     null,
   )
@@ -236,6 +239,10 @@ export default function Battleship() {
     const nb = cloneBoard(tb)
     const res = fire(nb, r, c)
     setBoards(b => (target === 0 ? [nb, b[1]] : [b[0], nb]))
+    if (res.sunk) {
+      const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
+      setSinkFx({ board: target, r: ctr.r, c: ctr.c, key: Date.now() })
+    }
 
     if (allSunk(nb.ships)) {
       finishGame(turn)
@@ -261,6 +268,10 @@ export default function Battleship() {
       const res = fire(nb, shot.r, shot.c)
       updateAiMemory(aiMemory.current, nb, shot, res, difficulty)
       setBoards(b => [nb, b[1]])
+      if (res.sunk) {
+        const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
+        setSinkFx({ board: 0, r: ctr.r, c: ctr.c, key: Date.now() })
+      }
 
       if (allSunk(nb.ships)) {
         finishGame(1)
@@ -278,6 +289,13 @@ export default function Battleship() {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, mode, turn, boards])
+
+  // 爆炸特效播完後自動清除
+  useEffect(() => {
+    if (!sinkFx) return
+    const t = setTimeout(() => setSinkFx(null), 1000)
+    return () => clearTimeout(t)
+  }, [sinkFx])
 
   function endTurn() {
     const next = (1 - turn) as 0 | 1
@@ -297,6 +315,7 @@ export default function Battleship() {
     setHistory(history.slice(0, -1))
     setPendingEnd(false)
     setWinner(null)
+    setSinkFx(null)
     setPhase('battle')
     setMessage('已回到上一步。')
   }
@@ -497,6 +516,7 @@ export default function Battleship() {
                   phase === 'battle' && (mode === 'ai' ? turn === 0 : !pendingEnd)
                 }
                 onCellClick={handleAttack}
+                burst={sinkFx?.board === enemy ? sinkFx : undefined}
               />
             </div>
 
@@ -505,7 +525,12 @@ export default function Battleship() {
                 {mode === 'ai' ? '我方海域' : `${playerName(viewer)} 海域`}
                 <span className="bs-remaining">剩 {ownRemaining} 艘</span>
               </h3>
-              <Grid shots={boards[viewer]!.shots} ships={boards[viewer]!.ships} showShips />
+              <Grid
+                shots={boards[viewer]!.shots}
+                ships={boards[viewer]!.ships}
+                showShips
+                burst={sinkFx?.board === viewer ? sinkFx : undefined}
+              />
             </div>
           </div>
         </>
@@ -556,6 +581,7 @@ interface GridProps {
   onCellClick?: (r: number, c: number) => void
   onCellHover?: (r: number, c: number) => void
   onLeave?: () => void
+  burst?: { r: number; c: number; key: number } // 擊沉爆炸特效
 }
 
 function Grid({
@@ -569,6 +595,7 @@ function Grid({
   onCellClick,
   onCellHover,
   onLeave,
+  burst,
 }: GridProps) {
   const previewSet = new Set(preview.map(c => `${c.r},${c.c}`))
 
@@ -648,6 +675,18 @@ function Grid({
             </span>
           ),
         ),
+      )}
+
+      {/* 擊沉爆炸特效 */}
+      {burst && (
+        <span
+          key={burst.key}
+          className="bs-burst"
+          style={{ gridColumn: burst.c + 2, gridRow: burst.r + 2 }}
+        >
+          <span className="bs-burst-ring" />
+          <span className="bs-burst-emoji">💥</span>
+        </span>
       )}
     </div>
   )
