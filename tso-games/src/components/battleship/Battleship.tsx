@@ -269,7 +269,13 @@ export default function Battleship() {
       return
     }
 
-    setMessage(res.sunk ? `擊沉對方${res.sunk.name}！` : res.hit ? '命中！' : '沒打中…')
+    // 擊沉獎勵：擊沉對方艦艇的那回合可再開一砲
+    if (res.sunk) {
+      setMessage(`擊沉對方${res.sunk.name}！獎勵一砲，繼續開火！`)
+      return
+    }
+
+    setMessage(res.hit ? '命中！' : '沒打中…')
     if (mode === 'ai') {
       setTurn(1) // 觸發 AI 回合
     } else {
@@ -304,13 +310,12 @@ export default function Battleship() {
         finishGame(1)
         return
       }
-      setMessage(
-        res.sunk
-          ? `AI 擊沉你的${res.sunk.name}！換你開火。`
-          : res.hit
-            ? 'AI 命中你的艦艇！換你開火。'
-            : 'AI 沒打中，換你開火。',
-      )
+      // 擊沉獎勵：AI 也一樣，擊沉後再開一砲（不換手，boards 更新會再次觸發本 effect）
+      if (res.sunk) {
+        setMessage(`AI 擊沉你的${res.sunk.name}！AI 獎勵一砲，繼續開火…`)
+        return
+      }
+      setMessage(res.hit ? 'AI 命中你的艦艇！換你開火。' : 'AI 沒打中，換你開火。')
       setTurn(0)
     }, 620)
     return () => clearTimeout(timer)
@@ -433,6 +438,8 @@ export default function Battleship() {
               兩位玩家輪流使用同一台裝置：先各自佈署艦隊，再輪流攻擊。每次換手都有交接畫面，避免偷看對方佈署。
             </p>
           )}
+
+          <p className="bs-hint">⚓ 規則：擊沉對方艦艇的那一回合，獎勵再開一砲（雙方適用）。</p>
 
           <button className="bs-btn bs-btn-go bs-setup-go" onClick={startSetup}>
             開始佈署 ⚓
