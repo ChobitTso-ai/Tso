@@ -98,6 +98,7 @@ export default function Battleship() {
   const [sinkFx, setSinkFx] = useState<{ board: 0 | 1; r: number; c: number; key: number } | null>(
     null,
   ) // 擊沉爆炸特效的位置
+  const [lastShot, setLastShot] = useState<{ board: 0 | 1; r: number; c: number } | null>(null) // 最新一發的位置指示
   const [handoff, setHandoff] = useState<{ player: 0 | 1; to: 'place' | 'battle'; label: string } | null>(
     null,
   )
@@ -157,6 +158,8 @@ export default function Battleship() {
     setHover(null)
     setWinner(null)
     setHistory([])
+    setSinkFx(null)
+    setLastShot(null)
     setPhase('place')
     setMessage(mode === 'ai' ? '佈署你的艦隊，準備迎戰 AI！' : '玩家 1：佈署你的艦隊')
   }
@@ -250,6 +253,7 @@ export default function Battleship() {
     const nb = cloneBoard(tb)
     const res = fire(nb, r, c)
     setBoards(b => (target === 0 ? [nb, b[1]] : [b[0], nb]))
+    setLastShot({ board: target, r, c })
     if (res.sunk) {
       const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
       setSinkFx({ board: target, r: ctr.r, c: ctr.c, key: Date.now() })
@@ -285,6 +289,7 @@ export default function Battleship() {
       const res = fire(nb, shot.r, shot.c)
       updateAiMemory(aiMemory.current, nb, shot, res, difficulty)
       setBoards(b => [nb, b[1]])
+      setLastShot({ board: 0, r: shot.r, c: shot.c })
       if (res.sunk) {
         const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
         setSinkFx({ board: 0, r: ctr.r, c: ctr.c, key: Date.now() })
@@ -338,6 +343,7 @@ export default function Battleship() {
     setPendingEnd(false)
     setWinner(null)
     setSinkFx(null)
+    setLastShot(null)
     setPhase('battle')
     setMessage('已回到上一步。')
   }
@@ -549,6 +555,7 @@ export default function Battleship() {
                 }
                 onCellClick={handleAttack}
                 burst={sinkFx?.board === enemy ? sinkFx : undefined}
+                lastShot={lastShot?.board === enemy ? lastShot : undefined}
               />
             </div>
 
@@ -562,6 +569,7 @@ export default function Battleship() {
                 ships={boards[viewer]!.ships}
                 showShips
                 burst={sinkFx?.board === viewer ? sinkFx : undefined}
+                lastShot={lastShot?.board === viewer ? lastShot : undefined}
               />
             </div>
           </div>
@@ -614,6 +622,7 @@ interface GridProps {
   onCellHover?: (r: number, c: number) => void
   onLeave?: () => void
   burst?: { r: number; c: number; key: number } // 擊沉爆炸特效
+  lastShot?: { r: number; c: number } // 最新一發的位置指示環
 }
 
 function Grid({
@@ -628,6 +637,7 @@ function Grid({
   onCellHover,
   onLeave,
   burst,
+  lastShot,
 }: GridProps) {
   const previewSet = new Set(preview.map(c => `${c.r},${c.c}`))
 
@@ -707,6 +717,14 @@ function Grid({
             </span>
           ),
         ),
+      )}
+
+      {/* 最新一發指示環 */}
+      {lastShot && (
+        <span
+          className="bs-lastshot"
+          style={{ gridColumn: lastShot.c + 2, gridRow: lastShot.r + 2 }}
+        />
       )}
 
       {/* 擊沉爆炸特效 */}

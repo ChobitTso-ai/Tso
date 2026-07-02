@@ -1,6 +1,9 @@
 .bs-page {
   min-height: 100vh;
-  background: #081826;
+  background:
+    radial-gradient(1100px 500px at 50% -120px, rgba(24, 74, 118, 0.55), transparent 70%),
+    radial-gradient(900px 500px at 85% 110%, rgba(14, 50, 80, 0.5), transparent 65%),
+    #081826;
   display: flex;
   flex-direction: column;
 }
@@ -34,6 +37,8 @@
   margin: 0;
   flex: 1;
   text-align: center;
+  text-shadow: 0 0 16px rgba(69, 196, 255, 0.45);
+  letter-spacing: 1px;
 }
 
 .bs-nav-sub {
