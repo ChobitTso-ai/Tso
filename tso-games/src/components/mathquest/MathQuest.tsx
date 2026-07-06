@@ -231,10 +231,15 @@ export default function MathQuest() {
   const [elapsed,    setElapsed] = useState(0)
   const shakingRef = useRef(false)
 
-  // 讀存檔
+  // 讀存檔（只恢復地圖畫面；battle/shop 等中間狀態視為無效）
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) { try { setState(JSON.parse(saved)) } catch { /* ignore */ } }
+    if (!saved) return
+    try {
+      const s: GameState = JSON.parse(saved)
+      if (s.screen === 'map') setState(s)
+      else localStorage.removeItem(STORAGE_KEY)
+    } catch { localStorage.removeItem(STORAGE_KEY) }
   }, [])
 
   // 寫存檔
