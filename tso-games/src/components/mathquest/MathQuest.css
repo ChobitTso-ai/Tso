@@ -465,6 +465,20 @@
   transition: opacity 0.2s;
 }
 .mq-end-btn:hover { opacity: 0.85; }
+.mq-end-continue { background: #E8A020; margin-top: 20px; margin-bottom: -4px; }
+
+.mq-end-share-btn {
+  margin-top: 4px;
+  padding: 8px 20px;
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.mq-end-share-btn:hover { background: #333; }
+.mq-share-msg { color: #7fd97f; font-size: 0.85rem; margin: 0; }
 
 /* ── 響應式 ──────────────────────────────────────────────────────────── */
 /* ── 狀態列補充 ─────────────────────────────────────────────────────────────── */
@@ -483,6 +497,16 @@
   font-size: 0.95rem;
 }
 .mq-shop-btn:hover { background: #1e3a2e; }
+.mq-mute-btn {
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  cursor: pointer;
+  padding: 3px 8px;
+  font-size: 0.95rem;
+}
+.mq-mute-btn:hover { background: #333; }
 
 /* ── 角色卡升級 ─────────────────────────────────────────────────────────────── */
 .mq-char-level-badge {

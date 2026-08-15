@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getQuestion, type CharacterId, type Question } from './questions'
-import { Sfx } from './sounds'
+import { Sfx, isMuted, toggleMute } from './sounds'
 import { tryUnlock, incBossKills, recordMode, getUnlocked, getTitle, ALL_ACHIEVEMENTS } from './achievements'
 import './MathQuest.css'
 
@@ -229,14 +229,17 @@ export default function MathQuest() {
   const [sparkleCell,setSparkle] = useState<string | null>(null)
   const [toast,      setToast]   = useState<string | null>(null)
   const [elapsed,    setElapsed] = useState(0)
+  const [muted,      setMuted]   = useState(isMuted())
   const shakingRef = useRef(false)
 
-  // 讀存檔（只恢復地圖畫面；battle/shop 等中間狀態視為無效）
+  // 讀存檔：戰鬥/商店等中途畫面退回地圖（避免遮罩卡住），保留進度；
+  // 其餘非法畫面（例如選角/結算，理論上不會被寫入存檔）視為無效存檔
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return
     try {
       const s: GameState = JSON.parse(saved)
+      if (s.screen === 'battle' || s.screen === 'boss' || s.screen === 'shop') s.screen = 'map'
       if (s.screen === 'map') setState(s)
       else localStorage.removeItem(STORAGE_KEY)
     } catch { localStorage.removeItem(STORAGE_KEY) }
@@ -385,6 +388,16 @@ export default function MathQuest() {
       : buildBoard(LEVEL_SIZE[1])
     if (login.isNew) setTimeout(() => showToast(`🎁 登入獎勵 +${login.bonus} 金幣！（連續 ${login.streak} 天）`), 500)
     setState({ char, mode, level: 1, board, pos: [0,0], hp: info.maxHp, maxHp: info.maxHp, score: 0, gold: login.bonus, screen: mode === 'bossrush' ? 'boss' : 'map', question: null, wrongOptions: [], wrongInLevel: 0, bossQ: mode === 'bossrush' ? buildBossQs(char, 3) : [], bossIndex: 0, bossWrongOptions: [], combo: 0, maxCombo: 0, items: startItems, shield: false, doubleScoreLeft: 0, subDifficulty: 0, correctStreak: 0, timeLeft: 10, startTime: Date.now(), survivalKills: 0, survivalRound: 0, bossRushDefeated: 0, bossRushTotal: 10, newAchievements: [] })
+  }
+
+  // 普通模式通關後可轉為無限模式（沿用生存模式的地圖生成與難度遞增）
+  function continueEndless() {
+    setState(prev => {
+      if (!prev) return prev
+      recordMode('survival')
+      return { ...prev, mode: 'survival', level: 1, board: buildBoard(LEVEL_SIZE[1]), pos: [0,0],
+        screen: 'map', survivalRound: 0, subDifficulty: 3, newAchievements: [] }
+    })
   }
 
   function clickCell(r: number, c: number) {
@@ -569,7 +582,8 @@ export default function MathQuest() {
 
   if (!state || state.screen === 'select') return <SelectScreen onSelectChar={selectChar} />
   if (state.screen === 'mode_select') return <ModeSelectScreen char={state.char} onSelect={startGame} onBack={() => setState(null)} />
-  if (state.screen === 'win')  return <EndScreen state={state} win onReset={resetGame} elapsed={state.mode === 'speedrun' ? elapsed : 0} />
+  if (state.screen === 'win')  return <EndScreen state={state} win onReset={resetGame} elapsed={state.mode === 'speedrun' ? elapsed : 0}
+    onContinue={state.mode === 'normal' ? continueEndless : undefined} />
   if (state.screen === 'lose') return <EndScreen state={state} win={false} onReset={resetGame} elapsed={0} />
 
   const info    = CHAR_INFO[state.char]
@@ -595,6 +609,7 @@ export default function MathQuest() {
         <span className="mq-level">Lv.{state.level}</span>
         {state.mode !== 'normal' && <span className="mq-mode-badge">{GAME_MODES.find(m => m.id === state.mode)?.icon}</span>}
         <button className="mq-shop-btn" onClick={() => setState(p => p ? { ...p, screen: 'shop' } : p)}>🛒</button>
+        <button className="mq-mute-btn" onClick={() => setMuted(toggleMute())}>{muted ? '🔇' : '🔊'}</button>
         <button className="mq-reset-btn" onClick={resetGame}>🔄</button>
       </div>
 
@@ -928,10 +943,21 @@ function BattleOverlay({ question, wrongOptions, onAnswer, isBoss, bossProgress,
 
 // ── 結算 ─────────────────────────────────────────────────────────────────────
 
-function EndScreen({ state, win, onReset, elapsed }: { state: GameState; win: boolean; onReset: () => void; elapsed: number }) {
-  const info   = CHAR_INFO[state.char]
-  const lb     = loadLeaderboard()
-  const newAch = state.newAchievements.map(id => ALL_ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean)
+function EndScreen({ state, win, onReset, elapsed, onContinue }: { state: GameState; win: boolean; onReset: () => void; elapsed: number; onContinue?: () => void }) {
+  const info      = CHAR_INFO[state.char]
+  const lb        = loadLeaderboard()
+  const newAch    = state.newAchievements.map(id => ALL_ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean)
+  const [shareMsg, setShareMsg] = useState('')
+
+  function handleShare() {
+    const modeName = GAME_MODES.find(m => m.id === state.mode)?.name ?? state.mode
+    const text = `🔢 數學冒險 - ${info.name}｜${modeName}\n⭐ ${state.score} 分　🔥 最高連答 ${state.maxCombo} 題\nhttps://chobittso-ai.github.io/Tso/#/mathquest`
+    navigator.clipboard.writeText(text).then(() => {
+      setShareMsg('已複製到剪貼簿！')
+      setTimeout(() => setShareMsg(''), 2500)
+    })
+  }
+
   return (
     <div className="mq-end">
       <p className="mq-end-icon">{win ? '🏆' : '💀'}</p>
@@ -966,7 +992,10 @@ function EndScreen({ state, win, onReset, elapsed }: { state: GameState; win: bo
           ))}
         </div>
       )}
+      {onContinue && <button className="mq-end-btn mq-end-continue" onClick={onContinue}>♾ 繼續闖關（無限模式）</button>}
       <button className="mq-end-btn" onClick={onReset}>重新開始</button>
+      <button className="mq-end-share-btn" onClick={handleShare}>📋 分享分數</button>
+      {shareMsg && <p className="mq-share-msg">{shareMsg}</p>}
     </div>
   )
 }
