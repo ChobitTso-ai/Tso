@@ -1,5 +1,15 @@
 let audioCtx: AudioContext | null = null
 
+const MUTE_KEY = 'mq_muted'
+let muted = localStorage.getItem(MUTE_KEY) === '1'
+
+export function isMuted() { return muted }
+export function toggleMute(): boolean {
+  muted = !muted
+  localStorage.setItem(MUTE_KEY, muted ? '1' : '0')
+  return muted
+}
+
 function ctx() {
   if (!audioCtx)
     audioCtx = new (window.AudioContext ||
@@ -8,6 +18,7 @@ function ctx() {
 }
 
 function tone(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.22, delay = 0) {
+  if (muted) return
   try {
     const c = ctx()
     const osc = c.createOscillator()

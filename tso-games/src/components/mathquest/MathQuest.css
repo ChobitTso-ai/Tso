@@ -9,7 +9,26 @@
   padding: 12px;
   font-family: 'Segoe UI', sans-serif;
   box-sizing: border-box;
+  transition: background 0.5s;
 }
+
+/* 地圖主題：石窟 */
+.mq-game.mq-cave  { background: #100c0a; }
+/* 地圖主題：火山 */
+.mq-game.mq-volcano { background: #180808; }
+
+/* ── 地圖主題：格子 ────────────────────────────────────────────────────── */
+.mq-board.mq-cave .mq-cell                { background: #1a1208; border-color: #4a3820; }
+.mq-board.mq-cave .mq-cell:hover          { background: #2a1e10; }
+.mq-board.mq-cave .mq-cell-adj            { border-color: #c89040; background: #221808; box-shadow: 0 0 6px #c89040aa; }
+.mq-board.mq-cave .mq-cell-player         { background: #2a1a08; border-color: #FFD700; }
+.mq-board.mq-cave .mq-cell-done           { opacity: 0.35; }
+
+.mq-board.mq-volcano .mq-cell             { background: #1a0808; border-color: #6a2020; }
+.mq-board.mq-volcano .mq-cell:hover       { background: #280e0e; }
+.mq-board.mq-volcano .mq-cell-adj         { border-color: #ff6644; background: #200a0a; box-shadow: 0 0 6px #ff6644aa; }
+.mq-board.mq-volcano .mq-cell-player      { background: #280808; border-color: #ff8844; }
+.mq-board.mq-volcano .mq-cell-done        { opacity: 0.35; }
 
 /* ── 角色選擇 ─────────────────────────────────────────────────────────── */
 .mq-select {
@@ -32,6 +51,23 @@
 .mq-select-sub {
   color: #aaa;
   margin: 0 0 32px;
+}
+
+/* ── 每日登入獎勵橫幅 ─────────────────────────────────────────────────── */
+@keyframes mq-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mq-login-banner {
+  background: linear-gradient(135deg, #1a3a1a, #0f2a0f);
+  border: 1px solid #4a9a4a;
+  border-radius: 10px;
+  color: #aaffaa;
+  font-size: 0.9rem;
+  padding: 8px 20px;
+  margin: -16px 0 16px;
+  text-align: center;
+  animation: mq-fade-in 0.4s ease-out;
 }
 
 .mq-chars {
@@ -429,6 +465,20 @@
   transition: opacity 0.2s;
 }
 .mq-end-btn:hover { opacity: 0.85; }
+.mq-end-continue { background: #E8A020; margin-top: 20px; margin-bottom: -4px; }
+
+.mq-end-share-btn {
+  margin-top: 4px;
+  padding: 8px 20px;
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.mq-end-share-btn:hover { background: #333; }
+.mq-share-msg { color: #7fd97f; font-size: 0.85rem; margin: 0; }
 
 /* ── 響應式 ──────────────────────────────────────────────────────────── */
 /* ── 狀態列補充 ─────────────────────────────────────────────────────────────── */
@@ -447,6 +497,16 @@
   font-size: 0.95rem;
 }
 .mq-shop-btn:hover { background: #1e3a2e; }
+.mq-mute-btn {
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  cursor: pointer;
+  padding: 3px 8px;
+  font-size: 0.95rem;
+}
+.mq-mute-btn:hover { background: #333; }
 
 /* ── 角色卡升級 ─────────────────────────────────────────────────────────────── */
 .mq-char-level-badge {
@@ -617,6 +677,7 @@
 .mq-shop-info { flex: 1; }
 .mq-shop-name { font-size: 0.9rem; color: #fff; margin: 0; font-weight: bold; }
 .mq-shop-desc { font-size: 0.75rem; color: #aaa; margin: 0; }
+.mq-shop-reason { color: #ff8866; font-size: 0.75rem; }
 .mq-shop-buy {
   padding: 6px 12px;
   background: #4a9a4a;
