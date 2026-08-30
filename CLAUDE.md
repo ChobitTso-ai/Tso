@@ -90,9 +90,10 @@ Tso/
 - **TypeScript 6.x** - 型別系統
 - **Vite 8.x** - 建置工具
 - **React Router 7.x** - 路由管理
+- **ESLint 10** - 程式碼檢查（typescript-eslint + react-hooks plugin）
 
 ### 樣式
-- **原生 CSS** - 無預處理器，直接使用 CSS3
+- **原生 CSS** - 無預處理器，直接使用 CSS3（不使用 Tailwind、不使用 CSS-in-JS）
 - **CSS Modules** - 檔名規範：`ComponentName.css` 與 `ComponentName.tsx` 同目錄
 - **命名前綴**：各遊戲使用獨立前綴避免衝突
   - Minecraft: `.mc-*`
@@ -148,6 +149,67 @@ health: prev.health - 1
 health: prev.health - 1
 ```
 
+### localStorage 存檔模式
+
+**⚠️ 核心規則：還原 localStorage 存檔時必須驗證關鍵狀態欄位的合法性，不得無條件套用；非法或中途狀態應退回安全畫面並保留進度。**
+
+無條件把存檔內容直接套進 state，會讓殘缺或中途的存檔（例如戰鬥/商店畫面）在重新整理後蓋住整個畫面，造成無操作出口的卡死。2026-08 數學冒險即因此發生線上缺陷。
+
+```typescript
+const STORAGE_KEY = 'gameKey'
+
+// ✅ 還原時驗證：中途畫面退回安全畫面，保留進度；無法修復才清除
+useEffect(() => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (!saved) return
+  try {
+    const s: GameState = JSON.parse(saved)
+    if (s.screen === 'battle' || s.screen === 'shop') s.screen = 'map'  // 退回安全畫面
+    if (s.screen === 'map') setState(s)
+    else localStorage.removeItem(STORAGE_KEY)                            // 無效存檔才清除
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}, [])
+
+// ❌ 錯誤：無條件套用，殘缺存檔會導致畫面卡死
+useEffect(() => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) setState(JSON.parse(saved))
+}, [])
+```
+
+檢查清單：
+- 寫入端排除哪些畫面？還原端就必須能處理其餘所有畫面值
+- 每個可能被還原的畫面，是否都有可操作的出口？
+- JSON 解析失敗時是否有 fallback，而非讓例外中斷渲染？
+
+### 條件類名模式
+
+```typescript
+// 陣列過濾法（條件較多時）
+className={['square', isLight ? 'light' : 'dark', isSelected ? 'selected' : ''].filter(Boolean).join(' ')}
+
+// 模板字串法（條件較少時）
+className={`kb-level-btn ${i === levelIdx ? 'active' : ''} ${starClass(i)}`}
+```
+
+### 常數管理
+
+將顯示設定、難度標籤等集中為常數物件，作為單一真實來源，避免同一份資料散落多處：
+
+```typescript
+const LEVELS: Level[] = [...]
+const TILE_DISPLAY: Record<TileType, string> = {...}
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {...}
+```
+
+### 業務邏輯與 UI 分離
+
+- 核心演算法單獨成檔（如 `chess/board.ts`、`chess/moves.ts`、`battleship/logic.ts`）
+- 該層為純 TypeScript，不 import React，可獨立測試
+- 元件只負責 UI 與狀態（hooks），不內含演算法邏輯
+
 ---
 
 ## 🎮 新增遊戲流程
@@ -201,6 +263,10 @@ useEffect(() => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
 }, [gameState])
 ```
+
+> ⚠️ 上方讀取範例為簡化示意，**未包含存檔驗證**，不可直接用於正式功能。
+> 實作時務必依照「📝 程式碼規範 › localStorage 存檔模式」驗證關鍵狀態欄位，
+> 否則殘缺或中途存檔會造成畫面卡死。
 
 ---
 
