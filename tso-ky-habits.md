@@ -1,8 +1,32 @@
-# CLAUDE.md — 全域個人設定
-# Tso KY｜所有專案通用規則
-#
-# 用法：本檔是「母本」，存放於 Tso repo 以版本控制保存。
-# 在本機把本檔內容複製/同步到 ~/.claude/CLAUDE.md，即可跨所有專案生效。
+# Tso KY 個人開發習慣（部分備份）
+
+> ## ⚠️ 這不是母本，不要覆蓋回本機
+>
+> **權威版本是本機的 `~/.claude/CLAUDE.md`，本檔只是它的部分備份。**
+>
+> 本檔曾在檔頭寫「本檔是母本，複製回 `~/.claude/CLAUDE.md` 即可生效」——
+> 那個說明已經過期且危險。本機版本後續新增了本檔沒有的內容，
+> 照舊說明覆蓋回去會把那些設定洗掉。
+>
+> ### 已知本檔缺少（僅存在於本機版本）
+>
+> - 全域母區啟動規則（指向 `D:\AI Workstation`）
+> - 文件輸出流程
+> - Skill 路由
+> - 自動維護規則
+>
+> 這些內容雲端工作階段讀不到本機檔案，無法補齊。
+> 要讓本檔恢復成完整母本，需由使用者把本機 `~/.claude/CLAUDE.md` 的內容貼過來。
+>
+> ### 同步方向
+>
+> **本機 → repo**（單向）。repo 這份只作為版本控制的留存，
+> 不可反向覆蓋本機，也不應作為唯一依據。
+>
+> ### 專案慣例不在這裡
+>
+> TSO Games 的架構與開發慣例已全部移入專案根目錄的 `CLAUDE.md`，
+> 本檔只保留跨專案通用的個人設定。
 
 ---
 
@@ -115,54 +139,6 @@ Step 4：確認後才輸出打包腳本與說明文件
 
 ---
 
-## TSO Games 專案架構慣例
-
-### 目錄結構
-```
-tso-games/src/
-├── App.tsx                        ← 路由定義，只有這裡加 Route
-├── pages/<Name>Page.tsx/css       ← 薄包裝層：nav 列 + 引入 component
-├── components/<feature>/          ← UI 邏輯與狀態（hooks）
-└── <feature>/                     ← 純邏輯層，不依賴 React
-```
-
-### 新增遊戲標準流程（四步驟）
-1. 建立 `src/components/<name>/` — 遊戲主體邏輯與 UI
-2. 建立 `src/pages/<Name>Page.tsx` — nav 列包裝，設定 `document.title`
-3. `App.tsx` 加一條 `<Route path="/<name>" element={<NamePage />} />`
-4. `Home.tsx` 的 `GAMES` 陣列加一張卡片（含 id、title、description、icon、path、available）
-
-### 固定慣例
-- 每個 Page component 第一行設定標題：`document.title = '頁面名 | TSO'`
-- CSS 與元件 co-located（`ChessBoard.tsx` + `ChessBoard.css` 同目錄）
-- 返回首頁統一用：`<Link to="/">← 首頁</Link>`
-- 只有 `main` branch 觸發 GitHub Pages 部署（`deploy.yml`）
-- 已合併的 feature branch 可以直接刪除，不影響 main 的程式碼
-- 全站登入閘：`components/auth/LoginGate.tsx` 包住整個 App，帳密以 base64 混淆存前端（僅擋一般使用者，非真正安全機制），sessionStorage 記錄登入狀態
-
-### 三國演義 hub 子遊戲串接流程（規劃中）
-三國演義是 hub 頁面（`/threekingdoms`），底下掛多個子遊戲。**每個子遊戲開一個新對話開發，做完合併再開下一個**（避免多對話同時改 `App.tsx`、`ThreeKingdomsPage.tsx` 造成 git 衝突）。
-
-新子遊戲標準四步驟：
-1. 建立 `src/components/<name>/` — 子遊戲主體邏輯與 UI
-2. 建立 `src/pages/<Name>Page.tsx` — nav 列包裝，`document.title = '子遊戲名 | TSO'`，返回鍵指向 `/threekingdoms`（不是首頁）
-3. `App.tsx` 加 `<Route path="/<name>" element={<NamePage />} />`
-4. **`ThreeKingdomsPage.tsx` 的 `MINI_GAMES` 陣列**加一張卡片（不是首頁 `Home.tsx` 的 `GAMES`）
-
-主題配色：紅黑（`#c0392b` 主色、`#1a0a0a` 卡片底、`#e74c3c` hover）。
-
-### TypeScript / React 慣例（從 tso-games 萃取）
-- **Export 規則**：component 用 `export default function`，工具函式用 `export function`（named）
-- **型別集中**：每個功能模組放一支 `types.ts`（如 `chess/types.ts`），所有相關 interface/type 集中於此
-- **常數型別**：用 `Record<>` 明確標型（如 `const PIECE_VALUE: Record<string, number> = {...}`）
-- **懶初始化**：useState 傳函式避免重複計算：`useState<T>(() => createInitialState())`
-- **Stale closure 防護**：useEffect 依賴複雜 state/config 時，改用 `useRef` 持有最新值，effect 內讀 `ref.current`（需寫短註解說明原因）
-- **純邏輯分層**：棋局計算、關卡資料等純邏輯放 `<feature>/` 資料夾（不 import React），component 只負責 UI + hooks
-- **nav 列模式**：`<Link to="/" className="nav-home">← 首頁</Link>` + `<span className="nav-title">頁面名</span>`
-- **首頁卡片清單**：`GAMES` 陣列搭配 `GameCard` interface，`available: false` 時顯示「敬請期待」
-
----
-
 ## Windows 已知問題與解法
 
 | 問題 | 解法 |
@@ -202,4 +178,5 @@ tso-games/src/
 - 使用的 API 金鑰環境變數名稱
 - 已知 bug 或待辦事項
 
-全域（本檔）規則優先級低於專案層級，但核心規則（署名、保護、輸出流程）不可被覆蓋。
+全域規則（本機 `~/.claude/CLAUDE.md`）優先級低於專案層級，
+但核心規則（署名、程式碼保護、輸出流程）不可被專案層級覆蓋。
