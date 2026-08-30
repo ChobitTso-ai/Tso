@@ -162,6 +162,7 @@ health: prev.health - 1
 
 - 只用 React Hooks（不引入 Redux、不使用 Context API）
 - `useState` 管本地狀態，`useRef` 管鎖定與計時器，`useEffect` 管副作用
+- 初始值需要運算時用懶初始化，避免每次 render 重算：`useState<T>(() => createInitialState())`
 - 不可變更新：巢狀陣列需深拷貝，例如 `prev.map(r => [...r])`，不可就地修改
 - 密集運算隔離到 Web Worker（如 `chess/ai.worker.ts`），避免阻塞 UI
 
@@ -326,6 +327,39 @@ useEffect(() => {
 ```
 
 詳細規則與檢查清單見「📝 程式碼規範 › localStorage 存檔模式」。
+
+### 6. 頁面與導覽慣例
+
+- 每個 Page component 第一行設定瀏覽器標題：`document.title = '頁面名 | TSO'`
+- nav 列統一結構：
+
+```tsx
+<nav className="xxx-nav">
+  <Link to="/" className="nav-home">← 首頁</Link>
+  <span className="nav-title">頁面名</span>
+</nav>
+```
+
+- 首頁卡片以 `GAMES` 陣列搭配 `GameCard` interface 定義，`available: false` 顯示「敬請期待」
+- 全站登入閘位於 `components/auth/LoginGate.tsx`，包住整個 App。帳密以 base64 混淆存於前端，
+  sessionStorage 記錄登入狀態。**僅能擋一般使用者，不是真正的安全機制**——靜態站無後端，
+  懂技術者可從原始碼繞過，不可用於保護真正敏感的內容
+
+### 7. 三國演義 hub 子遊戲
+
+三國演義（`/threekingdoms`）是 hub 頁面，底下掛多個子遊戲。子遊戲的接法與一般遊戲有兩處不同：
+
+1. 建立 `src/components/<name>/` — 子遊戲主體
+2. 建立 `src/pages/<Name>Page.tsx` — `document.title = '子遊戲名 | TSO'`，
+   **返回鍵指向 `/threekingdoms`，不是首頁**
+3. `App.tsx` 加 `<Route path="/<name>" element={<NamePage />} />`
+4. 卡片加在 **`ThreeKingdomsPage.tsx` 的 `MINI_GAMES` 陣列**，不是首頁的 `GAMES`
+
+主題配色：`#c0392b`（主色）、`#1a0a0a`（卡片底）、`#e74c3c`（hover）。
+
+**每個子遊戲開一條分支、一個 PR，做完合併再開下一個。** 多個工作階段同時改
+`App.tsx` 與 `ThreeKingdomsPage.tsx` 會造成衝突——本專案已發生過一次分支互相覆蓋、
+事後靠 cherry-pick 才救回的事故。
 
 ---
 
