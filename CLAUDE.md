@@ -149,6 +149,56 @@ health: prev.health - 1
 health: prev.health - 1
 ```
 
+### 程式碼風格
+
+- 縮排：2 個空格
+- 引號：JS/TS 用單引號，JSX 屬性用雙引號
+- 分號：永遠加
+- 型別導入獨立：`import type { GameState } from './types'`
+- 元件宣告：`export default function ComponentName() {...}`
+- 嚴格 TypeScript：不使用 `any`，不留未使用的變數與參數
+
+### React 狀態與副作用
+
+- 只用 React Hooks（不引入 Redux、不使用 Context API）
+- `useState` 管本地狀態，`useRef` 管鎖定與計時器，`useEffect` 管副作用
+- 不可變更新：巢狀陣列需深拷貝，例如 `prev.map(r => [...r])`，不可就地修改
+- 密集運算隔離到 Web Worker（如 `chess/ai.worker.ts`），避免阻塞 UI
+
+**⚠️ 核心規則：用於「防止重複觸發」的旗標必須放在 `useRef`，不得放進 `useEffect` 的依賴陣列。**
+
+把旗標 state 放進 deps 會形成自我取消迴圈：effect 內 `setFlag(true)` 造成 effect 重跑，
+重跑時 cleanup 先取消上一輪排定的工作，於是那份工作永遠不會完成。
+2026-04 西洋棋 AI 即因此永遠不走棋——`aiThinking` 在 deps 中，
+`setAiThinking(true)` 觸發重跑、cleanup 清掉 timer，Worker 永遠收不到訊息。
+
+```typescript
+// ❌ 錯誤：旗標 state 在 deps 中，setState 觸發重跑並取消自己排定的工作
+const [aiThinking, setAiThinking] = useState(false)
+useEffect(() => {
+  if (aiThinking) return
+  setAiThinking(true)
+  const id = setTimeout(() => runAI(), 300)
+  return () => clearTimeout(id)
+}, [state, aiThinking])
+
+// ✅ 正確：鎖定用 ref（不觸發重跑），state 只負責 UI 顯示，且不進 deps
+const isThinkingRef = useRef(false)
+useEffect(() => {
+  if (isThinkingRef.current) return
+  isThinkingRef.current = true
+  setAiThinking(true)              // 僅供畫面顯示「思考中」
+  timerRef.current = setTimeout(() => {
+    runAI()
+    isThinkingRef.current = false
+    setAiThinking(false)
+  }, 300)
+}, [state, config])                // aiThinking 刻意不在 deps 中
+```
+
+同理，effect 需要讀取複雜 state/config 的最新值時改用 ref 持有（`stateRef.current`），
+避免把整包物件放進 deps 造成重跑。
+
 ### localStorage 存檔模式
 
 **⚠️ 核心規則：還原 localStorage 存檔時必須驗證關鍵狀態欄位的合法性，不得無條件套用；非法或中途狀態應退回安全畫面並保留進度。**
@@ -254,19 +304,28 @@ const GAMES: GameCard[] = [
 // 使用 localStorage 持久化
 const STORAGE_KEY = 'newGameState'
 
+// 讀取：驗證關鍵狀態欄位，中途畫面退回安全畫面並保留進度
 useEffect(() => {
   const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) setGameState(JSON.parse(saved))
+  if (!saved) return
+  try {
+    const s: GameState = JSON.parse(saved)
+    if (s.screen === 'battle' || s.screen === 'shop') s.screen = 'map'
+    if (s.screen === 'map') setGameState(s)
+    else localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+  }
 }, [])
 
+// 寫入：排除選角等不該被還原的畫面
 useEffect(() => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
+  if (gameState && gameState.screen !== 'select')
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
 }, [gameState])
 ```
 
-> ⚠️ 上方讀取範例為簡化示意，**未包含存檔驗證**，不可直接用於正式功能。
-> 實作時務必依照「📝 程式碼規範 › localStorage 存檔模式」驗證關鍵狀態欄位，
-> 否則殘缺或中途存檔會造成畫面卡死。
+詳細規則與檢查清單見「📝 程式碼規範 › localStorage 存檔模式」。
 
 ---
 
@@ -299,6 +358,14 @@ https://claude.ai/code/session_xxxxx"
 - `重構` - 程式碼重構
 - `fix:` - 緊急修復（英文）
 - `ci:` - CI/CD 相關
+
+也接受 Conventional Commits 帶範圍的寫法，中英文皆可：
+
+```
+feat(kidibot): v2 — 15 levels, localStorage progress
+fix: turn tile labels now show both connection directions
+refactor: remove redundant level from useEffect dependency array
+```
 
 ### 合併策略
 - **Merge Commit** 優先（保留完整歷史）
@@ -359,6 +426,21 @@ ls -lh tso-games/dist/
 --bg-dark: #2C2C2C;
 --text-light: #FFFFFF;
 ```
+
+站台預設為暗色主題：背景 `#0f1729`、文字 `#e0e0e0`、強調色 `#e4c97e`（金色）。
+各遊戲的主題色在此基礎上延伸，不覆蓋首頁與導覽的既有配色。
+
+### 類名結構
+
+採 BEM-like 命名：基礎類名 ＋ 狀態修飾詞，狀態寫成獨立類名而非另造新類。
+
+```css
+.game-card { }
+.game-card:hover { }
+.game-card.unavailable { }
+```
+
+動畫統一用 `transition: all 0.15s` 與 `@keyframes`。
 
 ### 按鈕樣式
 - **主要動作**：綠色（開始遊戲、確認）
