@@ -4,6 +4,53 @@
 
 ---
 
+## 🔒 個人核心規則（跨專案適用，不可省略）
+
+以下三條是專案擁有者跨所有專案的固定要求，**適用範圍為交付給使用者的獨立工具程式**
+（主要是 Python 桌面工具，例如本 repo 的 `minecraft_quiz.py`）。
+網站前端程式碼不適用署名與保護機制，但「輸出流程」對所有交付一律適用。
+
+完整版本見 `tso-ky-habits.md`；該檔不會被自動載入，故核心條文在此重述。
+
+### 1. 署名（每支工具必須包含）
+
+```
+© [年份] Tso KY - All Rights Reserved
+Protected against reverse engineering and unauthorized modification
+```
+
+- 署名寫在程式最上方的 docstring
+- 每支工具必須有版本號（`v1.0`、`v1.1`……），寫在 docstring 與視窗標題列
+
+### 2. 程式碼保護（Python 工具標配）
+
+```python
+_APP_SIGNATURE  = "<base64 encoded app identifier>"
+_AUTHOR_HASH    = "<SHA256 of author string>"
+_PROTECTION_KEY = "<numeric key>"
+_VERSION        = "x.x"
+
+def _verify_integrity(): ...   # base64 解碼驗證
+def _anti_debug(): ...         # 時間差異反調試偵測
+```
+
+- 啟動時執行 `_verify_integrity()` 與 `_anti_debug()`，驗證失敗顯示警告並終止
+- 敏感字串以 base64 混淆，不以明文儲存
+- **這是防君子不防小人的機制**，可擋一般使用者，擋不住有心人；不可用於保護真正機密的內容
+
+### 3. 輸出流程（禁止跳步驟）
+
+```
+Step 1：先輸出基本可運行的主程式，只有主程式
+Step 2：使用者測試、回報問題、修正
+Step 3：功能確認正常後，才「詢問」要不要輸出打包 BAT 與 README
+Step 4：得到確認後才輸出打包腳本與說明文件
+```
+
+**不要在使用者測試前主動輸出打包腳本或說明文件。**
+
+---
+
 ## 通用開發原則
 
 ### 1. Think Before Coding
