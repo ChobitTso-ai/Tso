@@ -705,6 +705,54 @@
 }
 .mq-shop-close:hover { background: #333; }
 
+/* ── 錯題本 ───────────────────────────────────────────────────────────────── */
+.mq-mistake-btn {
+  margin-top: 20px;
+  padding: 8px 20px;
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.mq-mistake-btn:hover { background: #333; }
+.mq-mistake-box {
+  background: #16213e;
+  border: 3px solid #4A90D9;
+  border-radius: 20px;
+  padding: 24px 20px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: mq-pop 0.2s ease-out;
+}
+.mq-mistake-title { color: #88aaff; font-size: 1.3rem; margin: 0 0 14px; }
+.mq-mistake-empty { color: #aaa; font-size: 0.9rem; }
+.mq-mistake-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.mq-mistake-row {
+  background: #0f3460;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.mq-mistake-q    { font-size: 0.95rem; color: #fff; font-weight: bold; margin: 0 0 4px; }
+.mq-mistake-hint { font-size: 0.8rem; color: #ffcc66; margin: 0 0 4px; }
+.mq-mistake-date { font-size: 0.7rem; color: #888; margin: 0; }
+.mq-mistake-actions { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+.mq-mistake-clear {
+  padding: 8px 20px;
+  background: none;
+  border: 1px solid #a94442;
+  border-radius: 8px;
+  color: #ff8888;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.mq-mistake-clear:hover { background: #3a1010; }
+
 /* ── 限時模式計時環 ─────────────────────────────────────────────────────────── */
 .mq-timer-ring {
   display: inline-flex;
