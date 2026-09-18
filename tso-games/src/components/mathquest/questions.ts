@@ -30,13 +30,14 @@ function makeOptions(answer: number, range: [number, number]): number[] {
 // Alan: 九九乘法 + 多位數
 function generateAlanQuestion(level: 1 | 2 | 3, sub = 0): Question {
   if (level === 3) {
-    const a = Math.floor(Math.random() * (14 + sub * 4)) + 12
-    const b = Math.floor(Math.random() * (8 + sub)) + 2
+    // 個位數乘法表的自然延伸：兩位數限制在 11-18，避免直接跳到過大的數字
+    const a = Math.floor(Math.random() * (5 + sub)) + 11
+    const b = Math.floor(Math.random() * 7) + 2
     const answer = a * b
     return {
       question: `${a} × ${b} = ?`,
       answer,
-      options: makeOptions(answer, [24, 350]),
+      options: makeOptions(answer, [22, 160]),
       hint: `${a} × ${b}：先算 ${Math.floor(a / 10) * 10} × ${b} = ${Math.floor(a / 10) * 10 * b}，再加 ${a % 10} × ${b} = ${(a % 10) * b}，合計 ${answer}`,
     }
   }
