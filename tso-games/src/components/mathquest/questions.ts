@@ -27,22 +27,13 @@ function makeOptions(answer: number, range: [number, number]): number[] {
   return shuffle([...opts])
 }
 
-// Alan: 九九乘法 + 多位數
+// Alan: 九九乘法表（國小三年級程度，只在個位數範圍內出題）
 function generateAlanQuestion(level: 1 | 2 | 3, sub = 0): Question {
-  if (level === 3) {
-    const a = Math.floor(Math.random() * (14 + sub * 4)) + 12
-    const b = Math.floor(Math.random() * (8 + sub)) + 2
-    const answer = a * b
-    return {
-      question: `${a} × ${b} = ?`,
-      answer,
-      options: makeOptions(answer, [24, 350]),
-      hint: `${a} × ${b}：先算 ${Math.floor(a / 10) * 10} × ${b} = ${Math.floor(a / 10) * 10 * b}，再加 ${a % 10} × ${b} = ${(a % 10) * b}，合計 ${answer}`,
-    }
-  }
   const tables = level === 1
     ? [1, 2, 3, 4, 5].slice(0, 5 - Math.min(2, sub))
-    : [6, 7, 8, 9]
+    : level === 2
+    ? [6, 7, 8, 9]
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9] // 關卡3：九九乘法總複習，全範圍混合出題
   const a = tables[Math.floor(Math.random() * tables.length)]
   const b = Math.floor(Math.random() * 9) + 1
   const answer = a * b
@@ -55,7 +46,7 @@ function generateAlanQuestion(level: 1 | 2 | 3, sub = 0): Question {
   }
 }
 
-// Ryan T: 小學四五六年級
+// Ryan T: 國小五年級程度
 function generateRyanQuestion(level: 1 | 2 | 3, sub = 0): Question {
   const typeCount = level === 1 ? 3 : level === 2 ? 5 : 4
   const type = Math.floor(Math.random() * typeCount)
