@@ -59,8 +59,8 @@ interface ScoreEntry {
 // ── 常數 ──────────────────────────────────────────────────────────────────────
 
 const CHAR_INFO = {
-  alan: { name: 'Alan',   maxHp: 4, color: '#4A90D9', emoji: '🧒', subject: '九九乘法',  desc: '專攻乘法表，穩健冷靜' },
-  ryan: { name: 'Ryan T', maxHp: 5, color: '#E8A020', emoji: '😄', subject: '小學數學',  desc: '活潑挑戰，四五六年級' },
+  alan: { name: 'Alan',   maxHp: 4, color: '#4A90D9', emoji: '🧒', subject: '九九乘法',  desc: '國小三年級程度，穩健冷靜' },
+  ryan: { name: 'Ryan T', maxHp: 5, color: '#E8A020', emoji: '😄', subject: '小學數學',  desc: '國小五年級程度，活潑挑戰' },
 }
 const LEVEL_SIZE: Record<1|2|3, number> = { 1: 5, 2: 7, 3: 9 }
 const BOSS_Q:     Record<1|2|3, number> = { 1: 3, 2: 4, 3: 5 }
