@@ -234,6 +234,33 @@
   text-align: center;
 }
 
+.mq-level-clear-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #1a3a1a, #0f2a0f);
+  border: 1px solid #4a9a4a;
+  border-radius: 10px;
+  color: #aaffaa;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+.mq-level-clear-btn {
+  padding: 6px 16px;
+  background: #4a9a4a;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mq-level-clear-btn:hover { opacity: 0.85; }
+
 /* ── 戰鬥覆蓋層 ──────────────────────────────────────────────────────── */
 .mq-overlay {
   position: fixed;

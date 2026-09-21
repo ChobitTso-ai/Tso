@@ -45,6 +45,7 @@ interface GameState {
   bossRushDefeated: number
   bossRushTotal: number
   newAchievements: string[]
+  levelCleared: boolean
 }
 
 interface ScoreEntry {
@@ -311,8 +312,6 @@ export default function MathQuest() {
       }
 
       if (cell.type === 'boss') {
-        const hasEnemies = newBoard.some(row => row.some(c => (c.type === 'monster' || c.type === 'elite') && !c.defeated))
-        if (hasEnemies) { setTimeout(() => showToast('⚠️ 先打倒所有怪物！'), 0); return prev }
         Sfx.boss()
         return { ...prev, pos: [nr, nc], bossQ: buildBossQs(prev.char, prev.level, prev.subDifficulty), bossIndex: 0, bossWrongOptions: [], screen: 'boss' }
       }
@@ -375,7 +374,7 @@ export default function MathQuest() {
   // ── 遊戲啟動 ────────────────────────────────────────────────────────────────
 
   function selectChar(char: CharacterId) {
-    setState({ char, mode: 'normal', level: 1, board: [], pos: [0,0], hp: 1, maxHp: 1, score: 0, gold: 0, screen: 'mode_select', question: null, wrongOptions: [], wrongInLevel: 0, bossQ: [], bossIndex: 0, bossWrongOptions: [], combo: 0, maxCombo: 0, items: [], shield: false, doubleScoreLeft: 0, subDifficulty: 0, correctStreak: 0, timeLeft: 10, startTime: 0, survivalKills: 0, survivalRound: 0, bossRushDefeated: 0, bossRushTotal: 10, newAchievements: [] })
+    setState({ char, mode: 'normal', level: 1, board: [], pos: [0,0], hp: 1, maxHp: 1, score: 0, gold: 0, screen: 'mode_select', question: null, wrongOptions: [], wrongInLevel: 0, bossQ: [], bossIndex: 0, bossWrongOptions: [], combo: 0, maxCombo: 0, items: [], shield: false, doubleScoreLeft: 0, subDifficulty: 0, correctStreak: 0, timeLeft: 10, startTime: 0, survivalKills: 0, survivalRound: 0, bossRushDefeated: 0, bossRushTotal: 10, newAchievements: [], levelCleared: false })
   }
 
   function startGame(char: CharacterId, mode: GameMode) {
@@ -387,7 +386,7 @@ export default function MathQuest() {
       ? buildBoard(LEVEL_SIZE[1], new SeededRng(getDailySeed()))
       : buildBoard(LEVEL_SIZE[1])
     if (login.isNew) setTimeout(() => showToast(`🎁 登入獎勵 +${login.bonus} 金幣！（連續 ${login.streak} 天）`), 500)
-    setState({ char, mode, level: 1, board, pos: [0,0], hp: info.maxHp, maxHp: info.maxHp, score: 0, gold: login.bonus, screen: mode === 'bossrush' ? 'boss' : 'map', question: null, wrongOptions: [], wrongInLevel: 0, bossQ: mode === 'bossrush' ? buildBossQs(char, 3) : [], bossIndex: 0, bossWrongOptions: [], combo: 0, maxCombo: 0, items: startItems, shield: false, doubleScoreLeft: 0, subDifficulty: 0, correctStreak: 0, timeLeft: 10, startTime: Date.now(), survivalKills: 0, survivalRound: 0, bossRushDefeated: 0, bossRushTotal: 10, newAchievements: [] })
+    setState({ char, mode, level: 1, board, pos: [0,0], hp: info.maxHp, maxHp: info.maxHp, score: 0, gold: login.bonus, screen: mode === 'bossrush' ? 'boss' : 'map', question: null, wrongOptions: [], wrongInLevel: 0, bossQ: mode === 'bossrush' ? buildBossQs(char, 3) : [], bossIndex: 0, bossWrongOptions: [], combo: 0, maxCombo: 0, items: startItems, shield: false, doubleScoreLeft: 0, subDifficulty: 0, correctStreak: 0, timeLeft: 10, startTime: Date.now(), survivalKills: 0, survivalRound: 0, bossRushDefeated: 0, bossRushTotal: 10, newAchievements: [], levelCleared: false })
   }
 
   // 普通模式通關後可轉為無限模式（沿用生存模式的地圖生成與難度遞增）
@@ -528,14 +527,9 @@ export default function MathQuest() {
             return { ...prev, board: buildBoard(LEVEL_SIZE[1]), pos: [0,0], survivalRound: newRound, survivalKills: prev.survivalKills + 1, score: prev.score + 50, combo: newCombo, maxCombo: newMaxCombo, bossIndex: 0, bossQ: [], bossWrongOptions: [], screen: 'map', subDifficulty: Math.min(3, newRound), newAchievements: [...prev.newAchievements, ...newAch] }
           }
 
-          const nextLevel = (prev.level + 1) as 1|2|3
-          if (nextLevel > 3) {
-            Sfx.win()
-            finishGame({ ...prev, score: prev.score + 50, combo: newCombo, maxCombo: newMaxCombo }, true)
-            return { ...prev, board: newBoard, score: prev.score + 50, combo: newCombo, maxCombo: newMaxCombo, screen: 'win', newAchievements: [...prev.newAchievements, ...newAch] }
-          }
+          // 打倒本層 Boss：留在原地，讓玩家選擇前往下一關或繼續掠奪這層
           Sfx.win()
-          return { ...prev, level: nextLevel, board: buildBoard(LEVEL_SIZE[nextLevel]), pos: [0,0], score: prev.score + 50, combo: newCombo, maxCombo: newMaxCombo, wrongInLevel: 0, bossQ: [], bossIndex: 0, bossWrongOptions: [], screen: 'map', newAchievements: [...prev.newAchievements, ...newAch] }
+          return { ...prev, board: newBoard, score: prev.score + 50, combo: newCombo, maxCombo: newMaxCombo, bossQ: [], bossIndex: 0, bossWrongOptions: [], screen: 'map', levelCleared: true, newAchievements: [...prev.newAchievements, ...newAch] }
         }
 
         // 中途題答對
@@ -549,6 +543,24 @@ export default function MathQuest() {
         if (newHp <= 0) { Sfx.lose(); finishGame({ ...prev, hp: 0, combo: 0, shield: false }, false); return { ...prev, hp: 0, combo: 0, shield: false, screen: 'lose' } }
         return { ...prev, hp: newHp, combo: 0, shield: false, bossWrongOptions: [...prev.bossWrongOptions, option] }
       }
+    })
+  }
+
+  // 過關後前往下一關（放棄本層剩餘怪物/寶箱）
+  function goNextLevel() {
+    setState(prev => {
+      if (!prev || !prev.levelCleared || prev.level >= 3) return prev
+      const nextLevel = (prev.level + 1) as 1|2|3
+      return { ...prev, level: nextLevel, board: buildBoard(LEVEL_SIZE[nextLevel]), pos: [0,0], wrongInLevel: 0, levelCleared: false, screen: 'map' }
+    })
+  }
+
+  // 打完最終 Boss 後結束挑戰（可延後：先繼續掠奪本層再結束）
+  function finishRun() {
+    setState(prev => {
+      if (!prev || !prev.levelCleared || prev.level < 3) return prev
+      finishGame(prev, true)
+      return { ...prev, screen: 'win', levelCleared: false }
     })
   }
 
@@ -637,7 +649,20 @@ export default function MathQuest() {
       {state.screen === 'map' && (
         <>
           <Board board={state.board} pos={state.pos} onClickCell={clickCell} level={state.level} sparkleCell={sparkleCell} mode={state.mode} survivalRound={state.survivalRound} theme={theme} />
-          {hasEnemies && <p className="mq-boss-hint">⚠️ 消滅所有怪物才能進城堡！</p>}
+          {state.levelCleared && state.mode !== 'survival' && (
+            state.level >= 3 ? (
+              <div className="mq-level-clear-bar">
+                <span>🏆 最終 Boss 已擊敗！</span>
+                <button className="mq-level-clear-btn" onClick={finishRun}>🏁 完成挑戰</button>
+              </div>
+            ) : (
+              <div className="mq-level-clear-bar">
+                <span>🎉 本層 Boss 已擊敗！</span>
+                <button className="mq-level-clear-btn" onClick={goNextLevel}>➡️ 前往下一關</button>
+              </div>
+            )
+          )}
+          {!state.levelCleared && hasEnemies && <p className="mq-boss-hint">⚔️ 隨時可以前往迎戰 Boss，不必先打倒所有怪物！</p>}
         </>
       )}
 
