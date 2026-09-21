@@ -212,6 +212,22 @@ function loadLeaderboard(): ScoreEntry[] {
   return JSON.parse(localStorage.getItem(LEADERBOARD_KEY) ?? '[]')
 }
 
+// ── 錯題本 ────────────────────────────────────────────────────────────────────
+
+interface MistakeEntry { char: CharacterId; question: string; hint: string; date: string }
+const MISTAKE_KEY  = 'mq_mistakes'
+const MAX_MISTAKES = 30
+
+function addMistake(char: CharacterId, question: string, hint: string) {
+  const list: MistakeEntry[] = JSON.parse(localStorage.getItem(MISTAKE_KEY) ?? '[]')
+  list.unshift({ char, question, hint, date: new Date().toLocaleDateString('zh-TW') })
+  localStorage.setItem(MISTAKE_KEY, JSON.stringify(list.slice(0, MAX_MISTAKES)))
+}
+function loadMistakes(): MistakeEntry[] {
+  return JSON.parse(localStorage.getItem(MISTAKE_KEY) ?? '[]')
+}
+function clearMistakes() { localStorage.removeItem(MISTAKE_KEY) }
+
 function comboBonus(combo: number): number {
   if (combo >= 5) return 10
   if (combo >= 3) return 5
@@ -482,6 +498,7 @@ export default function MathQuest() {
     setState(prev => {
       if (!prev || !prev.question) return prev
       if (option === prev.question.answer) return resolveCorrect(prev, ms)
+      addMistake(prev.char, prev.question.question, prev.question.hint)
       const newHp = prev.shield ? prev.hp : prev.hp - 1
       Sfx.wrong(); triggerShake()
       if (newHp <= 0) { Sfx.lose(); finishGame({ ...prev, hp: 0, combo: 0, shield: false }, false); return { ...prev, hp: 0, screen: 'lose', combo: 0, shield: false } }
@@ -538,6 +555,7 @@ export default function MathQuest() {
         if (next >= 3) Sfx.combo(); else Sfx.correct()
         return { ...prev, bossIndex: next, bossWrongOptions: [], combo: prev.combo + 1, maxCombo: Math.max(prev.maxCombo, prev.combo + 1), newAchievements: [...prev.newAchievements, ...midAch] }
       } else {
+        addMistake(prev.char, q.question, q.hint)
         const newHp = prev.shield ? prev.hp : prev.hp - 1
         Sfx.wrong(); triggerShake()
         if (newHp <= 0) { Sfx.lose(); finishGame({ ...prev, hp: 0, combo: 0, shield: false }, false); return { ...prev, hp: 0, combo: 0, shield: false, screen: 'lose' } }
@@ -693,9 +711,10 @@ export default function MathQuest() {
 // ── 角色選擇 ─────────────────────────────────────────────────────────────────
 
 function SelectScreen({ onSelectChar }: { onSelectChar: (c: CharacterId) => void }) {
-  const lb       = loadLeaderboard()
-  const unlocked = getUnlocked()
-  const streak   = getLoginStreak()
+  const lb        = loadLeaderboard()
+  const unlocked  = getUnlocked()
+  const streak    = getLoginStreak()
+  const [showMistakes, setShowMistakes] = useState(false)
   return (
     <div className="mq-select">
       <h1 className="mq-select-title">🔢 數學冒險</h1>
@@ -706,6 +725,8 @@ function SelectScreen({ onSelectChar }: { onSelectChar: (c: CharacterId) => void
       <div className="mq-chars">
         {(['alan', 'ryan'] as CharacterId[]).map(id => <CharCard key={id} id={id} onSelect={onSelectChar} />)}
       </div>
+      <button className="mq-mistake-btn" onClick={() => setShowMistakes(true)}>📖 錯題本</button>
+      {showMistakes && <MistakeOverlay onClose={() => setShowMistakes(false)} />}
       {lb.length > 0 && (
         <div className="mq-lb-mini">
           <p className="mq-lb-title">🏆 最高分</p>
@@ -916,6 +937,38 @@ function ShopOverlay({ gold, items, hp, maxHp, shield, onBuy, onClose }: {
           })}
         </div>
         <button className="mq-shop-close" onClick={onClose}>關閉</button>
+      </div>
+    </div>
+  )
+}
+
+// ── 錯題本 ───────────────────────────────────────────────────────────────────
+
+function MistakeOverlay({ onClose }: { onClose: () => void }) {
+  const [mistakes, setMistakes] = useState(loadMistakes())
+  return (
+    <div className="mq-overlay" onClick={onClose}>
+      <div className="mq-mistake-box" onClick={e => e.stopPropagation()}>
+        <h2 className="mq-mistake-title">📖 錯題本</h2>
+        {mistakes.length === 0 ? (
+          <p className="mq-mistake-empty">還沒有錯題紀錄，繼續加油！</p>
+        ) : (
+          <div className="mq-mistake-list">
+            {mistakes.map((m, i) => (
+              <div key={i} className="mq-mistake-row">
+                <p className="mq-mistake-q">{CHAR_INFO[m.char].emoji} {m.question}</p>
+                <p className="mq-mistake-hint">💡 {m.hint}</p>
+                <p className="mq-mistake-date">{m.date}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mq-mistake-actions">
+          {mistakes.length > 0 && (
+            <button className="mq-mistake-clear" onClick={() => { clearMistakes(); setMistakes([]) }}>清空錯題本</button>
+          )}
+          <button className="mq-shop-close" onClick={onClose}>關閉</button>
+        </div>
       </div>
     </div>
   )
