@@ -55,6 +55,13 @@
   background: #2b3a5c;
   transform: translateY(-1px);
 }
+.db-chip.static {
+  cursor: default;
+}
+.db-chip.static:hover {
+  background: #1e2a44;
+  transform: none;
+}
 .db-chip.icon {
   padding: 8px 11px;
   font-size: 16px;
@@ -92,6 +99,10 @@
 }
 
 /* ── 主卡片 ─────────────────────────────────────── */
+
+.db-card[hidden] {
+  display: none;
+}
 
 .db-card {
   background: linear-gradient(180deg, #fffdf6 0%, #fff6e0 100%);
@@ -401,55 +412,6 @@
   background: #e4d8bb;
 }
 
-.db-chapter h4 {
-  margin: 14px 0 8px;
-  font-size: 16px;
-  color: var(--db-purple-dark);
-}
-.db-level-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-  gap: 8px;
-}
-.db-level-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  height: 56px;
-  border-radius: 14px;
-  border: 3px solid #fff;
-  background: #dfe7fd;
-  color: #4b23c4;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 4px 0 #9aa9d6;
-  transition: all 0.15s;
-}
-.db-level-num {
-  font-size: 17px;
-  font-weight: 900;
-}
-.db-level-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 #9aa9d6;
-}
-.db-level-btn.cleared {
-  background: #fff3c4;
-  color: #b07800;
-  box-shadow: 0 4px 0 #d6b24a;
-}
-.db-level-btn.active {
-  border-color: var(--db-purple);
-  box-shadow: 0 4px 0 var(--db-purple-dark), 0 0 0 3px rgba(123, 77, 255, 0.35);
-}
-.db-level-btn:disabled {
-  background: #e9e6dd;
-  box-shadow: 0 4px 0 #cfc9b8;
-  cursor: not-allowed;
-}
-
 .db-rule-list,
 .db-rule-notes {
   margin: 8px 0;
@@ -654,7 +616,8 @@
     grid-column: 2;
     grid-row: 1;
   }
-  .db-card {
+  .db-card,
+  .db-map {
     grid-column: 1;
     grid-row: 1;
   }

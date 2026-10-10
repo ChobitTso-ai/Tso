@@ -5,6 +5,7 @@ import { BALL_R, LINE_HALF, createWorld, distToSeg, segLength, step } from './ph
 import type { World } from './physics'
 import { burstConfetti, createBackground, createFx, render, updateFx } from './render'
 import type { FxState } from './render'
+import LevelMap from './LevelMap'
 import { inkRules, starsFor, toDots } from './scoring'
 import { Sfx } from './sounds'
 import type { FailReason, InkMode, Phase, Progress, Segment, Vec } from './types'
@@ -16,9 +17,6 @@ const MIN_POINT_GAP = 8 // 筆畫取樣間距，太密會讓線段過多、碰�
 const BALL_CLEARANCE = BALL_R + LINE_HALF + 4 // 線畫在球身上會把球卡住，這個距離內的筆畫不生效
 
 const LEVELS = CHAPTERS.flatMap(c => c.levels)
-const CHAPTER_START = CHAPTERS.map((_, i) =>
-  CHAPTERS.slice(0, i).reduce((n, c) => n + c.levels.length, 0),
-)
 
 const FAIL_INFO: Record<FailReason, { emoji: string; text: string }> = {
   spike: { emoji: '💥', text: '碰到尖刺了！' },
@@ -62,9 +60,10 @@ function loadProgress(): Progress {
 
 const isUnlocked = (stars: number[], i: number) => i === 0 || stars[i - 1] > 0
 
+/** 第一個還沒過關的關卡，地圖上的小球停在這裡；全破時停在最後一關 */
 function firstOpenLevel(stars: number[]): number {
   const i = stars.findIndex(s => s === 0)
-  return i === -1 ? 0 : i
+  return i === -1 ? stars.length - 1 : i
 }
 
 function StarRow({ n, size = '' }: { n: number; size?: string }) {
@@ -88,7 +87,7 @@ export default function DrawBall() {
   const [inkUsed, setInkUsed] = useState(0)
   const [strokeCount, setStrokeCount] = useState(0)
   const [inkOut, setInkOut] = useState(false)
-  const [showLevels, setShowLevels] = useState(false)
+  const [view, setView] = useState<'map' | 'play'>('map')
   const [showRules, setShowRules] = useState(false)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -200,10 +199,15 @@ export default function DrawBall() {
   const selectLevel = (i: number) => {
     levelIdxRef.current = i
     setLevelIdx(i)
-    setShowLevels(false)
+    setView('play')
     setWinResult(null)
     clearLines()
     resetBall()
+  }
+
+  const openMap = () => {
+    resetBall()
+    setView('map')
   }
 
   const dropBall = () => {
@@ -279,9 +283,15 @@ export default function DrawBall() {
       <div className="db-rotate-hint">📱↻ 把手機橫放，畫面更大更好玩！</div>
 
       <div className="db-top">
-        <button className="db-chip" onClick={() => setShowLevels(true)}>
-          📋 選關 <span className="db-chip-sub">⭐ {totalStars}/{LEVELS.length * 3}</span>
-        </button>
+        {view === 'play' ? (
+          <button className="db-chip" onClick={openMap}>
+            🗺️ 地圖 <span className="db-chip-sub">⭐ {totalStars}/{LEVELS.length * 3}</span>
+          </button>
+        ) : (
+          <span className="db-chip static">
+            🗺️ 關卡地圖 <span className="db-chip-sub">⭐ {totalStars}/{LEVELS.length * 3}</span>
+          </span>
+        )}
         <div className="db-top-right">
           <button className="db-chip" onClick={() => setShowRules(true)}>
             ⭐ 星星怎麼拿？
@@ -300,7 +310,18 @@ export default function DrawBall() {
         </div>
       </div>
 
-      <div className="db-card">
+      {view === 'map' && (
+        <LevelMap
+          chapters={CHAPTERS}
+          stars={progress.stars}
+          current={firstOpenLevel(progress.stars)}
+          isUnlocked={i => isUnlocked(progress.stars, i)}
+          onSelect={selectLevel}
+        />
+      )}
+
+      {/* 畫布常駐以維持繪圖迴圈，地圖模式時只是隱藏 */}
+      <div className="db-card" hidden={view !== 'play'}>
         <div className="db-info">
           <span className="db-level-badge">第 {levelIdx + 1} 關</span>
           <h2 className="db-level-name">{level.name}</h2>
@@ -362,6 +383,9 @@ export default function DrawBall() {
                     `，再少用 ${toDots(winResult.ink - (winResult.stars === 2 ? rules.star3 : rules.star2))} 點就能拿 ${winResult.stars + 1} 顆星！`}
                 </p>
                 <div className="db-overlay-actions">
+                  <button className="db-btn secondary" onClick={openMap}>
+                    🗺️ 地圖
+                  </button>
                   <button className="db-btn secondary" onClick={resetBall}>
                     再玩一次
                   </button>
@@ -413,47 +437,6 @@ export default function DrawBall() {
           </div>
         )}
       </div>
-
-      {showLevels && (
-        <div className="db-modal" onClick={() => setShowLevels(false)}>
-          <div className="db-modal-box" onClick={e => e.stopPropagation()}>
-            <div className="db-modal-head">
-              <h3>選擇關卡</h3>
-              <span>⭐ {totalStars} / {LEVELS.length * 3}</span>
-              <button className="db-close" onClick={() => setShowLevels(false)} aria-label="關閉">
-                ✕
-              </button>
-            </div>
-            {CHAPTERS.map((ch, ci) => (
-              <section key={ch.name} className="db-chapter">
-                <h4>
-                  {ch.icon} 第 {ci + 1} 章・{ch.name}
-                </h4>
-                <div className="db-level-grid">
-                  {ch.levels.map((lv, li) => {
-                    const i = CHAPTER_START[ci] + li
-                    const locked = !isUnlocked(progress.stars, i)
-                    return (
-                      <button
-                        key={i}
-                        className={['db-level-btn', i === levelIdx ? 'active' : '', progress.stars[i] ? 'cleared' : '']
-                          .filter(Boolean)
-                          .join(' ')}
-                        disabled={locked}
-                        onClick={() => selectLevel(i)}
-                        title={lv.name}
-                      >
-                        <span className="db-level-num">{locked ? '🔒' : i + 1}</span>
-                        {!locked && <StarRow n={progress.stars[i]} size="tiny" />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        </div>
-      )}
 
       {showRules && (
         <div className="db-modal" onClick={() => setShowRules(false)}>

@@ -1,0 +1,161 @@
+/* 畫線滾球 — 關卡地圖（前綴 .db-map-*） */
+
+.db-map {
+  position: relative;
+  max-width: 560px;
+  margin: 0 auto;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 10px 0 #e0c98f, 0 18px 40px rgba(0, 0, 0, 0.4);
+  border: 5px solid #fff;
+}
+
+.db-map-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+/* 章節交界的淡淡分隔，像不同地形接在一起 */
+.db-map-band + .db-map-band {
+  box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.db-map-deco {
+  position: absolute;
+  font-size: 30px;
+  opacity: 0.85;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.18));
+  pointer-events: none;
+  user-select: none;
+}
+
+.db-map-sign {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 14px;
+  border: 3px solid #fff;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
+  z-index: 1;
+}
+
+.db-map-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.db-map-path path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 2 16;
+}
+.db-map-path path.done {
+  stroke: #ffd43b;
+  stroke-dasharray: none;
+}
+
+.db-map-node {
+  position: absolute;
+  z-index: 2;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: radial-gradient(circle at 35% 30%, #a78bff, #6b3cf5 70%);
+  color: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #3f1fb0, 0 10px 16px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s;
+}
+.db-map-node:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.05);
+}
+.db-map-node.cleared {
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #f5b301 70%);
+  color: #7a4d00;
+  box-shadow: 0 6px 0 #b07800, 0 10px 16px rgba(0, 0, 0, 0.25);
+}
+.db-map-node.locked {
+  background: radial-gradient(circle at 35% 30%, #d5d8de, #9aa1ad 70%);
+  box-shadow: 0 6px 0 #6c737f, 0 8px 12px rgba(0, 0, 0, 0.2);
+  cursor: not-allowed;
+}
+.db-map-node.current {
+  width: 76px;
+  height: 76px;
+  margin: -38px 0 0 -38px;
+  animation: db-map-pulse 1.4s ease-in-out infinite;
+}
+
+.db-map-num {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+.db-map-node.locked .db-map-num {
+  font-size: 18px;
+  text-shadow: none;
+}
+
+.db-map-stars {
+  display: flex;
+  gap: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+.db-map-stars .on {
+  color: #fff3bf;
+  text-shadow: 0 0 3px #b07800;
+}
+.db-map-node.cleared .db-map-stars .on {
+  color: #fff;
+}
+.db-map-stars .off {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* 目前所在關卡：小球在上面跳 */
+.db-map-avatar {
+  position: absolute;
+  top: -34px;
+  font-size: 26px;
+  animation: db-map-hop 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes db-map-pulse {
+  0%, 100% { box-shadow: 0 6px 0 #3f1fb0, 0 0 0 0 rgba(255, 255, 255, 0.7); }
+  50% { box-shadow: 0 6px 0 #3f1fb0, 0 0 0 12px rgba(255, 255, 255, 0); }
+}
+@keyframes db-map-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (max-width: 768px) {
+  .db-map-sign {
+    font-size: 15px;
+    padding: 6px 12px;
+  }
+  .db-map-deco {
+    font-size: 24px;
+  }
+}
