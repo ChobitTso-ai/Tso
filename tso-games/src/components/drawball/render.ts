@@ -64,36 +64,147 @@ export function updateFx(fx: FxState, world: World, phase: Phase, dt: number) {
   fx.particles = fx.particles.filter(p => p.life > 0)
 }
 
-/** 天空背景只畫一次，存在離屏畫布重複使用 */
-export function createBackground(dpr: number): HTMLCanvasElement {
+type Painter = (ctx: CanvasRenderingContext2D) => void
+
+function skyGradient(ctx: CanvasRenderingContext2D, stops: string[]) {
+  const sky = ctx.createLinearGradient(0, 0, 0, WORLD_H)
+  stops.forEach((c, i) => sky.addColorStop(i / (stops.length - 1), c))
+  ctx.fillStyle = sky
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H)
+}
+
+function clouds(ctx: CanvasRenderingContext2D, color: string) {
+  const list: [number, number, number][] = [
+    [90, 70, 1], [330, 40, 0.8], [520, 95, 1.1], [740, 55, 0.9], [230, 210, 0.7], [640, 250, 0.75],
+  ]
+  ctx.fillStyle = color
+  for (const [cx, cy, k] of list) {
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, 46 * k, 16 * k, 0, 0, Math.PI * 2)
+    ctx.ellipse(cx - 22 * k, cy - 8 * k, 24 * k, 18 * k, 0, 0, Math.PI * 2)
+    ctx.ellipse(cx + 16 * k, cy - 12 * k, 28 * k, 22 * k, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** 遠景起伏的山丘或沙丘，顏色很淡，避免被誤認成可以踩的地面 */
+function hills(ctx: CanvasRenderingContext2D, color: string, base: number, amp: number, waves: number) {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(0, WORLD_H)
+  for (let x = 0; x <= WORLD_W; x += 10) {
+    ctx.lineTo(x, base - Math.sin((x / WORLD_W) * Math.PI * waves) * amp)
+  }
+  ctx.lineTo(WORLD_W, WORLD_H)
+  ctx.closePath()
+  ctx.fill()
+}
+
+function emojiDeco(ctx: CanvasRenderingContext2D, items: [string, number, number, number][], alpha: number) {
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (const [e, x, y, size] of items) {
+    ctx.font = `${size}px sans-serif`
+    ctx.fillText(e, x, y)
+  }
+  ctx.restore()
+}
+
+// 每章一種背景，順序對應 CHAPTERS（與關卡地圖的主題一致）
+const PAINTERS: Painter[] = [
+  // 草原
+  ctx => {
+    skyGradient(ctx, ['#5fb8f5', '#a9dcfb', '#e3f4ff'])
+    clouds(ctx, 'rgba(255,255,255,0.55)')
+    hills(ctx, 'rgba(120,200,110,0.18)', 470, 25, 3)
+  },
+  // 沙漠
+  ctx => {
+    skyGradient(ctx, ['#ffb56b', '#ffd59a', '#fff1d6'])
+    ctx.fillStyle = 'rgba(255,240,180,0.7)'
+    ctx.beginPath()
+    ctx.arc(690, 80, 46, 0, Math.PI * 2)
+    ctx.fill()
+    hills(ctx, 'rgba(214,150,70,0.18)', 460, 30, 2.5)
+    emojiDeco(ctx, [['🌵', 60, 430, 40], ['🌵', 470, 445, 30], ['🌵', 760, 420, 36]], 0.22)
+  },
+  // 遊樂園
+  ctx => {
+    skyGradient(ctx, ['#f59ad0', '#ffc6e4', '#fff0f7'])
+    clouds(ctx, 'rgba(255,255,255,0.45)')
+    emojiDeco(ctx, [['🎡', 700, 380, 120], ['🎈', 60, 120, 34], ['🎈', 420, 60, 28], ['🎪', 120, 430, 70]], 0.18)
+  },
+  // 機械城
+  ctx => {
+    skyGradient(ctx, ['#7f91ab', '#b7c3d3', '#e4e9f0'])
+    ctx.fillStyle = 'rgba(70,85,110,0.15)'
+    const towers = [[40, 330], [120, 380], [210, 300], [300, 360], [380, 270], [470, 340], [560, 310], [650, 370], [730, 290]]
+    for (const [x, y] of towers) ctx.fillRect(x, y, 70, WORLD_H - y)
+    emojiDeco(ctx, [['⚙️', 90, 90, 70], ['⚙️', 150, 140, 40], ['⚙️', 700, 120, 60]], 0.16)
+  },
+  // 彩虹
+  ctx => {
+    skyGradient(ctx, ['#a994f5', '#cfc2ff', '#f1edff'])
+    const colors = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa']
+    ctx.lineWidth = 12
+    colors.forEach((c, i) => {
+      ctx.strokeStyle = c
+      ctx.globalAlpha = 0.2
+      ctx.beginPath()
+      ctx.arc(400, 520, 380 - i * 12, Math.PI, 0)
+      ctx.stroke()
+    })
+    ctx.globalAlpha = 1
+    clouds(ctx, 'rgba(255,255,255,0.5)')
+  },
+  // 星空山頂
+  ctx => {
+    skyGradient(ctx, ['#11153f', '#262a6b', '#3d3a8a'])
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'
+    for (let i = 0; i < 70; i++) {
+      // 固定公式打散星星位置，每次畫出來都一樣
+      const x = (i * 137) % WORLD_W
+      const y = (i * 71) % 380
+      ctx.beginPath()
+      ctx.arc(x, y, (i % 3) * 0.6 + 0.6, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = 'rgba(255,244,200,0.85)'
+    ctx.beginPath()
+    ctx.arc(700, 80, 34, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#262a6b'
+    ctx.beginPath()
+    ctx.arc(715, 70, 30, 0, Math.PI * 2)
+    ctx.fill()
+    hills(ctx, 'rgba(140,140,220,0.16)', 440, 50, 2)
+  },
+]
+
+/** 玩家畫線的顏色（外框、主色）：夜空背景改用亮黃色才看得清楚 */
+const INK_COLORS: [string, string][] = [
+  ['#3c1a8f', '#7b4dff'],
+  ['#3c1a8f', '#7b4dff'],
+  ['#3c1a8f', '#7b4dff'],
+  ['#3c1a8f', '#7b4dff'],
+  ['#3c1a8f', '#7b4dff'],
+  ['#8a5a00', '#ffd43b'],
+]
+
+/** 背景只畫一次，存在離屏畫布重複使用 */
+export function createBackground(dpr: number, theme: number): HTMLCanvasElement {
   const bg = document.createElement('canvas')
   bg.width = WORLD_W * dpr
   bg.height = WORLD_H * dpr
   const ctx = bg.getContext('2d')
   if (!ctx) return bg
   ctx.scale(dpr, dpr)
-
-  const sky = ctx.createLinearGradient(0, 0, 0, WORLD_H)
-  sky.addColorStop(0, '#5fb8f5')
-  sky.addColorStop(0.65, '#a9dcfb')
-  sky.addColorStop(1, '#e3f4ff')
-  ctx.fillStyle = sky
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H)
-
-  const clouds: [number, number, number][] = [
-    [90, 70, 1], [330, 40, 0.8], [520, 95, 1.1], [740, 55, 0.9], [230, 210, 0.7], [640, 250, 0.75],
-  ]
-  ctx.fillStyle = 'rgba(255,255,255,0.55)'
-  for (const [cx, cy, s] of clouds) {
-    ctx.beginPath()
-    ctx.ellipse(cx, cy, 46 * s, 16 * s, 0, 0, Math.PI * 2)
-    ctx.ellipse(cx - 22 * s, cy - 8 * s, 24 * s, 18 * s, 0, 0, Math.PI * 2)
-    ctx.ellipse(cx + 16 * s, cy - 12 * s, 28 * s, 22 * s, 0, 0, Math.PI * 2)
-    ctx.fill()
-  }
+  PAINTERS[theme % PAINTERS.length](ctx)
 
   // 淡淡的點陣，讓畫面有「畫紙」的感覺，也方便估算距離
-  ctx.fillStyle = 'rgba(255,255,255,0.35)'
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'
   for (let x = 20; x < WORLD_W; x += 40) {
     for (let y = 20; y < WORLD_H; y += 40) {
       ctx.beginPath()
@@ -134,15 +245,16 @@ function drawPlanks(ctx: CanvasRenderingContext2D, segs: Segment[]) {
 }
 
 /** 玩家畫的線：像粗麥克筆 */
-function drawInk(ctx: CanvasRenderingContext2D, segs: Segment[]) {
+function drawInk(ctx: CanvasRenderingContext2D, segs: Segment[], theme: number) {
   if (segs.length === 0) return
+  const [outer, inner] = INK_COLORS[theme % INK_COLORS.length]
   ctx.save()
   ctx.shadowColor = 'rgba(30,20,80,0.3)'
   ctx.shadowOffsetY = 3
   ctx.shadowBlur = 4
-  strokePath(ctx, segs, '#3c1a8f', LINE_HALF * 2 + 4)
+  strokePath(ctx, segs, outer, LINE_HALF * 2 + 4)
   ctx.restore()
-  strokePath(ctx, segs, '#7b4dff', LINE_HALF * 2)
+  strokePath(ctx, segs, inner, LINE_HALF * 2)
   strokePath(ctx, segs, 'rgba(255,255,255,0.35)', 1.5)
 }
 
@@ -373,6 +485,7 @@ export function render(
   fx: FxState,
   phase: Phase,
   t: number,
+  theme: number,
 ) {
   ctx.drawImage(bg, 0, 0, WORLD_W, WORLD_H)
   const movers = level.movers ?? []
@@ -386,7 +499,7 @@ export function render(
     if (m.kind === 'wall') drawPlanks(ctx, [seg])
     else drawSpikes(ctx, seg)
   }
-  drawInk(ctx, strokes)
+  drawInk(ctx, strokes, theme)
   world.balls.forEach((b, i) => drawBall(ctx, b, i, fx, phase, t))
 
   for (const p of fx.particles) {

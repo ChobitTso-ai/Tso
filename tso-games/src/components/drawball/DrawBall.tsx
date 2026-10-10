@@ -17,6 +17,7 @@ const MIN_POINT_GAP = 8 // 筆畫取樣間距，太密會讓線段過多、碰�
 const BALL_CLEARANCE = BALL_R + LINE_HALF + 4 // 線畫在球身上會把球卡住，這個距離內的筆畫不生效
 
 const LEVELS = CHAPTERS.flatMap(c => c.levels)
+const LEVEL_CHAPTER = CHAPTERS.flatMap((c, ci) => c.levels.map(() => ci))
 
 const FAIL_INFO: Record<FailReason, { emoji: string; text: string }> = {
   spike: { emoji: '💥', text: '碰到尖刺了！' },
@@ -124,7 +125,16 @@ export default function DrawBall() {
     canvas.width = WORLD_W * dpr
     canvas.height = WORLD_H * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const bg = createBackground(dpr)
+    // 各章背景第一次用到時才畫，之後重複使用
+    const backgrounds = new Map<number, HTMLCanvasElement>()
+    const backgroundFor = (theme: number) => {
+      let bg = backgrounds.get(theme)
+      if (!bg) {
+        bg = createBackground(dpr, theme)
+        backgrounds.set(theme, bg)
+      }
+      return bg
+    }
 
     let raf = 0
     let last = performance.now()
@@ -158,7 +168,8 @@ export default function DrawBall() {
         }
       }
       updateFx(fxRef.current, world, phaseRef.current, Math.min(dt, 1 / 30))
-      render(ctx, bg, lv, strokes, world, fxRef.current, phaseRef.current, now / 1000)
+      const theme = LEVEL_CHAPTER[idx]
+      render(ctx, backgroundFor(theme), lv, strokes, world, fxRef.current, phaseRef.current, now / 1000, theme)
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
