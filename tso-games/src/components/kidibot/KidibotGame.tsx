@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { LEVELS } from './levels'
 import type { TileType, Direction, Cell } from './types'
 import { PATH_CONNECTIONS } from './types'
+import TileIcon from './TileIcon'
 import './KidibotGame.css'
 
 const TILE_DISPLAY: Record<TileType, { emoji: string; label: string; bg: string }> = {
@@ -391,10 +392,10 @@ export default function KidibotGame() {
                       : (
                         <>
                           <span className="kb-tile-emoji">
-                            {TILE_DISPLAY[displayTile].emoji}
+                            <TileIcon type={displayTile} emoji={TILE_DISPLAY[displayTile].emoji} />
                           </span>
                           {showPlacedOverlay && (
-                            <span className="kb-overlay-path">{TILE_DISPLAY[placedTile!].emoji}</span>
+                            <span className="kb-overlay-path"><TileIcon type={placedTile!} emoji={TILE_DISPLAY[placedTile!].emoji} /></span>
                           )}
                           {(placedTile || isFixed) && (
                             <span className="kb-tile-label">
@@ -431,7 +432,7 @@ export default function KidibotGame() {
                 onClick={() => handleHandClick(i)}
                 disabled={phase !== 'edit' || h.used}
               >
-                <span className="kb-hand-emoji">{TILE_DISPLAY[h.type].emoji}</span>
+                <span className="kb-hand-emoji"><TileIcon type={h.type} emoji={TILE_DISPLAY[h.type].emoji} /></span>
                 <span className="kb-hand-label">{TILE_DISPLAY[h.type].label}</span>
               </button>
             ))}
