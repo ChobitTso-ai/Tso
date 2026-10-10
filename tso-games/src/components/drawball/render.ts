@@ -1,7 +1,7 @@
 // 畫線滾球 — 畫布繪製（純 Canvas，不依賴 React）
-import { cupWalls } from './levels'
-import { BALL_R, LINE_HALF, segLength } from './physics'
-import type { Ball, Goal, Level, Phase, Segment, Vec } from './types'
+import { BALL_R, LINE_HALF, cupWalls, moverSeg, segLength } from './physics'
+import type { World } from './physics'
+import type { Ball, Goal, Level, Mover, Phase, Segment, Vec } from './types'
 import { WORLD_H, WORLD_W } from './types'
 
 export interface Particle {
@@ -16,9 +16,13 @@ export interface Particle {
 
 /** 純視覺用的動態資料，不影響物理 */
 export interface FxState {
-  angle: number // 球的滾動角度，用來轉動球上的花紋
-  trail: Vec[]
+  angles: number[] // 每顆球的滾動角度，用來轉動球上的笑臉
+  trails: Vec[][]
   particles: Particle[]
+}
+
+export function createFx(level: Level): FxState {
+  return { angles: level.starts.map(() => 0), trails: level.starts.map(() => []), particles: [] }
 }
 
 const CONFETTI_COLORS = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff924c']
@@ -39,14 +43,17 @@ export function burstConfetti(fx: FxState, g: Goal) {
   }
 }
 
-export function updateFx(fx: FxState, ball: Ball, phase: Phase, dt: number) {
-  if (phase === 'rolling') {
-    fx.angle += (ball.vel.x * dt) / BALL_R
-    fx.trail.push({ ...ball.pos })
-    if (fx.trail.length > 12) fx.trail.shift()
-  } else if (phase === 'ready') {
-    fx.trail = []
-  }
+export function updateFx(fx: FxState, world: World, phase: Phase, dt: number) {
+  world.balls.forEach((ball, i) => {
+    const trail = fx.trails[i]
+    if (phase === 'rolling' && !ball.done) {
+      fx.angles[i] += (ball.vel.x * dt) / BALL_R
+      trail.push({ ...ball.pos })
+      if (trail.length > 12) trail.shift()
+    } else if (trail.length > 0) {
+      trail.shift()
+    }
+  })
   for (const p of fx.particles) {
     p.vy += 600 * dt
     p.x += p.vx * dt
@@ -175,6 +182,74 @@ function drawSpikes(ctx: CanvasRenderingContext2D, s: Segment) {
   }
 }
 
+/** 彈簧：底座＋鋸齒彈簧＋粉紅色彈板 */
+function drawSpring(ctx: CanvasRenderingContext2D, s: Segment) {
+  const len = segLength(s)
+  const ux = (s.b.x - s.a.x) / len
+  const uy = (s.b.y - s.a.y) / len
+  // 彈板朝上的那一側（法向量取 y 較小的方向）
+  let nx = uy
+  let ny = -ux
+  if (ny > 0 || (ny === 0 && nx < 0)) {
+    nx = -nx
+    ny = -ny
+  }
+  const coil = 10
+  ctx.strokeStyle = '#868e96'
+  ctx.lineWidth = 2.5
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  const steps = Math.max(4, Math.floor(len / 14))
+  for (const side of [0.2, 0.8]) {
+    const bx = s.a.x + ux * len * side
+    const by = s.a.y + uy * len * side
+    ctx.moveTo(bx - nx * 2, by - ny * 2)
+    for (let i = 1; i <= 4; i++) {
+      const off = i % 2 ? 6 : -6
+      ctx.lineTo(bx - nx * (2 + (i * coil) / 4) + ux * off, by - ny * (2 + (i * coil) / 4) + uy * off)
+    }
+  }
+  ctx.stroke()
+  strokePath(ctx, [s], '#a61e4d', 10)
+  strokePath(ctx, [s], '#f06595', 6)
+  ctx.fillStyle = '#fff'
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps
+    ctx.beginPath()
+    ctx.arc(s.a.x + ux * len * t, s.a.y + uy * len * t, 1.2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** 移動機關：先畫虛線軌道與兩端箭頭，提示它會怎麼動 */
+function drawMoverTrack(ctx: CanvasRenderingContext2D, m: Mover) {
+  const cx = (m.seg.a.x + m.seg.b.x) / 2
+  const cy = (m.seg.a.y + m.seg.b.y) / 2
+  ctx.save()
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([6, 6])
+  ctx.beginPath()
+  ctx.moveTo(cx - m.dx, cy - m.dy)
+  ctx.lineTo(cx + m.dx, cy + m.dy)
+  ctx.stroke()
+  ctx.restore()
+  const len = Math.hypot(m.dx, m.dy)
+  const ux = m.dx / len
+  const uy = m.dy / len
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'
+  for (const dir of [1, -1]) {
+    const tx = cx + m.dx * dir
+    const ty = cy + m.dy * dir
+    ctx.beginPath()
+    ctx.moveTo(tx + ux * 7 * dir, ty + uy * 7 * dir)
+    ctx.lineTo(tx - uy * 6, ty + ux * 6)
+    ctx.lineTo(tx + uy * 6, ty - ux * 6)
+    ctx.closePath()
+    ctx.fill()
+  }
+}
+
 function drawGoal(ctx: CanvasRenderingContext2D, g: Goal, t: number) {
   const cx = g.x + g.w / 2
   const pulse = 0.5 + 0.5 * Math.sin(t * 3)
@@ -214,13 +289,29 @@ function drawGoal(ctx: CanvasRenderingContext2D, g: Goal, t: number) {
   ctx.fill()
 }
 
-function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, fx: FxState, phase: Phase, t: number) {
-  fx.trail.forEach((p, i) => {
-    const a = (i + 1) / fx.trail.length
-    ctx.fillStyle = `rgba(255,120,120,${a * 0.25})`
+const BALL_COLORS: [string, string, string][] = [
+  ['#ff8fa3', '#ef233c', '#a4161a'],
+  ['#8fd3ff', '#1c7ed6', '#0b4f8a'],
+]
+
+function drawBall(
+  ctx: CanvasRenderingContext2D,
+  ball: Ball,
+  idx: number,
+  fx: FxState,
+  phase: Phase,
+  t: number,
+) {
+  const trail = fx.trails[idx]
+  const [light, mid, dark] = BALL_COLORS[idx % BALL_COLORS.length]
+  trail.forEach((p, i) => {
+    const a = (i + 1) / trail.length
+    ctx.globalAlpha = a * 0.25
+    ctx.fillStyle = mid
     ctx.beginPath()
     ctx.arc(p.x, p.y, BALL_R * a, 0, Math.PI * 2)
     ctx.fill()
+    ctx.globalAlpha = 1
   })
 
   const { x, y } = ball.pos
@@ -241,9 +332,9 @@ function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, fx: FxState, phase:
   ctx.shadowOffsetY = 3
   ctx.shadowBlur = 6
   const body = ctx.createRadialGradient(x - 4, y - 5, 2, x, y, BALL_R)
-  body.addColorStop(0, '#ff8fa3')
-  body.addColorStop(0.6, '#ef233c')
-  body.addColorStop(1, '#a4161a')
+  body.addColorStop(0, light)
+  body.addColorStop(0.6, mid)
+  body.addColorStop(1, dark)
   ctx.fillStyle = body
   ctx.beginPath()
   ctx.arc(x, y, BALL_R, 0, Math.PI * 2)
@@ -253,7 +344,7 @@ function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, fx: FxState, phase:
   // 笑臉跟著滾動角度轉，看得出球在滾
   ctx.save()
   ctx.translate(x, y)
-  ctx.rotate(fx.angle)
+  ctx.rotate(fx.angles[idx])
   ctx.fillStyle = '#2b0a0a'
   ctx.beginPath()
   ctx.arc(-4, -3, 1.8, 0, Math.PI * 2)
@@ -278,17 +369,25 @@ export function render(
   bg: HTMLCanvasElement,
   level: Level,
   strokes: Segment[],
-  ball: Ball,
+  world: World,
   fx: FxState,
   phase: Phase,
   t: number,
 ) {
   ctx.drawImage(bg, 0, 0, WORLD_W, WORLD_H)
+  const movers = level.movers ?? []
+  movers.forEach(m => drawMoverTrack(ctx, m))
   drawGoal(ctx, level.goal, t)
   drawPlanks(ctx, level.walls)
   level.spikes.forEach(s => drawSpikes(ctx, s))
+  ;(level.springs ?? []).forEach(s => drawSpring(ctx, s))
+  for (const m of movers) {
+    const seg = moverSeg(m, world.time)
+    if (m.kind === 'wall') drawPlanks(ctx, [seg])
+    else drawSpikes(ctx, seg)
+  }
   drawInk(ctx, strokes)
-  drawBall(ctx, ball, fx, phase, t)
+  world.balls.forEach((b, i) => drawBall(ctx, b, i, fx, phase, t))
 
   for (const p of fx.particles) {
     ctx.save()

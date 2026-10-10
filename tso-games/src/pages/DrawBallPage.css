@@ -32,3 +32,9 @@
   font-weight: 700;
   font-size: 16px;
 }
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .drawball-nav {
+    padding: 4px 16px;
+  }
+}

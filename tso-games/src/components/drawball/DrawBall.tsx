@@ -1,68 +1,120 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { LEVELS, cupWalls } from './levels'
-import { segLength, step } from './physics'
-import { burstConfetti, createBackground, render, updateFx } from './render'
+import { CHAPTERS } from './levels'
+import { BALL_R, LINE_HALF, createWorld, distToSeg, segLength, step } from './physics'
+import type { World } from './physics'
+import { burstConfetti, createBackground, createFx, render, updateFx } from './render'
 import type { FxState } from './render'
-import type { Ball, InkMode, Level, Phase, Progress, Segment, Vec } from './types'
+import { inkRules, starsFor, toDots } from './scoring'
+import { Sfx } from './sounds'
+import type { FailReason, InkMode, Phase, Progress, Segment, Vec } from './types'
 import { WORLD_H, WORLD_W } from './types'
 import './DrawBall.css'
 
 const STORAGE_KEY = 'drawBallProgress'
 const MIN_POINT_GAP = 8 // 筆畫取樣間距，太密會讓線段過多、碰撞變慢
+const BALL_CLEARANCE = BALL_R + LINE_HALF + 4 // 線畫在球身上會把球卡住，這個距離內的筆畫不生效
 
-type FailReason = 'spike' | 'out'
+const LEVELS = CHAPTERS.flatMap(c => c.levels)
+const CHAPTER_START = CHAPTERS.map((_, i) =>
+  CHAPTERS.slice(0, i).reduce((n, c) => n + c.levels.length, 0),
+)
 
 const FAIL_INFO: Record<FailReason, { emoji: string; text: string }> = {
   spike: { emoji: '💥', text: '碰到尖刺了！' },
   out: { emoji: '😵', text: '球掉出去了！' },
+  stuck: { emoji: '😴', text: '球停住不動了！' },
+}
+
+interface WinResult {
+  stars: number
+  ink: number
+  newBest: boolean
 }
 
 function loadProgress(): Progress {
-  const fallback: Progress = { unlocked: 0, inkMode: 'limited' }
+  const fallback: Progress = { stars: LEVELS.map(() => 0), inkMode: 'limited', muted: false }
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return fallback
-    const p = JSON.parse(saved) as Partial<Progress>
-    const u = p.unlocked
-    const unlocked = typeof u === 'number' && Number.isInteger(u) && u >= 0 && u < LEVELS.length ? u : 0
-    const inkMode: InkMode = p.inkMode === 'unlimited' ? 'unlimited' : 'limited'
-    return { unlocked, inkMode }
+    const p = JSON.parse(saved) as Partial<Progress> & { unlocked?: unknown }
+    let stars = fallback.stars
+    if (Array.isArray(p.stars)) {
+      stars = LEVELS.map((_, i) => {
+        const v = p.stars?.[i]
+        return typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3 ? v : 0
+      })
+    } else if (typeof p.unlocked === 'number' && Number.isInteger(p.unlocked)) {
+      // 舊版存檔只記「解鎖到第幾關」：之前的關卡視為已過關（1 星），保留進度
+      const unlocked = p.unlocked
+      stars = LEVELS.map((_, i) => (i < unlocked ? 1 : 0))
+    }
+    return {
+      stars,
+      inkMode: p.inkMode === 'unlimited' ? 'unlimited' : 'limited',
+      muted: p.muted === true,
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY)
     return fallback
   }
 }
 
-function newBall(level: Level): Ball {
-  return { pos: { ...level.start }, vel: { x: 0, y: 0 } }
+const isUnlocked = (stars: number[], i: number) => i === 0 || stars[i - 1] > 0
+
+function firstOpenLevel(stars: number[]): number {
+  const i = stars.findIndex(s => s === 0)
+  return i === -1 ? 0 : i
+}
+
+function StarRow({ n, size = '' }: { n: number; size?: string }) {
+  return (
+    <span className={`db-stars ${size}`}>
+      {[0, 1, 2].map(i => (
+        <span key={i} className={i < n ? 'on' : 'off'}>
+          ★
+        </span>
+      ))}
+    </span>
+  )
 }
 
 export default function DrawBall() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress())
-  const [levelIdx, setLevelIdx] = useState(() => progress.unlocked)
+  const [levelIdx, setLevelIdx] = useState(() => firstOpenLevel(progress.stars))
   const [phase, setPhase] = useState<Phase>('ready')
   const [failReason, setFailReason] = useState<FailReason>('out')
+  const [winResult, setWinResult] = useState<WinResult | null>(null)
   const [inkUsed, setInkUsed] = useState(0)
+  const [strokeCount, setStrokeCount] = useState(0)
+  const [inkOut, setInkOut] = useState(false)
+  const [showLevels, setShowLevels] = useState(false)
+  const [showRules, setShowRules] = useState(false)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   // 遊戲世界放在 ref，由 requestAnimationFrame 迴圈直接讀寫，不經過 React 重繪
   const levelIdxRef = useRef(levelIdx)
   const phaseRef = useRef<Phase>('ready')
-  const ballRef = useRef<Ball>(newBall(LEVELS[levelIdx]))
-  const strokesRef = useRef<Segment[]>([])
+  const worldRef = useRef<World>(createWorld(LEVELS[levelIdx]))
+  const strokesRef = useRef<Segment[][]>([])
+  const drawingRef = useRef<Segment[] | null>(null) // 正在畫的這一筆，第一段生效時才放進 strokesRef
   const inkRef = useRef(0)
   const lastPointRef = useRef<Vec | null>(null)
   const inkModeRef = useRef<InkMode>(progress.inkMode)
-  const fxRef = useRef<FxState>({ angle: 0, trail: [], particles: [] })
+  const fxRef = useRef<FxState>(createFx(LEVELS[levelIdx]))
+  const bestRef = useRef(progress.stars)
 
   const level = LEVELS[levelIdx]
+  const rules = inkRules(level)
   const limited = progress.inkMode === 'limited'
   const canDraw = phase === 'ready' || phase === 'rolling'
+  const totalStars = progress.stars.reduce((a, b) => a + b, 0)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
     inkModeRef.current = progress.inkMode
+    bestRef.current = progress.stars
+    Sfx.setEnabled(!progress.muted)
   }, [progress])
 
   useEffect(() => {
@@ -80,24 +132,34 @@ export default function DrawBall() {
     const frame = (now: number) => {
       const dt = (now - last) / 1000
       last = now
-      const lv = LEVELS[levelIdxRef.current]
+      const idx = levelIdxRef.current
+      const lv = LEVELS[idx]
+      const world = worldRef.current
+      const strokes = strokesRef.current.flat()
       if (phaseRef.current === 'rolling') {
-        const solids = [...lv.walls, ...cupWalls(lv.goal), ...strokesRef.current]
-        const result = step(ballRef.current, solids, lv.spikes, lv.goal, dt)
-        if (result === 'goal') {
+        const ev = step(world, lv, strokes, dt)
+        Sfx.bump(ev.impact)
+        if (ev.spring) Sfx.spring()
+        if (ev.captured) Sfx.capture()
+        if (ev.result === 'won') {
           phaseRef.current = 'won'
           setPhase('won')
           burstConfetti(fxRef.current, lv.goal)
-          const next = Math.min(levelIdxRef.current + 1, LEVELS.length - 1)
-          setProgress(p => ({ ...p, unlocked: Math.max(p.unlocked, next) }))
-        } else if (result !== 'ok') {
+          const stars = starsFor(lv, inkRef.current)
+          const prev = bestRef.current[idx]
+          setWinResult({ stars, ink: inkRef.current, newBest: prev > 0 && stars > prev })
+          setProgress(p => ({ ...p, stars: p.stars.map((v, i) => (i === idx ? Math.max(v, stars) : v)) }))
+          Sfx.win()
+          for (let i = 0; i < stars; i++) setTimeout(() => Sfx.star(i), 500 + i * 250)
+        } else if (ev.result !== 'ok') {
           phaseRef.current = 'failed'
           setPhase('failed')
-          setFailReason(result)
+          setFailReason(ev.result)
+          Sfx.fail()
         }
       }
-      updateFx(fxRef.current, ballRef.current, phaseRef.current, Math.min(dt, 1 / 30))
-      render(ctx, bg, lv, strokesRef.current, ballRef.current, fxRef.current, phaseRef.current, now / 1000)
+      updateFx(fxRef.current, world, phaseRef.current, Math.min(dt, 1 / 30))
+      render(ctx, bg, lv, strokes, world, fxRef.current, phaseRef.current, now / 1000)
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
@@ -111,22 +173,42 @@ export default function DrawBall() {
 
   // 重新放球但保留已畫的線，方便小朋友微調
   const resetBall = () => {
-    ballRef.current = newBall(LEVELS[levelIdxRef.current])
-    fxRef.current.angle = 0
+    const lv = LEVELS[levelIdxRef.current]
+    worldRef.current = createWorld(lv)
+    fxRef.current = { ...createFx(lv), particles: fxRef.current.particles }
+    lastPointRef.current = null
     changePhase('ready')
+  }
+
+  const syncInk = () => {
+    inkRef.current = strokesRef.current.flat().reduce((a, sg) => a + segLength(sg), 0)
+    setInkUsed(inkRef.current)
+    setStrokeCount(strokesRef.current.length)
+    setInkOut(false)
   }
 
   const clearLines = () => {
     strokesRef.current = []
-    inkRef.current = 0
-    setInkUsed(0)
+    syncInk()
+  }
+
+  const undo = () => {
+    strokesRef.current = strokesRef.current.slice(0, -1)
+    syncInk()
   }
 
   const selectLevel = (i: number) => {
     levelIdxRef.current = i
     setLevelIdx(i)
+    setShowLevels(false)
+    setWinResult(null)
     clearLines()
     resetBall()
+  }
+
+  const dropBall = () => {
+    Sfx.start()
+    changePhase('rolling')
   }
 
   const toWorld = (e: ReactPointerEvent<HTMLCanvasElement>): Vec => {
@@ -141,6 +223,7 @@ export default function DrawBall() {
     if (phaseRef.current !== 'ready' && phaseRef.current !== 'rolling') return
     e.currentTarget.setPointerCapture(e.pointerId)
     lastPointRef.current = toWorld(e)
+    drawingRef.current = null
   }
 
   const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -154,55 +237,66 @@ export default function DrawBall() {
     const seg = { a: last, b: p }
     const len = segLength(seg)
     if (len < MIN_POINT_GAP) return
-    const limit = LEVELS[levelIdxRef.current].inkLimit
-    if (inkModeRef.current === 'limited' && inkRef.current + len > limit) return
-    strokesRef.current.push(seg)
+    lastPointRef.current = p
+    const onBall = worldRef.current.balls.some(b => !b.done && distToSeg(b.pos, seg) < BALL_CLEARANCE)
+    if (onBall) {
+      drawingRef.current = null // 跳過球身那一段，之後的線另起一筆
+      return
+    }
+    const limit = inkRules(LEVELS[levelIdxRef.current]).limit
+    if (inkModeRef.current === 'limited' && inkRef.current + len > limit) {
+      if (!inkOut) Sfx.inkOut()
+      setInkOut(true)
+      lastPointRef.current = null
+      return
+    }
+    if (!drawingRef.current) {
+      drawingRef.current = []
+      strokesRef.current = [...strokesRef.current, drawingRef.current]
+      setStrokeCount(strokesRef.current.length)
+    }
+    drawingRef.current.push(seg)
     inkRef.current += len
     setInkUsed(inkRef.current)
-    lastPointRef.current = p
   }
 
   const endStroke = () => {
     lastPointRef.current = null
+    drawingRef.current = null
   }
 
   const setInkMode = (inkMode: InkMode) => setProgress(p => ({ ...p, inkMode }))
+  const toggleMute = () => setProgress(p => ({ ...p, muted: !p.muted }))
 
-  const inkLeft = Math.max(0, level.inkLimit - inkUsed)
+  // 墨水條以「有限墨水上限」為全長；無限模式超過上限時填滿
+  const pct = (v: number) => `${Math.min(100, (v / rules.limit) * 100)}%`
+  const liveStars = starsFor(level, inkUsed)
   const isLast = levelIdx === LEVELS.length - 1
-
-  const inkPct = Math.round((inkLeft / level.inkLimit) * 100)
+  const nextUnlocked = !isLast && isUnlocked(progress.stars, levelIdx + 1)
 
   return (
     <div className="db-game">
+      <div className="db-rotate-hint">📱↻ 把手機橫放，畫面更大更好玩！</div>
+
       <div className="db-top">
-        <div className="db-levels">
-          {LEVELS.map((lv, i) => {
-            const locked = i > progress.unlocked
-            const cleared = i < progress.unlocked
-            return (
-              <button
-                key={lv.name}
-                className={['db-level-btn', i === levelIdx ? 'active' : '', cleared ? 'cleared' : '']
-                  .filter(Boolean)
-                  .join(' ')}
-                disabled={locked}
-                onClick={() => selectLevel(i)}
-                title={lv.name}
-              >
-                {locked ? '🔒' : i + 1}
-                {cleared && <span className="db-level-star">⭐</span>}
-              </button>
-            )
-          })}
-        </div>
-        <div className="db-ink-toggle" role="group" aria-label="墨水模式">
-          <button className={limited ? 'active' : ''} onClick={() => setInkMode('limited')}>
-            🖍️ 有限墨水
+        <button className="db-chip" onClick={() => setShowLevels(true)}>
+          📋 選關 <span className="db-chip-sub">⭐ {totalStars}/{LEVELS.length * 3}</span>
+        </button>
+        <div className="db-top-right">
+          <button className="db-chip" onClick={() => setShowRules(true)}>
+            ⭐ 星星怎麼拿？
           </button>
-          <button className={!limited ? 'active' : ''} onClick={() => setInkMode('unlimited')}>
-            ♾️ 無限墨水
+          <button className="db-chip icon" onClick={toggleMute} title={progress.muted ? '開啟音效' : '關閉音效'}>
+            {progress.muted ? '🔇' : '🔊'}
           </button>
+          <div className="db-ink-toggle" role="group" aria-label="墨水模式">
+            <button className={limited ? 'active' : ''} onClick={() => setInkMode('limited')}>
+              🖍️ 有限
+            </button>
+            <button className={!limited ? 'active' : ''} onClick={() => setInkMode('unlimited')}>
+              ♾️ 無限
+            </button>
+          </div>
         </div>
       </div>
 
@@ -210,21 +304,30 @@ export default function DrawBall() {
         <div className="db-info">
           <span className="db-level-badge">第 {levelIdx + 1} 關</span>
           <h2 className="db-level-name">{level.name}</h2>
+          {progress.stars[levelIdx] > 0 && (
+            <span className="db-best" title="這關的最佳紀錄">
+              最佳 <StarRow n={progress.stars[levelIdx]} />
+            </span>
+          )}
         </div>
         <p className="db-hint">💡 {level.hint}</p>
 
-        {limited && (
-          <div className="db-ink-row">
-            <span className="db-ink-icon">🖍️</span>
-            <div className="db-ink-bar" title={`剩餘墨水 ${Math.round(inkLeft)}`}>
-              <div
-                className={`db-ink-fill ${inkPct <= 20 ? 'low' : ''}`}
-                style={{ width: `${inkPct}%` }}
-              />
-            </div>
-            <span className="db-ink-pct">{inkPct}%</span>
+        <div className={`db-ink-row ${inkOut ? 'out' : ''}`}>
+          <div className="db-ink-bar">
+            <div className="db-zone z3" style={{ width: pct(rules.star3) }} />
+            <div className="db-zone z2" style={{ left: pct(rules.star3), width: `calc(${pct(rules.star2)} - ${pct(rules.star3)})` }} />
+            <div className="db-zone z1" style={{ left: pct(rules.star2), right: 0 }} />
+            <div className="db-ink-fill" style={{ width: pct(inkUsed) }} />
+            <span className="db-zone-label" style={{ left: 0, width: pct(rules.star3) }}>★★★</span>
+            <span className="db-zone-label" style={{ left: pct(rules.star3), width: `calc(${pct(rules.star2)} - ${pct(rules.star3)})` }}>★★</span>
+            <span className="db-zone-label" style={{ left: pct(rules.star2), right: 0 }}>★</span>
           </div>
-        )}
+          <div className="db-ink-text">
+            <span>🖍️ {toDots(inkUsed)}{limited && ` / ${toDots(rules.limit)}`}</span>
+            <StarRow n={liveStars} size="small" />
+          </div>
+        </div>
+        {inkOut && <p className="db-toast">🖍️ 墨水用完了！按「↶ 復原」或「清除線條」把墨水拿回來。</p>}
 
         <div className="db-stage">
           <canvas
@@ -235,16 +338,34 @@ export default function DrawBall() {
             onPointerUp={endStroke}
             onPointerCancel={endStroke}
           />
-          {phase === 'won' && (
+          {phase === 'won' && winResult && (
             <div className="db-overlay">
               <div className="db-overlay-box win">
-                <div className="db-overlay-emoji">{isLast ? '🏆' : '🎉'}</div>
-                <p className="db-overlay-title">{isLast ? '全部破關！太厲害了！' : '過關！'}</p>
+                <div className="db-win-stars">
+                  {[0, 1, 2].map(i => (
+                    <span
+                      key={i}
+                      className={i < winResult.stars ? 'on' : 'off'}
+                      style={{ animationDelay: `${0.4 + i * 0.25}s` }}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <p className="db-overlay-title">
+                  {isLast ? '全部破關！太厲害了！' : '過關！'}
+                  {winResult.newBest && <span className="db-new-best">新紀錄！</span>}
+                </p>
+                <p className="db-overlay-sub">
+                  用了 {toDots(winResult.ink)} 點墨水
+                  {winResult.stars < 3 &&
+                    `，再少用 ${toDots(winResult.ink - (winResult.stars === 2 ? rules.star3 : rules.star2))} 點就能拿 ${winResult.stars + 1} 顆星！`}
+                </p>
                 <div className="db-overlay-actions">
                   <button className="db-btn secondary" onClick={resetBall}>
                     再玩一次
                   </button>
-                  {!isLast && (
+                  {nextUnlocked && (
                     <button className="db-btn primary" onClick={() => selectLevel(levelIdx + 1)}>
                       下一關 →
                     </button>
@@ -273,23 +394,108 @@ export default function DrawBall() {
         </div>
 
         {canDraw && (
-        <div className="db-controls">
-          {phase === 'ready' && (
-            <button className="db-btn primary big" onClick={() => changePhase('rolling')}>
-              ▶ 放球！
+          <div className="db-controls">
+            {phase === 'ready' ? (
+              <button className="db-btn primary big" onClick={dropBall}>
+                ▶ 放球！
+              </button>
+            ) : (
+              <button className="db-btn secondary big" onClick={resetBall}>
+                ↺ 重新放球
+              </button>
+            )}
+            <button className="db-btn secondary" onClick={undo} disabled={strokeCount === 0}>
+              ↶ 復原
             </button>
-          )}
-          {phase === 'rolling' && (
-            <button className="db-btn secondary big" onClick={resetBall}>
-              ↺ 重新放球
+            <button className="db-btn danger" onClick={clearLines} disabled={strokeCount === 0}>
+              🧽 清除線條
             </button>
-          )}
-          <button className="db-btn danger" onClick={clearLines}>
-            🧽 清除線條
-          </button>
-        </div>
+          </div>
         )}
       </div>
+
+      {showLevels && (
+        <div className="db-modal" onClick={() => setShowLevels(false)}>
+          <div className="db-modal-box" onClick={e => e.stopPropagation()}>
+            <div className="db-modal-head">
+              <h3>選擇關卡</h3>
+              <span>⭐ {totalStars} / {LEVELS.length * 3}</span>
+              <button className="db-close" onClick={() => setShowLevels(false)} aria-label="關閉">
+                ✕
+              </button>
+            </div>
+            {CHAPTERS.map((ch, ci) => (
+              <section key={ch.name} className="db-chapter">
+                <h4>
+                  {ch.icon} 第 {ci + 1} 章・{ch.name}
+                </h4>
+                <div className="db-level-grid">
+                  {ch.levels.map((lv, li) => {
+                    const i = CHAPTER_START[ci] + li
+                    const locked = !isUnlocked(progress.stars, i)
+                    return (
+                      <button
+                        key={i}
+                        className={['db-level-btn', i === levelIdx ? 'active' : '', progress.stars[i] ? 'cleared' : '']
+                          .filter(Boolean)
+                          .join(' ')}
+                        disabled={locked}
+                        onClick={() => selectLevel(i)}
+                        title={lv.name}
+                      >
+                        <span className="db-level-num">{locked ? '🔒' : i + 1}</span>
+                        {!locked && <StarRow n={progress.stars[i]} size="tiny" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showRules && (
+        <div className="db-modal" onClick={() => setShowRules(false)}>
+          <div className="db-modal-box rules" onClick={e => e.stopPropagation()}>
+            <div className="db-modal-head">
+              <h3>⭐ 星星怎麼拿？</h3>
+              <button className="db-close" onClick={() => setShowRules(false)} aria-label="關閉">
+                ✕
+              </button>
+            </div>
+            <p>
+              <b>過關就有 1 顆星。</b>用的墨水越少，星星越多！
+            </p>
+            <ul className="db-rule-list">
+              <li>
+                <span className="db-swatch z3" /> 墨水條在<b>綠色區</b>就過關 → <StarRow n={3} />
+              </li>
+              <li>
+                <span className="db-swatch z2" /> 在<b>黃色區</b>過關 → <StarRow n={2} />
+              </li>
+              <li>
+                <span className="db-swatch z1" /> 在<b>紅色區</b>過關 → <StarRow n={1} />
+              </li>
+            </ul>
+            <div className="db-rule-level">
+              <b>這一關（第 {levelIdx + 1} 關）：</b>
+              <br />
+              墨水 ≤ {toDots(rules.star3)} 點 → 3 顆星；≤ {toDots(rules.star2)} 點 → 2 顆星
+              {limited && <>；有限墨水最多 {toDots(rules.limit)} 點</>}
+            </div>
+            <ul className="db-rule-notes">
+              <li>墨水只算<b>過關那一刻</b>畫面上的線。按「↶ 復原」或「清除線條」，墨水會還給你。</li>
+              <li>每一關會記住你拿過<b>最多</b>的星星，可以回去重玩刷新紀錄。</li>
+              <li>選「♾️ 無限墨水」也一樣算星星，只是不會畫到一半沒墨水。</li>
+              <li>1 點墨水 = 一小段線（約一顆球的一半長）。</li>
+            </ul>
+            <button className="db-btn primary" onClick={() => setShowRules(false)}>
+              知道了！
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
