@@ -1,0 +1,34 @@
+.drawball-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(900px 420px at 50% -80px, rgba(123, 77, 255, 0.35), transparent 70%),
+    radial-gradient(700px 400px at 90% 110%, rgba(58, 134, 255, 0.25), transparent 65%),
+    #0f1729;
+}
+
+.drawball-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #0b1120;
+  border-bottom: 1px solid #1e2a3a;
+  flex-shrink: 0;
+}
+
+.drawball-nav .nav-home {
+  color: #888;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+.drawball-nav .nav-home:hover { color: #e4c97e; }
+
+.drawball-nav .nav-title {
+  flex: 1;
+  color: #e4c97e;
+  font-weight: 700;
+  font-size: 16px;
+}

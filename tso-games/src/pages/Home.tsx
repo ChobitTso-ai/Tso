@@ -72,6 +72,15 @@ const GAMES: GameCard[] = [
     path: '/threekingdoms',
     available: true,
   },
+  {
+    id: 'drawball',
+    title: '畫線滾球',
+    description: '畫線鋪出軌道，引導小球滾進杯子！球滾動時還能繼續畫，5 關物理解謎。',
+    icon: '✏️',
+    path: '/drawball',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {

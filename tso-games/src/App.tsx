@@ -8,6 +8,7 @@ import EndgamePage from './pages/EndgamePage'
 import MathQuestPage from './pages/MathQuestPage'
 import BattleshipPage from './pages/BattleshipPage'
 import ThreeKingdomsPage from './pages/ThreeKingdomsPage'
+import DrawBallPage from './pages/DrawBallPage'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/mathquest" element={<MathQuestPage />} />
           <Route path="/battleship" element={<BattleshipPage />} />
           <Route path="/threekingdoms" element={<ThreeKingdomsPage />} />
+          <Route path="/drawball" element={<DrawBallPage />} />
         </Routes>
       </HashRouter>
     </LoginGate>
