@@ -1,0 +1,216 @@
+/* 畫線滾球 — 樣式（前綴 .db-*） */
+
+.db-game {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 16px;
+  color: #e0e0e0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.db-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.db-levels {
+  display: flex;
+  gap: 8px;
+}
+
+.db-level-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 2px solid #2d4a7a;
+  background: #1a2c4e;
+  color: #e0e0e0;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.db-level-btn:hover:not(:disabled) {
+  border-color: #ffd166;
+}
+.db-level-btn.active {
+  background: #ffd166;
+  border-color: #ffd166;
+  color: #13213b;
+}
+.db-level-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.db-ink-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.db-ink-toggle button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 2px solid #2d4a7a;
+  background: #1a2c4e;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.db-ink-toggle button.active {
+  background: #3a86ff;
+  border-color: #3a86ff;
+  color: #fff;
+}
+
+.db-info {
+  margin-bottom: 10px;
+}
+.db-level-name {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #ffd166;
+}
+.db-hint {
+  margin: 0;
+  font-size: 15px;
+  color: #b8c4d8;
+}
+
+.db-ink-bar {
+  position: relative;
+  height: 22px;
+  border-radius: 11px;
+  background: #1a2c4e;
+  border: 1px solid #2d4a7a;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.db-ink-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffb703, #ffd166);
+  transition: width 0.1s;
+}
+.db-ink-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+
+.db-stage {
+  position: relative;
+}
+
+.db-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 800 / 500;
+  border-radius: 12px;
+  border: 2px solid #2d4a7a;
+  cursor: crosshair;
+  /* 避免手機上畫線時捲動頁面 */
+  touch-action: none;
+}
+.db-canvas.locked {
+  cursor: default;
+}
+
+.db-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 18, 34, 0.55);
+  border-radius: 12px;
+}
+.db-overlay-box {
+  background: #1a2c4e;
+  border: 2px solid #ffd166;
+  border-radius: 14px;
+  padding: 20px 28px;
+  text-align: center;
+}
+.db-overlay-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffd166;
+}
+.db-overlay-sub {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #b8c4d8;
+}
+.db-overlay-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.db-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.db-btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.db-btn:hover:not(:disabled) {
+  filter: brightness(0.9);
+  transform: translateY(1px);
+}
+.db-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.db-btn.primary {
+  background: #2a9d4b;
+}
+.db-btn.secondary {
+  background: #3a86ff;
+}
+.db-btn.danger {
+  background: #d64545;
+}
+
+@media (max-width: 768px) {
+  .db-game {
+    padding: 10px;
+  }
+  .db-level-name {
+    font-size: 17px;
+  }
+  .db-hint {
+    font-size: 14px;
+  }
+  .db-overlay-title {
+    font-size: 19px;
+  }
+  .db-overlay-box {
+    padding: 14px 16px;
+  }
+}
