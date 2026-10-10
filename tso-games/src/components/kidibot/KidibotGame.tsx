@@ -365,7 +365,8 @@ export default function KidibotGame() {
                   return <div key={`${r}-${c}`} className="kb-cell kb-cell-empty" style={{ width: cellSize, height: cellSize }} />
                 }
 
-                const placedTile = placed[r][c]
+                // 換關後第一次 render 的 placed 仍是舊關卡尺寸，需防範越界
+                const placedTile = placed[r]?.[c] ?? null
                 const isRobot = robotPos?.row === r && robotPos?.col === c
                 const isFixed = FIXED_SPECIAL.has(fixedTile) || COLLECTIBLE_TILES.has(fixedTile)
                 const isPlaceable = canPlaceOn(r, c)
