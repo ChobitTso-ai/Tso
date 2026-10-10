@@ -25,7 +25,7 @@ const BASICS: Level[] = [
     goal: g(620, 300),
     walls: [],
     spikes: [],
-    par: 0,
+    par: 491,
   },
   {
     name: '跨越深谷',
@@ -39,7 +39,7 @@ const BASICS: Level[] = [
       s(740, 360, 790, 360),
     ],
     spikes: [],
-    par: 0,
+    par: 170,
   },
   {
     name: '翻過高牆',
@@ -48,7 +48,7 @@ const BASICS: Level[] = [
     goal: g(130, 420),
     walls: [s(420, 180, 420, 500)],
     spikes: [],
-    par: 0,
+    par: 526,
   },
   {
     name: '小心尖刺',
@@ -57,7 +57,7 @@ const BASICS: Level[] = [
     goal: g(600, 220, 90),
     walls: [],
     spikes: [FLOOR_SPIKES, s(350, 0, 350, 110)],
-    par: 0,
+    par: 564,
   },
   {
     name: '之字挑戰',
@@ -66,7 +66,7 @@ const BASICS: Level[] = [
     goal: g(670, 420, 100),
     walls: [s(150, 200, 800, 140)],
     spikes: [s(150, 490, 660, 490), s(450, 182, 450, 300)],
-    par: 0,
+    par: 776,
   },
   {
     name: '接力滑梯',
@@ -75,7 +75,7 @@ const BASICS: Level[] = [
     goal: g(650, 420),
     walls: [s(60, 100, 320, 200)],
     spikes: [],
-    par: 0,
+    par: 142,
   },
   {
     name: '往左走',
@@ -84,7 +84,7 @@ const BASICS: Level[] = [
     goal: g(80, 420),
     walls: [],
     spikes: [],
-    par: 0,
+    par: 502,
   },
   {
     name: '溜滑梯',
@@ -93,7 +93,7 @@ const BASICS: Level[] = [
     goal: g(620, 280),
     walls: [s(700, 180, 700, 280)],
     spikes: [],
-    par: 0,
+    par: 665,
   },
   {
     name: '繞過箱子',
@@ -102,7 +102,7 @@ const BASICS: Level[] = [
     goal: g(680, 420),
     walls: [s(320, 200, 460, 200), s(320, 200, 320, 330), s(460, 200, 460, 330), s(320, 330, 460, 330)],
     spikes: [],
-    par: 0,
+    par: 305,
   },
   {
     name: '屋簷下',
@@ -111,7 +111,7 @@ const BASICS: Level[] = [
     goal: g(360, 420),
     walls: [s(300, 330, 480, 330)],
     spikes: [],
-    par: 0,
+    par: 259,
   },
 ]
 
@@ -123,7 +123,7 @@ const SPIKES: Level[] = [
     goal: g(620, 300),
     walls: [s(640, 350, 640, 500), s(680, 350, 680, 500)],
     spikes: [FLOOR_SPIKES],
-    par: 0,
+    par: 573,
   },
   {
     name: '倒掛尖刺',
@@ -132,7 +132,7 @@ const SPIKES: Level[] = [
     goal: g(660, 420),
     walls: [],
     spikes: [s(400, 0, 400, 250)],
-    par: 0,
+    par: 634,
   },
   {
     name: '上下穿梭',
@@ -141,7 +141,7 @@ const SPIKES: Level[] = [
     goal: g(690, 420),
     walls: [],
     spikes: [s(250, 0, 250, 200), s(450, 300, 450, 500), s(600, 0, 600, 180)],
-    par: 0,
+    par: 736,
   },
   {
     name: '尖刺小島',
@@ -150,7 +150,7 @@ const SPIKES: Level[] = [
     goal: g(590, 330, 100),
     walls: [],
     spikes: [s(480, 380, 580, 380), s(700, 380, 790, 380), FLOOR_SPIKES],
-    par: 0,
+    par: 370,
   },
   {
     name: '窄縫',
@@ -159,7 +159,7 @@ const SPIKES: Level[] = [
     goal: g(650, 420),
     walls: [],
     spikes: [s(400, 0, 400, 215), s(400, 295, 400, 500)],
-    par: 0,
+    par: 662,
   },
   {
     name: '飛越刺坑',
@@ -168,7 +168,7 @@ const SPIKES: Level[] = [
     goal: g(660, 280),
     walls: [s(50, 90, 330, 280), s(700, 330, 700, 500)],
     spikes: [s(330, 490, 800, 490)],
-    par: 0,
+    par: 224,
   },
   {
     name: '刺柱',
@@ -177,7 +177,7 @@ const SPIKES: Level[] = [
     goal: g(360, 420, 100),
     walls: [],
     spikes: [s(0, 490, 350, 490), s(470, 490, 800, 490), s(250, 150, 250, 350)],
-    par: 0,
+    par: 280,
   },
   {
     name: '上上下下',
@@ -186,7 +186,7 @@ const SPIKES: Level[] = [
     goal: g(690, 220, 90),
     walls: [],
     spikes: [s(200, 0, 200, 170), s(350, 500, 350, 300), s(500, 0, 500, 170), s(650, 500, 650, 330)],
-    par: 0,
+    par: 715,
   },
   {
     name: '回頭路',
@@ -195,7 +195,7 @@ const SPIKES: Level[] = [
     goal: g(90, 420, 100),
     walls: [s(60, 170, 600, 230)],
     spikes: [FLOOR_SPIKES, s(350, 240, 350, 330)],
-    par: 0,
+    par: 736,
   },
   {
     name: '尖刺大考驗',
@@ -204,7 +204,7 @@ const SPIKES: Level[] = [
     goal: g(660, 420),
     walls: [],
     spikes: [s(0, 490, 650, 490), s(400, 260, 400, 490), s(560, 0, 560, 160)],
-    par: 0,
+    par: 196,
   },
 ]
 
@@ -217,7 +217,7 @@ const SPRINGS: Level[] = [
     walls: [s(450, 230, 450, 500), s(780, 300, 780, 470)],
     spikes: [],
     springs: [s(260, 460, 380, 460)],
-    par: 0,
+    par: 159,
   },
   {
     name: '彈上高台',
@@ -227,7 +227,7 @@ const SPRINGS: Level[] = [
     walls: [s(700, 230, 700, 330), s(655, 380, 655, 500)],
     spikes: [],
     springs: [s(420, 470, 540, 470)],
-    par: 0,
+    par: 293,
   },
   {
     name: '彈簧大跳',
@@ -237,7 +237,7 @@ const SPRINGS: Level[] = [
     walls: [s(660, 200, 660, 300), s(615, 350, 615, 500)],
     spikes: [FLOOR_SPIKES],
     springs: [s(180, 440, 300, 440)],
-    par: 0,
+    par: 126,
   },
   {
     name: '反彈牆',
@@ -247,7 +247,7 @@ const SPRINGS: Level[] = [
     walls: [],
     spikes: [],
     springs: [s(770, 80, 770, 460)],
-    par: 0,
+    par: 149,
   },
   {
     name: '彈簧跳板',
@@ -257,7 +257,7 @@ const SPRINGS: Level[] = [
     walls: [s(740, 200, 740, 300), s(700, 350, 700, 500)],
     spikes: [s(0, 490, 690, 490)],
     springs: [s(220, 470, 320, 470)],
-    par: 0,
+    par: 63,
   },
   {
     name: '斜斜彈簧',
@@ -267,7 +267,7 @@ const SPRINGS: Level[] = [
     walls: [s(690, 200, 690, 300), s(645, 350, 645, 500)],
     spikes: [],
     springs: [s(250, 420, 380, 470)],
-    par: 0,
+    par: 142,
   },
   {
     name: '彈簧隧道',
@@ -277,7 +277,7 @@ const SPRINGS: Level[] = [
     walls: [s(740, 280, 740, 380)],
     spikes: [s(200, 120, 640, 120), s(0, 490, 650, 490)],
     springs: [s(250, 460, 370, 460)],
-    par: 0,
+    par: 168,
   },
   {
     name: '連續彈跳',
@@ -287,7 +287,7 @@ const SPRINGS: Level[] = [
     walls: [s(770, 230, 770, 330), s(690, 380, 690, 500)],
     spikes: [s(0, 490, 680, 490)],
     springs: [s(130, 460, 230, 460), s(330, 460, 430, 460), s(530, 460, 630, 460)],
-    par: 0,
+    par: 137,
   },
   {
     name: '彈簧井',
@@ -297,7 +297,7 @@ const SPRINGS: Level[] = [
     walls: [s(400, 250, 400, 500), s(520, 330, 520, 500), s(640, 160, 640, 260)],
     spikes: [],
     springs: [s(410, 480, 510, 480)],
-    par: 0,
+    par: 748,
   },
   {
     name: '高高彈起',
@@ -307,7 +307,7 @@ const SPRINGS: Level[] = [
     walls: [s(300, 200, 300, 300), s(345, 350, 345, 500)],
     spikes: [FLOOR_SPIKES],
     springs: [s(560, 470, 680, 470)],
-    par: 0,
+    par: 154,
   },
   {
     name: '彈簧轉角',
@@ -317,7 +317,7 @@ const SPRINGS: Level[] = [
     walls: [s(300, 330, 300, 420)],
     spikes: [s(390, 490, 800, 490)],
     springs: [s(770, 150, 770, 400)],
-    par: 0,
+    par: 260,
   },
   {
     name: '彈簧大師',
@@ -327,7 +327,7 @@ const SPRINGS: Level[] = [
     walls: [s(760, 50, 760, 150), s(680, 200, 680, 500)],
     spikes: [FLOOR_SPIKES, s(300, 0, 300, 160)],
     springs: [s(380, 420, 500, 420)],
-    par: 0,
+    par: 290,
   },
 ]
 
@@ -340,7 +340,7 @@ const MOVERS: Level[] = [
     walls: [s(740, 320, 740, 420)],
     spikes: [],
     movers: [mv(s(420, 150, 420, 330), 'wall', 0, 140, 3)],
-    par: 0,
+    par: 659,
   },
   {
     name: '巡邏尖刺',
@@ -350,7 +350,7 @@ const MOVERS: Level[] = [
     walls: [s(740, 320, 740, 420)],
     spikes: [],
     movers: [mv(s(360, 260, 440, 260), 'spike', 160, 0, 3)],
-    par: 0,
+    par: 599,
   },
   {
     name: '雙重門',
@@ -360,7 +360,7 @@ const MOVERS: Level[] = [
     walls: [s(760, 320, 760, 420)],
     spikes: [],
     movers: [mv(s(300, 120, 300, 280), 'wall', 0, 120, 2.6), mv(s(520, 220, 520, 380), 'wall', 0, 120, 3.4)],
-    par: 0,
+    par: 800,
   },
   {
     name: '上下刺',
@@ -370,7 +370,7 @@ const MOVERS: Level[] = [
     walls: [s(730, 320, 730, 420)],
     spikes: [],
     movers: [mv(s(380, 180, 460, 180), 'spike', 0, 120, 2.5)],
-    par: 0,
+    par: 504,
   },
   {
     name: '守門員',
@@ -380,7 +380,7 @@ const MOVERS: Level[] = [
     walls: [s(700, 320, 700, 420)],
     spikes: [],
     movers: [mv(s(560, 360, 660, 360), 'wall', 90, 0, 2.4)],
-    par: 0,
+    par: 399,
   },
   {
     name: '尖刺斜飛',
@@ -390,7 +390,7 @@ const MOVERS: Level[] = [
     walls: [s(740, 320, 740, 420)],
     spikes: [],
     movers: [mv(s(380, 220, 440, 260), 'spike', 120, 90, 3)],
-    par: 0,
+    par: 574,
   },
   {
     name: '快快門',
@@ -400,7 +400,7 @@ const MOVERS: Level[] = [
     walls: [s(740, 320, 740, 420)],
     spikes: [],
     movers: [mv(s(450, 200, 450, 360), 'wall', 0, 150, 1.4)],
-    par: 0,
+    par: 658,
   },
   {
     name: '刺刺電梯',
@@ -410,7 +410,7 @@ const MOVERS: Level[] = [
     walls: [s(730, 320, 730, 420)],
     spikes: [FLOOR_SPIKES],
     movers: [mv(s(560, 250, 560, 330), 'spike', 0, 110, 2.8)],
-    par: 0,
+    par: 600,
   },
   {
     name: '移動擋板',
@@ -420,7 +420,7 @@ const MOVERS: Level[] = [
     walls: [s(740, 320, 740, 420)],
     spikes: [s(0, 490, 650, 490)],
     movers: [mv(s(330, 290, 470, 290), 'wall', 110, 0, 3)],
-    par: 0,
+    par: 404,
   },
   {
     name: '機關走廊',
@@ -430,7 +430,7 @@ const MOVERS: Level[] = [
     walls: [s(760, 320, 760, 420)],
     spikes: [],
     movers: [mv(s(280, 170, 280, 270), 'wall', 0, 120, 3), mv(s(520, 300, 580, 300), 'spike', 0, 100, 2.2)],
-    par: 0,
+    par: 866,
   },
   {
     name: '尖刺雨',
@@ -444,7 +444,7 @@ const MOVERS: Level[] = [
       mv(s(400, 200, 400, 270), 'spike', 0, 100, 2.6),
       mv(s(550, 250, 550, 320), 'spike', 0, 100, 3.2),
     ],
-    par: 0,
+    par: 845,
   },
   {
     name: '機關大師',
@@ -458,7 +458,7 @@ const MOVERS: Level[] = [
       mv(s(470, 250, 530, 250), 'spike', 100, 0, 2.4),
       mv(s(600, 370, 700, 370), 'wall', 70, 0, 2),
     ],
-    par: 0,
+    par: 992,
   },
 ]
 
@@ -470,7 +470,7 @@ const TWO_BALLS: Level[] = [
     goal: g(600, 420, 120),
     walls: [s(720, 320, 720, 420)],
     spikes: [],
-    par: 0,
+    par: 542,
   },
   {
     name: '左右開弓',
@@ -479,7 +479,7 @@ const TWO_BALLS: Level[] = [
     goal: g(340, 420, 120),
     walls: [],
     spikes: [],
-    par: 0,
+    par: 518,
   },
   {
     name: '一高一低',
@@ -488,7 +488,7 @@ const TWO_BALLS: Level[] = [
     goal: g(620, 420, 120),
     walls: [s(740, 320, 740, 420)],
     spikes: [],
-    par: 0,
+    par: 530,
   },
   {
     name: '分頭行動',
@@ -497,7 +497,7 @@ const TWO_BALLS: Level[] = [
     goal: g(340, 420, 120),
     walls: [s(400, 120, 400, 380)],
     spikes: [],
-    par: 0,
+    par: 627,
   },
   {
     name: '雙球刺林',
@@ -506,7 +506,7 @@ const TWO_BALLS: Level[] = [
     goal: g(600, 280, 120),
     walls: [s(720, 180, 720, 280), s(660, 330, 660, 500)],
     spikes: [FLOOR_SPIKES],
-    par: 0,
+    par: 843,
   },
   {
     name: '雙球彈簧',
@@ -516,17 +516,16 @@ const TWO_BALLS: Level[] = [
     walls: [s(740, 220, 740, 320), s(680, 370, 680, 500)],
     spikes: [s(0, 490, 670, 490)],
     springs: [s(300, 460, 420, 460)],
-    par: 0,
+    par: 213,
   },
   {
-    name: '對角線',
-    hint: '一顆在左上、一顆在右下，杯子在右上。',
-    starts: [{ x: 90, y: 60 }, { x: 560, y: 380 }],
-    goal: g(640, 200, 120),
-    walls: [s(760, 100, 760, 200), s(700, 250, 700, 500)],
-    spikes: [],
-    springs: [s(480, 470, 600, 470)],
-    par: 0,
+    name: '雙層架',
+    hint: '一顆在高處、一顆在架子上，兩顆都要送進杯子。',
+    starts: [{ x: 90, y: 60 }, { x: 90, y: 290 }],
+    goal: g(620, 420, 120),
+    walls: [s(50, 320, 200, 345), s(740, 320, 740, 420)],
+    spikes: [s(0, 490, 610, 490)],
+    par: 814,
   },
   {
     name: '雙球窄縫',
@@ -535,7 +534,7 @@ const TWO_BALLS: Level[] = [
     goal: g(640, 420, 120),
     walls: [s(760, 320, 760, 420)],
     spikes: [s(420, 0, 420, 215), s(420, 300, 420, 500)],
-    par: 0,
+    par: 647,
   },
   {
     name: '雙球屋簷',
@@ -544,7 +543,7 @@ const TWO_BALLS: Level[] = [
     goal: g(300, 420, 130),
     walls: [s(250, 330, 450, 330)],
     spikes: [],
-    par: 0,
+    par: 278,
   },
   {
     name: '雙球升降門',
@@ -554,7 +553,7 @@ const TWO_BALLS: Level[] = [
     walls: [s(760, 320, 760, 420)],
     spikes: [],
     movers: [mv(s(430, 160, 430, 320), 'wall', 0, 130, 3)],
-    par: 0,
+    par: 573,
   },
   {
     name: '雙球大跳',
@@ -563,7 +562,7 @@ const TWO_BALLS: Level[] = [
     goal: g(340, 250, 120),
     walls: [s(400, 300, 400, 500)],
     spikes: [FLOOR_SPIKES],
-    par: 0,
+    par: 671,
   },
   {
     name: '雙球大師',
@@ -573,7 +572,7 @@ const TWO_BALLS: Level[] = [
     walls: [s(760, 140, 760, 240), s(700, 290, 700, 500)],
     spikes: [s(0, 490, 690, 490), s(400, 300, 400, 490)],
     springs: [s(200, 460, 320, 460)],
-    par: 0,
+    par: 612,
   },
 ]
 
@@ -585,7 +584,7 @@ const MASTER: Level[] = [
     goal: g(680, 170, 90),
     walls: [s(770, 70, 770, 170), s(725, 220, 725, 500)],
     spikes: [FLOOR_SPIKES],
-    par: 0,
+    par: 657,
   },
   {
     name: '迷宮',
@@ -594,7 +593,7 @@ const MASTER: Level[] = [
     goal: g(660, 420, 100),
     walls: [s(0, 140, 560, 140), s(240, 280, 800, 280), s(560, 140, 560, 220)],
     spikes: [],
-    par: 0,
+    par: 1676,
   },
   {
     name: '彈簧門',
@@ -605,7 +604,7 @@ const MASTER: Level[] = [
     spikes: [s(0, 490, 690, 490)],
     springs: [s(220, 460, 340, 460)],
     movers: [mv(s(500, 150, 500, 280), 'wall', 0, 110, 3)],
-    par: 0,
+    par: 559,
   },
   {
     name: '尖刺籠',
@@ -614,7 +613,7 @@ const MASTER: Level[] = [
     goal: g(560, 420, 100),
     walls: [],
     spikes: [s(520, 300, 520, 500), s(700, 300, 700, 500), FLOOR_SPIKES],
-    par: 0,
+    par: 773,
   },
   {
     name: '反彈連環',
@@ -624,7 +623,7 @@ const MASTER: Level[] = [
     walls: [],
     spikes: [s(0, 490, 330, 490), s(470, 490, 800, 490)],
     springs: [s(30, 150, 30, 450), s(770, 150, 770, 450)],
-    par: 0,
+    par: 72,
   },
   {
     name: '雙球機關',
@@ -634,7 +633,7 @@ const MASTER: Level[] = [
     walls: [s(760, 320, 760, 420)],
     spikes: [],
     movers: [mv(s(380, 280, 440, 280), 'spike', 120, 0, 3.2)],
-    par: 0,
+    par: 738,
   },
   {
     name: '大峽谷',
@@ -643,7 +642,7 @@ const MASTER: Level[] = [
     goal: g(690, 220, 90),
     walls: [s(20, 100, 200, 130), s(780, 120, 780, 220), s(735, 270, 735, 500)],
     spikes: [FLOOR_SPIKES],
-    par: 0,
+    par: 506,
   },
   {
     name: '倒吊杯',
@@ -653,7 +652,7 @@ const MASTER: Level[] = [
     walls: [s(40, 100, 40, 200), s(110, 250, 110, 500)],
     spikes: [s(130, 490, 800, 490)],
     springs: [s(560, 460, 680, 460)],
-    par: 0,
+    par: 125,
   },
   {
     name: '四道門',
@@ -668,18 +667,18 @@ const MASTER: Level[] = [
       mv(s(480, 220, 480, 340), 'wall', 0, 100, 2.2),
       mv(s(620, 280, 620, 400), 'wall', 0, 100, 3.6),
     ],
-    par: 0,
+    par: 1218,
   },
   {
     name: '雙球彈簧門',
     hint: '兩顆球、彈簧加上門，倒數第二關！',
     starts: [{ x: 60, y: 60 }, { x: 150, y: 60 }],
-    goal: g(640, 320, 120),
-    walls: [s(760, 220, 760, 320), s(700, 370, 700, 500)],
-    spikes: [s(0, 490, 690, 490)],
+    goal: g(600, 320, 120),
+    walls: [s(720, 220, 720, 320), s(660, 370, 660, 500)],
+    spikes: [s(0, 490, 650, 490)],
     springs: [s(260, 460, 380, 460)],
-    movers: [mv(s(520, 160, 520, 280), 'wall', 0, 100, 3.2)],
-    par: 0,
+    movers: [mv(s(520, 180, 520, 240), 'wall', 0, 100, 3.2)],
+    par: 540,
   },
   {
     name: '畫線大師',
@@ -690,7 +689,7 @@ const MASTER: Level[] = [
     spikes: [FLOOR_SPIKES, s(160, 0, 160, 150), s(640, 0, 640, 150)],
     springs: [s(150, 460, 260, 460), s(540, 460, 650, 460)],
     movers: [mv(s(370, 40, 430, 40), 'spike', 0, 30, 2.5)],
-    par: 0,
+    par: 620,
   },
 ]
 
