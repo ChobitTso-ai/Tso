@@ -2,7 +2,10 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0f1729;
+  background:
+    radial-gradient(900px 420px at 50% -80px, rgba(123, 77, 255, 0.35), transparent 70%),
+    radial-gradient(700px 400px at 90% 110%, rgba(58, 134, 255, 0.25), transparent 65%),
+    #0f1729;
 }
 
 .drawball-nav {

@@ -1,125 +1,206 @@
 /* 畫線滾球 — 樣式（前綴 .db-*） */
 
 .db-game {
-  max-width: 860px;
+  --db-purple: #7b4dff;
+  --db-purple-dark: #4b23c4;
+  --db-green: #2fb344;
+  --db-green-dark: #1e7d2e;
+  --db-blue: #3a86ff;
+  --db-blue-dark: #1f5ccc;
+  --db-red: #ff5d5d;
+  --db-red-dark: #c73636;
+  --db-yellow: #ffca3a;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 16px;
-  color: #e0e0e0;
+  padding: 18px 16px 28px;
   width: 100%;
   box-sizing: border-box;
+  color: #2b2d42;
+  font-family: 'Arial Rounded MT Bold', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
-.db-toolbar {
+/* ── 上方：關卡與墨水模式 ───────────────────────── */
+
+.db-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .db-levels {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .db-level-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 2px solid #2d4a7a;
-  background: #1a2c4e;
-  color: #e0e0e0;
-  font-size: 16px;
-  font-weight: 700;
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: #dfe7fd;
+  color: #4b23c4;
+  font-size: 18px;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 4px 0 #9aa9d6;
   transition: all 0.15s;
 }
 .db-level-btn:hover:not(:disabled) {
-  border-color: #ffd166;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #9aa9d6;
+}
+.db-level-btn.cleared {
+  background: #fff3c4;
+  color: #b07800;
+  box-shadow: 0 4px 0 #d6b24a;
 }
 .db-level-btn.active {
-  background: #ffd166;
-  border-color: #ffd166;
-  color: #13213b;
+  background: var(--db-purple);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--db-purple-dark), 0 0 0 4px rgba(123, 77, 255, 0.35);
 }
 .db-level-btn:disabled {
+  background: #3b4560;
+  border-color: #56607a;
+  box-shadow: 0 4px 0 #262d40;
+  font-size: 16px;
   cursor: not-allowed;
-  opacity: 0.6;
+}
+.db-level-star {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  font-size: 15px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
 }
 
 .db-ink-toggle {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  background: #1e2a44;
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
 }
 .db-ink-toggle button {
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 2px solid #2d4a7a;
-  background: #1a2c4e;
-  color: #e0e0e0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #b8c4d8;
   font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
 }
-.db-ink-toggle button.active {
-  background: #3a86ff;
-  border-color: #3a86ff;
+.db-ink-toggle button:hover:not(.active) {
   color: #fff;
+}
+.db-ink-toggle button.active {
+  background: #fff;
+  color: var(--db-purple-dark);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 主卡片 ─────────────────────────────────────── */
+
+.db-card {
+  background: linear-gradient(180deg, #fffdf6 0%, #fff6e0 100%);
+  border-radius: 22px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 10px 0 #e0c98f, 0 18px 40px rgba(0, 0, 0, 0.4);
 }
 
 .db-info {
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.db-level-badge {
+  background: var(--db-purple);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--db-purple-dark);
+  white-space: nowrap;
 }
 .db-level-name {
-  margin: 0 0 4px;
-  font-size: 20px;
-  color: #ffd166;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #2b2d42;
+  letter-spacing: 1px;
 }
 .db-hint {
-  margin: 0;
-  font-size: 15px;
-  color: #b8c4d8;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #5a4a1f;
+  background: #fff;
+  border: 2px dashed #f0c64a;
+  border-radius: 14px;
 }
 
+.db-ink-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.db-ink-icon {
+  font-size: 20px;
+}
 .db-ink-bar {
-  position: relative;
-  height: 22px;
-  border-radius: 11px;
-  background: #1a2c4e;
-  border: 1px solid #2d4a7a;
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: #ece3ff;
+  border: 2px solid #d4c4ff;
   overflow: hidden;
-  margin-bottom: 10px;
 }
 .db-ink-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ffb703, #ffd166);
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--db-purple) 0 10px,
+    #9a75ff 10px 20px
+  );
   transition: width 0.1s;
 }
-.db-ink-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 3px #000, 0 0 3px #000;
+.db-ink-fill.low {
+  background: repeating-linear-gradient(-45deg, var(--db-red) 0 10px, #ff8a8a 10px 20px);
 }
+.db-ink-pct {
+  min-width: 44px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--db-purple-dark);
+}
+
+/* ── 畫布 ───────────────────────────────────────── */
 
 .db-stage {
   position: relative;
+  border-radius: 16px;
+  border: 5px solid #fff;
+  box-shadow: 0 0 0 3px #e0c98f, inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .db-canvas {
   display: block;
   width: 100%;
   aspect-ratio: 800 / 500;
-  border-radius: 12px;
-  border: 2px solid #2d4a7a;
   cursor: crosshair;
   /* 避免手機上畫線時捲動頁面 */
   touch-action: none;
@@ -134,83 +215,159 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 18, 34, 0.55);
-  border-radius: 12px;
+  background: rgba(20, 24, 50, 0.35);
+  animation: db-fade 0.2s ease-out;
 }
 .db-overlay-box {
-  background: #1a2c4e;
-  border: 2px solid #ffd166;
-  border-radius: 14px;
-  padding: 20px 28px;
+  background: #fff;
+  border-radius: 22px;
+  padding: 18px 30px 22px;
   text-align: center;
+  box-shadow: 0 8px 0 #d9d9e8, 0 16px 40px rgba(0, 0, 0, 0.3);
+  animation: db-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.db-overlay-box.win {
+  box-shadow: 0 8px 0 #e8b923, 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+.db-overlay-box.fail {
+  box-shadow: 0 8px 0 #f2a0a0, 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+.db-overlay-emoji {
+  font-size: 52px;
+  line-height: 1.1;
+  animation: db-bounce 1s ease-in-out infinite;
 }
 .db-overlay-title {
-  margin: 0 0 8px;
-  font-size: 24px;
-  font-weight: 800;
-  color: #ffd166;
+  margin: 4px 0 6px;
+  font-size: 26px;
+  font-weight: 900;
+  color: #2b2d42;
 }
 .db-overlay-sub {
-  margin: 0 0 12px;
-  font-size: 14px;
-  color: #b8c4d8;
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #6c6f80;
 }
 .db-overlay-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
+  margin-top: 10px;
 }
+
+/* ── 按鈕 ───────────────────────────────────────── */
 
 .db-controls {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
-  margin-top: 14px;
+  margin-top: 18px;
   flex-wrap: wrap;
 }
 
 .db-btn {
+  --c: var(--db-blue);
+  --c-dark: var(--db-blue-dark);
   padding: 10px 22px;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 700;
+  border-radius: 14px;
+  background: var(--c);
   color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
   cursor: pointer;
+  box-shadow: 0 5px 0 var(--c-dark);
   transition: all 0.15s;
 }
 .db-btn:hover:not(:disabled) {
-  filter: brightness(0.9);
-  transform: translateY(1px);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--c-dark);
+}
+.db-btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--c-dark);
 }
 .db-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .db-btn.primary {
-  background: #2a9d4b;
+  --c: var(--db-green);
+  --c-dark: var(--db-green-dark);
 }
 .db-btn.secondary {
-  background: #3a86ff;
+  --c: var(--db-blue);
+  --c-dark: var(--db-blue-dark);
 }
 .db-btn.danger {
-  background: #d64545;
+  --c: var(--db-red);
+  --c-dark: var(--db-red-dark);
+}
+.db-btn.big {
+  padding: 12px 34px;
+  font-size: 20px;
+}
+
+@keyframes db-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes db-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes db-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @media (max-width: 768px) {
   .db-game {
-    padding: 10px;
+    padding: 12px 10px 20px;
+  }
+  .db-top {
+    justify-content: center;
+  }
+  .db-level-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  .db-card {
+    padding: 12px 10px 16px;
+    border-radius: 18px;
   }
   .db-level-name {
-    font-size: 17px;
+    font-size: 19px;
   }
   .db-hint {
     font-size: 14px;
+    padding: 8px 10px;
   }
-  .db-overlay-title {
-    font-size: 19px;
+  .db-stage {
+    border-width: 3px;
   }
   .db-overlay-box {
-    padding: 14px 16px;
+    padding: 10px 14px 14px;
+  }
+  .db-overlay-emoji {
+    font-size: 34px;
+  }
+  .db-overlay-title {
+    font-size: 18px;
+  }
+  .db-overlay-sub {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .db-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+  .db-btn.big {
+    padding: 10px 26px;
+    font-size: 18px;
   }
 }
