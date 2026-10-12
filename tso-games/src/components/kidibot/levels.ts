@@ -163,7 +163,7 @@ export const LEVELS: Level[] = [
   //       →D→[4,4]=ST(down,U→D,collect star)→D→HOME[5,4]
   // NOTE: [3,3] entered from UP (not left), needs turn_dr (U→R), NOT path_right
   {
-    id: 10, name: '第十關：終極挑戰', size: 7, startDir: 'right',
+    id: 10, name: '第十關：雙重收集', size: 7, startDir: 'right',
     grid: [
       [E,  E,  E,  E,  E,  E,  E],
       [E,  G,  F,  HT, E,  E,  E],
@@ -256,7 +256,7 @@ export const LEVELS: Level[] = [
   //       →R→[4,5](turn_dr,L→D)→D→[5,5](down)→D→HOME[6,5]
   // Monsters at [2,2],[4,3]; fire at [3,3] — all off the critical path
   {
-    id: 15, name: '第十五關：最終大冒險', size: 7, startDir: 'right',
+    id: 15, name: '第十五關：全方位冒險', size: 7, startDir: 'right',
     grid: [
       [E,  E,  E,  E,  E,  E,  E],
       [E,  G,  F,  F,  F,  E,  E],
