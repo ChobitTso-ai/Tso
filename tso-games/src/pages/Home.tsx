@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { EntryChooser, EntrySwitch } from '../components/entry/EntryChooser'
+import { islandUrl, readEntry, saveEntry } from '../components/entry/entry'
+import type { Entry } from '../components/entry/entry'
 import './Home.css'
 
 interface GameCard {
@@ -85,11 +89,27 @@ const GAMES: GameCard[] = [
 
 export default function Home() {
   document.title = 'TSO'
+  const [entry, setEntry] = useState<Entry | null>(() => readEntry())
+
+  // 選了島嶼版：導向獨立的 3D 頁面（replace，按上一頁才不會卡在空白首頁）
+  useEffect(() => {
+    if (entry === 'island') window.location.replace(islandUrl())
+  }, [entry])
+
+  const pick = (next: Entry) => {
+    saveEntry(next)
+    setEntry(next)
+  }
+
+  if (entry === null) return <EntryChooser onPick={pick} />
+  if (entry === 'island') return null
+
   return (
     <div className="home">
       <header className="home-header">
         <h1 className="home-title">🎮 TSO Games</h1>
         <p className="home-subtitle">免費、無需登入，打開即玩</p>
+        <EntrySwitch onSwitch={() => pick('island')} />
       </header>
 
       <div className="game-grid">
