@@ -32,17 +32,17 @@ export default function ThreeKingdomsPage() {
           <p>小遊戲陸續加入中，敬請期待…</p>
         </div>
       ) : (
-        <div className="game-grid">
+        <div className="tk-grid">
           {MINI_GAMES.map(game => (
-            <div key={game.id} className={`game-card ${!game.available ? 'unavailable' : ''}`}>
-              {game.tag && <span className="game-tag">{game.tag}</span>}
-              <div className="game-icon">{game.icon}</div>
-              <h2 className="game-name">{game.title}</h2>
-              <p className="game-desc">{game.description}</p>
+            <div key={game.id} className={`tk-card ${!game.available ? 'unavailable' : ''}`}>
+              {game.tag && <span className="tk-tag">{game.tag}</span>}
+              <div className="tk-icon">{game.icon}</div>
+              <h2 className="tk-name">{game.title}</h2>
+              <p className="tk-desc">{game.description}</p>
               {game.available ? (
-                <Link to={game.path} className="game-btn">開始遊戲</Link>
+                <Link to={game.path} className="tk-btn">開始遊戲</Link>
               ) : (
-                <span className="game-btn-disabled">敬請期待</span>
+                <span className="tk-btn-disabled">敬請期待</span>
               )}
             </div>
           ))}
