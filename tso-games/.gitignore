@@ -25,3 +25,6 @@ dist-ssr
 
 # 由 island/build.mjs 產生的島嶼頁面與 three 執行檔
 public/island/
+
+# 根目錄 .gitignore 的 parts/ 是 Python 打包範本；island/parts 是島嶼的原始碼，必須提交
+!/island/parts/
