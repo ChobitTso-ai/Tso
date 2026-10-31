@@ -81,6 +81,15 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'education',
+    title: '教育區',
+    description: '學習工具合集：國小數學無限出題，可列印考卷或線上作答，陸續加入更多工具。',
+    icon: '📚',
+    path: '/education',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
