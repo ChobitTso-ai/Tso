@@ -104,7 +104,8 @@ Tso/
 │   │   │   └── KidibotPage.tsx
 │   │   ├── chess/          # 西洋棋邏輯（純 TS）
 │   │   └── App.tsx         # 路由配置
-│   └── public/             # 靜態資源
+│   ├── island/             # 3D 遊戲島首頁（獨立建置，見「🏝 遊戲島」一節）
+│   └── public/             # 靜態資源（public/island/ 為建置產物）
 ├── docs/                   # 靜態 HTML 版本（舊版）
 ├── .github/workflows/      # GitHub Actions 部署
 └── *.py, *.txt            # Python 桌面版、範例題目
@@ -113,7 +114,7 @@ Tso/
 ## 🎯 核心理念
 
 ### 1. 多遊戲平台
-- **統一首頁**：所有遊戲從 `/` 進入選擇
+- **統一首頁**：所有遊戲從 `/` 進入選擇。第一次進來有兩個入口：**遊戲島**（3D）與**卡片首頁**
 - **獨立路由**：每個遊戲有專屬路由（`/chess`, `/minecraft`, `/kidibot`）
 - **模組化設計**：每個遊戲獨立資料夾，互不干擾
 
@@ -407,6 +408,23 @@ useEffect(() => {
 **每個子遊戲開一條分支、一個 PR，做完合併再開下一個。** 多個工作階段同時改
 `App.tsx` 與 `ThreeKingdomsPage.tsx` 會造成衝突——本專案已發生過一次分支互相覆蓋、
 事後靠 cherry-pick 才救回的事故。
+
+### 8. 🏝 遊戲島（新增遊戲時要一起加）
+
+首頁有兩個並列入口：**卡片首頁**（`Home.tsx` 的 `GAMES`）與 **遊戲島**（`tso-games/island/`，
+3D 六角小島，每棟建物是一個遊戲）。使用者第一次選擇後記在 `sessionStorage.tsoEntry`，
+之後從遊戲按「← 首頁」會回到所選的那一種。
+
+**新增一個遊戲時，除了第 4 步加 `GAMES` 卡片，還要在 `island/data/games.json` 對應的島下加一筆**，
+欄位與做法見 `island/README.md`。只加卡片的話，`npm run build` 會印出提醒
+（`首頁有這些遊戲，但島嶼上還沒有`），不會中斷建置。
+
+- 島嶼頁是**獨立的靜態頁面**，不在 React 路由內：`island/build.mjs` 把 `island/parts/` 串成
+  `public/island/index.html`（建置產物，已 `.gitignore`，不要手動改）
+- Three.js 固定 `three@0.160.0`（`devDependencies`），由建置腳本複製到 `public/island/vendor/`，不走 CDN
+- 島嶼頁檢查 `sessionStorage.tsoAuth`，未登入會退回 `/Tso/` 登入頁；WebGL 失敗時改記為卡片版並退回
+- 島嶼程式改寫自 KerryHuang/island-game（MIT），授權全文在 `island/LICENSE`，**不可刪除**
+- 島嶼頁要在 WebGL 環境測試；無頭瀏覽器需加 `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`
 
 ---
 
