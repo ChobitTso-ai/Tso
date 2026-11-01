@@ -21,13 +21,13 @@ const DATA = {
   ],
   // 一天時段：start 為分鐘；lit 是該時段亮起的模型種類
   dayCycle: [
-    { start: 0, name: '深夜', en: 'Late night', lit: ['hall', 'stage'] },
-    { start: 360, name: '清晨', en: 'Dawn', lit: ['farm', 'house'] },
-    { start: 450, name: '上學時間', en: 'School time', lit: ['classroom', 'coin'] },
-    { start: 720, name: '午休', en: 'Lunch', lit: ['farm', 'globe'] },
-    { start: 960, name: '放學後', en: 'After school', lit: ['classroom', 'river', 'globe'] },
-    { start: 1065, name: '黃昏', en: 'Dusk', lit: ['house', 'river'] },
-    { start: 1140, name: '晚上', en: 'Evening', lit: ['stage', 'hall', 'coin'] },
+    { start: 0, name: '深夜', en: 'Late night', lit: ['castle', 'ship'] },
+    { start: 360, name: '清晨', en: 'Dawn', lit: ['blocks', 'robot'] },
+    { start: 450, name: '上學時間', en: 'School time', lit: ['blackboard', 'robot', 'endgame'] },
+    { start: 720, name: '午休', en: 'Lunch', lit: ['blocks', 'ramp'] },
+    { start: 960, name: '放學後', en: 'After school', lit: ['ramp', 'chessboard', 'ship'] },
+    { start: 1065, name: '黃昏', en: 'Dusk', lit: ['castle', 'chessboard'] },
+    { start: 1140, name: '晚上', en: 'Evening', lit: ['ship', 'endgame', 'castle'] },
   ],
 };
 
