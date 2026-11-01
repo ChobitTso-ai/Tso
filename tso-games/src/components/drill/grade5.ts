@@ -30,7 +30,7 @@ function coprimeNum(r: Rng, d: number): number {
 
 const mixed = (w: number, n: number, d: number) => (w ? `{${w} ${n}/${d}}` : `{${n}/${d}}`)
 
-const SIMPLEST = '答案要約成最簡分數，大於 1 可以寫成帶分數'
+const SIMPLEST = '答案要約成最簡分數，寫成假分數或帶分數都可以'
 
 export const GRADE5: Grade = {
   id: 'g5',

@@ -85,6 +85,20 @@
       "views": [],
       "sources": [],
       "updated": "2026-05-08"
+    },
+    {
+      "id": "education",
+      "name": "教育區",
+      "en": "Study Hall",
+      "model": "school",
+      "status": "new",
+      "heat": 3,
+      "path": "/education",
+      "what": "學習工具合集。第一個工具是國小數學無限出題：三上、五上共 6 章，可列印 A4 題目卷與答案卷，也能線上作答、當場批改。",
+      "why": "每次都是新題目，練到熟為止；答錯的地方當場看到正確答案和算式。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-01"
     }
   ],
   "puzzle": [
