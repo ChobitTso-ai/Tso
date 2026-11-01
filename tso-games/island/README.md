@@ -52,7 +52,10 @@ island/
 }
 ```
 
-- `model` 可用：`house`、`hall`、`booth`、`classroom`、`clinic`、`busstop`、`bikes`、`court`、`farm`、`river`、`stage`、`book`、`coin`、`clock`、`globe`
+- `model`（建物外觀）有兩批，定義在 `parts/45-models.js`：
+  - **TSO 專屬**：`chessboard`（西洋棋）、`endgame`（殘局）、`ship`（戰艦）、`blackboard`（數學冒險）、`blocks`（Minecraft）、`robot`（回家之路）、`ramp`（畫線滾球）、`castle`（三國）
+  - **原作的市民生活建物**（保留備用）：`house`、`hall`、`booth`、`classroom`、`clinic`、`busstop`、`bikes`、`court`、`farm`、`river`、`stage`、`book`、`coin`、`clock`、`globe`
+  - 新遊戲最好**畫一個專屬建物**，在 `MODELS` 加一個函式即可：用 `L('box', [x, y, z], [寬, 高, 深], '#色碼', [旋轉])` 在單位空間（底面 ±0.5、高 0–1.5、正面朝 +z）疊積木；可用形狀 `box rbox cylinder cone sphere ico dome torus prism hip`，`glowbox`／`glowsphere` 夜晚會發光。不要把建物放在右後角（新遊戲的旗子會插在那裡）
 - 一座島最好放 1–4 款；超過會排不下。要新增島，在 `parts/10-data.js` 的 `islands` 加一筆（`q`、`r` 是六角座標，相鄰的島會自動搭橋）
 - `views`、`sources` 保留為空陣列（沿用原作的欄位）
 - 改完執行 `npm run island` 驗證並重新產生，或直接 `npm run dev`
