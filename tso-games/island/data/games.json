@@ -1,0 +1,122 @@
+{
+  "board": [
+    {
+      "id": "chess",
+      "name": "西洋棋",
+      "en": "Chess",
+      "model": "chessboard",
+      "status": "settled",
+      "heat": 2,
+      "path": "/chess",
+      "what": "支援雙人對戰與人機對戰，五種 AI 難度，含存檔、分享連結與棋譜匯出。",
+      "why": "練習先想幾步再出手，輸了還能回頭看棋譜，找出是哪一步走偏。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-05-04"
+    },
+    {
+      "id": "endgames",
+      "name": "西洋棋殘局練習",
+      "en": "Chess Endgames",
+      "model": "endgame",
+      "status": "progress",
+      "heat": 1,
+      "path": "/endgames",
+      "what": "100 題經典殘局，涵蓋兵局、車局、象局、馬局、后局與複合殘局，搭配 AI 對手與提示。",
+      "why": "把最後幾步走對，是棋力進步最快的訓練。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-05-10"
+    },
+    {
+      "id": "battleship",
+      "name": "戰艦海戰棋",
+      "en": "Battleship",
+      "model": "ship",
+      "status": "debating",
+      "heat": 1,
+      "path": "/battleship",
+      "what": "佈署你的艦隊，與 AI 對手互轟海域，最先擊沉對方所有戰艦者獲勝。有三種難度、悔棋、雙人同機與擊沉獎勵砲。",
+      "why": "練習推理與機率：從命中的格子往四周找，最快找出對方艦隊的位置。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-07-02"
+    }
+  ],
+  "learn": [
+    {
+      "id": "mathquest",
+      "name": "數學冒險",
+      "en": "Math Quest",
+      "model": "blackboard",
+      "status": "progress",
+      "heat": 2,
+      "path": "/mathquest",
+      "what": "在棋盤上走路打怪物，答對數學題才能打倒怪物、挑戰 Boss。有多種遊戲模式、商店與成就，答錯的題目會收進錯題本。",
+      "why": "把乘法與小學數學變成冒險，錯題本讓你回頭把不會的題目練會。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-09-21"
+    },
+    {
+      "id": "minecraft",
+      "name": "Minecraft 知識競賽",
+      "en": "Minecraft Quiz",
+      "model": "blocks",
+      "status": "progress",
+      "heat": 1,
+      "path": "/minecraft",
+      "what": "測試你對 Minecraft 的了解，包含中英文題庫與多種題型，答對賺金幣、答錯扣體力。",
+      "why": "用遊戲的方式複習，邊玩邊把知識記起來。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-05-04"
+    },
+    {
+      "id": "kidibot",
+      "name": "回家之路",
+      "en": "Way Home",
+      "model": "robot",
+      "status": "progress",
+      "heat": 1,
+      "path": "/kidibot",
+      "what": "排列路徑磁力片，引導機器人避開怪獸與陷阱，安全回家。",
+      "why": "學會把一步一步的指令排成正確順序，這就是程式思維的起點。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-05-08"
+    }
+  ],
+  "puzzle": [
+    {
+      "id": "drawball",
+      "name": "畫線滾球",
+      "en": "Draw Ball",
+      "model": "ramp",
+      "status": "new",
+      "heat": 3,
+      "path": "/drawball",
+      "what": "畫線鋪出軌道，引導小球滾進杯子。球滾動時還能繼續畫，有 67 關、彈簧與移動機關，依用掉的墨水量評三星。",
+      "why": "練習物理直覺：斜度、速度與彈跳，用越少墨水，星星越多。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-10-10"
+    }
+  ],
+  "kingdom": [
+    {
+      "id": "threekingdoms",
+      "name": "三國演義",
+      "en": "Three Kingdoms",
+      "model": "castle",
+      "status": "new",
+      "heat": 3,
+      "path": "/threekingdoms",
+      "what": "三國主題的小遊戲合集，策略、謀略、決戰天下。目前陸續加入中。",
+      "why": "之後每一個三國小遊戲，都會一個一個長在這座島上。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-07-04"
+    }
+  ]
+}
