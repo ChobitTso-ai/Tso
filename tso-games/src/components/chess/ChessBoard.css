@@ -146,3 +146,19 @@
   .coord-file { width: 40px; }
   .hint-dot { width: 16px; height: 16px; }
 }
+
+/* 3D 棋盤容器（ChessBoard3D 延遲載入，佔位框要先有尺寸） */
+.cb3d {
+  width: min(680px, 94vw);
+  aspect-ratio: 1 / 0.8;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.cb3d canvas { display: block; }
+
+.cb3d-loading {
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center, #2a2016, transparent 70%);
+}

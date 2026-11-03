@@ -1,11 +1,25 @@
+import { lazy, Suspense } from 'react'
 import type { BoardArray, Move, PieceType } from '../../chess/types'
 import './ChessBoard.css'
+
+// Three.js 約 150KB(gzip)，延遲載入，只有進到棋盤頁才下載
+const ChessBoard3D = lazy(() => import('./ChessBoard3D'))
+
+const HAS_WEBGL = (() => {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl')
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return !!gl
+  } catch {
+    return false
+  }
+})()
 
 const PIECE_UNICODE: Record<PieceType, string> = {
   K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
 }
 
-interface Props {
+export interface ChessBoardProps {
   board: BoardArray
   selected: [number, number] | null
   legalMoves: Move[]
@@ -15,9 +29,19 @@ interface Props {
   onSquareClick: (r: number, f: number) => void
 }
 
-export default function ChessBoard({
+export default function ChessBoard(props: ChessBoardProps) {
+  if (!HAS_WEBGL) return <ChessBoard2D {...props} />
+  return (
+    <Suspense fallback={<div className="cb3d cb3d-loading" />}>
+      <ChessBoard3D {...props} />
+    </Suspense>
+  )
+}
+
+// 不支援 WebGL 時的備援：CSS 傾斜的半立體棋盤
+function ChessBoard2D({
   board, selected, legalMoves, lastMove, checkKing, flipped, onSquareClick,
-}: Props) {
+}: ChessBoardProps) {
   const legalSet = new Set(legalMoves.map(m => `${m.to[0]},${m.to[1]}`))
   const legalCaptures = new Set(
     legalMoves.filter(m => board[m.to[0]][m.to[1]] || m.enPassant).map(m => `${m.to[0]},${m.to[1]}`)
