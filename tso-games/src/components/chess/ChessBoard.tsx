@@ -23,7 +23,8 @@ export default function ChessBoard({
     legalMoves.filter(m => board[m.to[0]][m.to[1]] || m.enPassant).map(m => `${m.to[0]},${m.to[1]}`)
   )
 
-  const ranks = flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0]
+  // board[0] 是第 8 橫列，未翻轉時要畫在最上方，讓白方在近端
+  const ranks = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7]
   const files = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7]
 
   return (
@@ -58,6 +59,7 @@ export default function ChessBoard({
               >
                 {isHint && !isCaptureHint && <div className="hint-dot" />}
                 {isCaptureHint && <div className="hint-capture" />}
+                {piece && <div className="piece-shadow" />}
                 {piece && (
                   <span className={`piece piece-${piece.color}`}>
                     {PIECE_UNICODE[piece.type]}
