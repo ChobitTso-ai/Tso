@@ -146,7 +146,7 @@ Tso/
 - **命名前綴**：各遊戲使用獨立前綴避免衝突
   - Minecraft: `.mc-*`
   - Kidibot: `.kb-*`
-  - Chess: `.chess-*`
+  - Chess: 舊程式多數無前綴（`.chess-*`、`.setup-*`、`.promo-*`、`.save-*`）；殘局練習統一 `.ep-*`。新增西洋棋元件請加前綴
 
 ### 部署
 - **GitHub Pages** - 靜態網站託管
@@ -308,6 +308,16 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {...}
 - 核心演算法單獨成檔（如 `chess/board.ts`、`chess/moves.ts`、`battleship/logic.ts`）
 - 該層為純 TypeScript，不 import React，可獨立測試
 - 元件只負責 UI 與狀態（hooks），不內含演算法邏輯
+
+### ♟ 西洋棋與殘局練習
+
+- 路由：`/chess`（對戰）、`/endgames`（100 題殘局，資料在 `chess/endgames.ts`）
+- 棋盤陣列 `board[r][f]`：`r = 0` 是第 8 橫列（畫面頂端），`f = 0` 是 a 行；座標一律 `[number, number]`
+- 對戰 AI：難度 1–2 在主執行緒同步算，3–5 送 `chess/ai.worker.ts`
+- 殘局 AI：固定 `AI_DIFFICULTY = 4`、主執行緒同步（子力少，算得快）
+- localStorage key：`chess_saves`（對戰存檔）、`chess_endgame_progress`（殘局進度）
+- **新增或修改殘局 FEN 前必須驗證合法性**：雙王都在、兩王不相鄰、「不是輪到走的那方」的王不能正被將軍。
+  初版 100 題中有 19 題不合法，就是沒驗證造成的
 
 ---
 
