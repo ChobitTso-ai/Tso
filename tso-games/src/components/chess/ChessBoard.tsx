@@ -1,11 +1,25 @@
+import { lazy, Suspense } from 'react'
 import type { BoardArray, Move, PieceType } from '../../chess/types'
 import './ChessBoard.css'
+
+// Three.js 約 150KB(gzip)，延遲載入，只有進到棋盤頁才下載
+const ChessBoard3D = lazy(() => import('./ChessBoard3D'))
+
+const HAS_WEBGL = (() => {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl')
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return !!gl
+  } catch {
+    return false
+  }
+})()
 
 const PIECE_UNICODE: Record<PieceType, string> = {
   K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
 }
 
-interface Props {
+export interface ChessBoardProps {
   board: BoardArray
   selected: [number, number] | null
   legalMoves: Move[]
@@ -15,15 +29,26 @@ interface Props {
   onSquareClick: (r: number, f: number) => void
 }
 
-export default function ChessBoard({
+export default function ChessBoard(props: ChessBoardProps) {
+  if (!HAS_WEBGL) return <ChessBoard2D {...props} />
+  return (
+    <Suspense fallback={<div className="cb3d cb3d-loading" />}>
+      <ChessBoard3D {...props} />
+    </Suspense>
+  )
+}
+
+// 不支援 WebGL 時的備援：CSS 傾斜的半立體棋盤
+function ChessBoard2D({
   board, selected, legalMoves, lastMove, checkKing, flipped, onSquareClick,
-}: Props) {
+}: ChessBoardProps) {
   const legalSet = new Set(legalMoves.map(m => `${m.to[0]},${m.to[1]}`))
   const legalCaptures = new Set(
     legalMoves.filter(m => board[m.to[0]][m.to[1]] || m.enPassant).map(m => `${m.to[0]},${m.to[1]}`)
   )
 
-  const ranks = flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0]
+  // board[0] 是第 8 橫列，未翻轉時要畫在最上方，讓白方在近端
+  const ranks = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7]
   const files = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7]
 
   return (
@@ -58,6 +83,7 @@ export default function ChessBoard({
               >
                 {isHint && !isCaptureHint && <div className="hint-dot" />}
                 {isCaptureHint && <div className="hint-capture" />}
+                {piece && <div className="piece-shadow" />}
                 {piece && (
                   <span className={`piece piece-${piece.color}`}>
                     {PIECE_UNICODE[piece.type]}
