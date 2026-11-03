@@ -1,10 +1,33 @@
 // 無限出題 — 三年級上學期（Alan）：毫米、乘法、除法
-import type { Grade } from './types'
+import type { Grade, Rng } from './types'
 import { cmp, num } from './util'
 
 /** 毫米數寫成「幾公分幾毫米」，整公分或不到 1 公分時省略另一個單位 */
 const len = (mm: number) =>
   mm % 10 === 0 ? `${mm / 10} 公分` : mm < 10 ? `${mm} 毫米` : `${Math.floor(mm / 10)} 公分 ${mm % 10} 毫米`
+
+/** 毫米數寫成「幾公尺幾公分幾毫米」，是 0 的單位省略 */
+function lenM(mm: number): string {
+  const parts: string[] = []
+  if (mm >= 1000) parts.push(`${Math.floor(mm / 1000)} 公尺`)
+  if (Math.floor(mm / 10) % 100) parts.push(`${Math.floor(mm / 10) % 100} 公分`)
+  if (mm % 10) parts.push(`${mm % 10} 毫米`)
+  return parts.join(' ')
+}
+
+const mcm = (mm: number) => [num(Math.floor(mm / 1000)), num(Math.floor(mm / 10) % 100), num(mm % 10)]
+
+/** 三位數除以一位數的商（被除數 100–999）；三成是商的中間有 0（如 624 ÷ 6 = 104），最容易漏寫 0 */
+function quot3(r: Rng, b: number, rem: number): number {
+  const hi = Math.floor((999 - rem) / b)
+  if (hi >= 101 && r.chance(0.3)) {
+    for (;;) {
+      const q = r.int(1, Math.floor(hi / 100)) * 100 + r.int(1, 9)
+      if (q <= hi) return q
+    }
+  }
+  return r.int(Math.ceil((100 - rem) / b), hi)
+}
 
 const ITEMS = [
   ['盒', '枝', '色鉛筆'],
@@ -83,6 +106,67 @@ export const GRADE3: Grade = {
                 }
               }
               return { text: `${len(a)} ${add ? '+' : '−'} ${len(b)} = [?] 公分 [?] 毫米`, blanks, sol }
+            }
+          },
+        },
+        {
+          id: 'g3-mm-4',
+          title: '公尺、公分和毫米',
+          note: '1 公尺 = 100 公分 = 1000 毫米',
+          gen: (r, lv) => {
+            if (lv === 1) {
+              const n = r.int(1, 9)
+              return r.pick([
+                { text: `${n} 公尺 = [?] 公分`, blanks: [num(n * 100)] },
+                { text: `${n} 公尺 = [?] 毫米`, blanks: [num(n * 1000)] },
+                { text: `${n * 100} 公分 = [?] 公尺`, blanks: [num(n)] },
+                { text: `${n * 1000} 毫米 = [?] 公尺`, blanks: [num(n)] },
+              ])
+            }
+            if (lv === 2) {
+              // 複名數的化聚
+              const k = r.int(0, 2)
+              if (k === 2) {
+                const cm = r.int(1, 9) * 100 + r.int(1, 99)
+                return r.chance(0.5)
+                  ? { text: `${lenM(cm * 10)} = [?] 公分`, blanks: [num(cm)] }
+                  : { text: `${cm} 公分 = [?] 公尺 [?] 公分`, blanks: [num(Math.floor(cm / 100)), num(cm % 100)] }
+              }
+              const mm = r.int(1, 9) * 1000 + r.int(0, 99) * 10 + r.int(0, 9)
+              return k === 0
+                ? { text: `${lenM(mm)} = [?] 毫米`, blanks: [num(mm)] }
+                : { text: `${mm} 毫米 = [?] 公尺 [?] 公分 [?] 毫米`, blanks: mcm(mm) }
+            }
+            // 挑戰：複名數加減，一定要跨單位進位或退位，一半是應用題
+            for (;;) {
+              const add = r.chance(0.5)
+              let a = r.int(1, 5) * 1000 + r.int(0, 99) * 10 + r.int(0, 9)
+              let b = r.int(0, 3) * 1000 + r.int(0, 99) * 10 + r.int(1, 9)
+              if (!add && a < b) [a, b] = [b, a]
+              const cmA = Math.floor(a / 10) % 100
+              const cmB = Math.floor(b / 10) % 100
+              const regroup = add
+                ? (a % 10) + (b % 10) >= 10 || cmA + cmB >= 100
+                : a % 10 < b % 10 || cmA < cmB
+              const ans = add ? a + b : a - b
+              if (ans < 1000 || !regroup) continue
+              const sol = `換成毫米：${a} ${add ? '+' : '−'} ${b} = ${ans}，${ans} 毫米 = ${lenM(ans)}`
+              if (r.chance(0.5)) {
+                return {
+                  text: add
+                    ? `一條繩子長 ${lenM(a)}，再接上 ${lenM(b)}，共長 [?] 公尺 [?] 公分 [?] 毫米。`
+                    : `一捲緞帶長 ${lenM(a)}，用掉 ${lenM(b)} 後，還剩下 [?] 公尺 [?] 公分 [?] 毫米。`,
+                  blanks: mcm(ans),
+                  sol,
+                  work: true,
+                }
+              }
+              return {
+                text: `${lenM(a)} ${add ? '+' : '−'} ${lenM(b)} = [?] 公尺 [?] 公分 [?] 毫米`,
+                blanks: mcm(ans),
+                sol,
+                work: true,
+              }
             }
           },
         },
@@ -172,10 +256,18 @@ export const GRADE3: Grade = {
               const q = r.int(2, 9)
               return { text: `${b * q} ÷ ${b} = [?]`, blanks: [num(q)] }
             }
+            if (lv === 2) {
+              const q = r.int(10, Math.floor(99 / b))
+              return { text: `用直式計算：${b * q} ÷ ${b} = [?]`, blanks: [num(q)], work: true }
+            }
+            // 挑戰：三位數除以一位數，或反過來用「除數 × 商 = 被除數」找被除數、除數
+            const t = r.int(0, 2)
+            if (t === 0) {
+              const q = quot3(r, b, 0)
+              return { text: `用直式計算：${b * q} ÷ ${b} = [?]`, blanks: [num(q)], work: true }
+            }
             const q = r.int(10, Math.floor(99 / b))
-            if (lv === 2) return { text: `用直式計算：${b * q} ÷ ${b} = [?]`, blanks: [num(q)], work: true }
-            // 挑戰：反過來找被除數或除數，要用「除數 × 商 = 被除數」
-            return r.chance(0.5)
+            return t === 1
               ? { text: `[?] ÷ ${b} = ${q}`, blanks: [num(b * q)], sol: `${b} × ${q} = ${b * q}` }
               : { text: `${b * q} ÷ [?] = ${q}`, blanks: [num(b)], sol: `${b} × ${q} = ${b * q}` }
           },
@@ -187,11 +279,14 @@ export const GRADE3: Grade = {
           gen: (r, lv) => {
             const b = r.int(2, 9)
             const rem = r.int(1, b - 1)
-            const q = lv === 1 ? r.int(1, 9) : r.int(10, Math.floor((99 - rem) / b))
-            const a = b * q + rem
             if (lv === 3 && r.chance(0.5)) {
+              const q = r.int(10, Math.floor((99 - rem) / b))
+              const a = b * q + rem
               return { text: `[?] ÷ ${b} = ${q} … ${rem}`, blanks: [num(a)], sol: `${b} × ${q} + ${rem} = ${a}` }
             }
+            // 挑戰的直式是三位數除以一位數
+            const q = lv === 1 ? r.int(1, 9) : lv === 2 ? r.int(10, Math.floor((99 - rem) / b)) : quot3(r, b, rem)
+            const a = b * q + rem
             return {
               text: `${lv === 1 ? '' : '用直式計算：'}${a} ÷ ${b} = [?] … [?]`,
               blanks: [num(q), num(rem)],
