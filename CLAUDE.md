@@ -619,6 +619,7 @@ npm run build 2>&1 | less
 - `README.md` - 專案簡介
 - `README_GAME.md` - 遊戲說明（Minecraft Python 版）
 - `INSTALL_v3.md` - Python 版安裝指南
+- `IDEAS.md` - 尚未開工的遊戲點子（開新遊戲前先看）
 
 ### 外部資源
 - [React 官方文件](https://react.dev/)
