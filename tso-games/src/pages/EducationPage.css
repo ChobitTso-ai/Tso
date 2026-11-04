@@ -1,0 +1,141 @@
+.education {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 60px;
+}
+
+.edu-nav {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.edu-nav .nav-home {
+  color: #4fc3a1;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.edu-nav .nav-home:hover { color: #7fdcc0; }
+
+.edu-nav .nav-title {
+  color: #888;
+  font-size: 15px;
+}
+
+.edu-header {
+  text-align: center;
+  margin: 32px 0 48px;
+}
+
+.edu-title {
+  font-size: 48px;
+  font-weight: 800;
+  color: #4fc3a1;
+  margin: 0 0 8px;
+  letter-spacing: -1px;
+}
+
+.edu-subtitle {
+  color: #888;
+  font-size: 16px;
+  margin: 0;
+}
+
+.edu-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  max-width: 900px;
+  width: 100%;
+}
+
+.edu-card {
+  background: #13253a;
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.edu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(79, 195, 161, 0.2);
+}
+
+.edu-card.unavailable { opacity: 0.6; }
+
+.edu-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #4fc3a1;
+  color: #0f1729;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.edu-icon {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.edu-name {
+  color: #4fc3a1;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.edu-desc {
+  color: #aaa;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  flex: 1;
+}
+
+.edu-btn {
+  display: inline-block;
+  padding: 12px 28px;
+  background: #4fc3a1;
+  color: #0f1729;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  transition: background 0.15s;
+  margin-top: 8px;
+}
+
+.edu-btn:hover { background: #7fdcc0; }
+
+.edu-btn-disabled {
+  display: inline-block;
+  padding: 12px 28px;
+  background: #1c2e3a;
+  color: #666;
+  border-radius: 10px;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .edu-title { font-size: 36px; }
+}

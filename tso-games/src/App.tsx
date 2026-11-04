@@ -9,6 +9,8 @@ import MathQuestPage from './pages/MathQuestPage'
 import BattleshipPage from './pages/BattleshipPage'
 import ThreeKingdomsPage from './pages/ThreeKingdomsPage'
 import DrawBallPage from './pages/DrawBallPage'
+import EducationPage from './pages/EducationPage'
+import DrillPage from './pages/DrillPage'
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
           <Route path="/battleship" element={<BattleshipPage />} />
           <Route path="/threekingdoms" element={<ThreeKingdomsPage />} />
           <Route path="/drawball" element={<DrawBallPage />} />
+          <Route path="/education" element={<EducationPage />} />
+          <Route path="/drill" element={<DrillPage />} />
         </Routes>
       </HashRouter>
     </LoginGate>
