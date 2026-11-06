@@ -117,6 +117,20 @@
       "views": [],
       "sources": [],
       "updated": "2026-07-04"
+    },
+    {
+      "id": "strategist",
+      "name": "軍師戰棋",
+      "en": "Strategist",
+      "model": "warcamp",
+      "status": "new",
+      "heat": 3,
+      "path": "/strategist",
+      "what": "扮演蜀軍軍師：戰前把兵團擺好位置，開戰後兩軍自動交戰，看準時機施放火計、擾亂、鼓舞。共五場戰役，依保存的兵力評三星。",
+      "why": "練習兵種相剋（槍剋騎、騎剋弓、弓剋槍）與地形運用：先想好陣形，再挑對時機出手。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-06"
     }
   ]
 }

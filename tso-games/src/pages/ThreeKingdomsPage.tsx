@@ -11,7 +11,17 @@ interface MiniGame {
   tag?: string
 }
 
-const MINI_GAMES: MiniGame[] = []
+const MINI_GAMES: MiniGame[] = [
+  {
+    id: 'strategist',
+    title: '軍師戰棋',
+    description: '扮演蜀軍軍師：戰前佈陣、戰中用計，兩軍自動交戰，擊破敵方主帥就獲勝。共五場戰役。',
+    icon: '🏯',
+    path: '/strategist',
+    available: true,
+    tag: 'NEW',
+  },
+]
 
 export default function ThreeKingdomsPage() {
   document.title = '三國演義 | TSO'

@@ -1,0 +1,34 @@
+.strategist-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(900px 420px at 50% -80px, rgba(192, 57, 43, 0.28), transparent 70%),
+    #0f1729;
+}
+
+.strategist-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #0b1120;
+  border-bottom: 1px solid #1e2a3a;
+  flex-shrink: 0;
+}
+
+.strategist-nav .nav-home {
+  color: #c0392b;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.strategist-nav .nav-home:hover { color: #e74c3c; }
+
+.strategist-nav .nav-title {
+  flex: 1;
+  color: #e4c97e;
+  font-weight: 700;
+  font-size: 16px;
+}
