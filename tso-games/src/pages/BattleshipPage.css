@@ -45,3 +45,17 @@
   font-size: 12px;
   color: #5f93b8;
 }
+
+@media (max-width: 600px) {
+  .bs-nav {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .bs-nav-title {
+    font-size: 17px;
+    letter-spacing: 0;
+  }
+  .bs-nav-sub {
+    display: none;
+  }
+}
