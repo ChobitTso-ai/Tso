@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import './Battleship.css'
 import { BOARD_SIZE } from './types'
 import type { AiMemory, Board, Coord, Difficulty, Orientation, Ship } from './types'
@@ -33,6 +34,18 @@ const SHIP_IMG: Record<string, { h: string; v: string }> = Object.fromEntries(
     },
   ]),
 )
+
+/**
+ * 各艦船身寬度（以格為單位）。原圖比例細長，照實縮放在格子裡會太單薄，
+ * 因此橫向略為加寬，讓船艦在棋盤上更有份量。
+ */
+const SHIP_BEAM: Record<string, number> = {
+  carrier: 0.94,
+  battleship: 0.76,
+  cruiser: 0.62,
+  submarine: 0.6,
+  destroyer: 0.68,
+}
 
 const DIFF_LABEL: Record<Difficulty, string> = {
   easy: '😀 簡單',
@@ -98,7 +111,14 @@ export default function Battleship() {
   const [sinkFx, setSinkFx] = useState<{ board: 0 | 1; r: number; c: number; key: number } | null>(
     null,
   ) // 擊沉爆炸特效的位置
-  const [lastShot, setLastShot] = useState<{ board: 0 | 1; r: number; c: number } | null>(null) // 最新一發的位置指示
+  const [lastShot, setLastShot] = useState<{
+    board: 0 | 1
+    r: number
+    c: number
+    hit: boolean
+    key: number
+  } | null>(null) // 最新一發的位置指示（hit 時棋盤震動）
+  const [aim, setAim] = useState<Coord | null>(null) // 滑鼠瞄準中的敵方格子
   const [handoff, setHandoff] = useState<{ player: 0 | 1; to: 'place' | 'battle'; label: string } | null>(
     null,
   )
@@ -253,7 +273,7 @@ export default function Battleship() {
     const nb = cloneBoard(tb)
     const res = fire(nb, r, c)
     setBoards(b => (target === 0 ? [nb, b[1]] : [b[0], nb]))
-    setLastShot({ board: target, r, c })
+    setLastShot({ board: target, r, c, hit: res.hit, key: Date.now() })
     if (res.sunk) {
       const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
       setSinkFx({ board: target, r: ctr.r, c: ctr.c, key: Date.now() })
@@ -295,7 +315,7 @@ export default function Battleship() {
       const res = fire(nb, shot.r, shot.c)
       updateAiMemory(aiMemory.current, nb, shot, res, difficulty)
       setBoards(b => [nb, b[1]])
-      setLastShot({ board: 0, r: shot.r, c: shot.c })
+      setLastShot({ board: 0, r: shot.r, c: shot.c, hit: res.hit, key: Date.now() })
       if (res.sunk) {
         const ctr = res.sunk.cells[Math.floor(res.sunk.size / 2)]
         setSinkFx({ board: 0, r: ctr.r, c: ctr.c, key: Date.now() })
@@ -362,6 +382,14 @@ export default function Battleship() {
     setMessage('選擇對戰模式，準備開戰！')
   }
 
+  const canFire = phase === 'battle' && (mode === 'ai' ? turn === 0 : !pendingEnd)
+  const aimShown = canFire ? aim : null
+
+  // 結算戰報：AI 模式看玩家自己的表現，雙人模式看勝方
+  const reportBoard = winner === null ? null : boards[mode === 'ai' ? 1 : winner === 0 ? 1 : 0]
+  const reportShots = reportBoard ? reportBoard.shots.flat().filter(v => v !== 'none').length : 0
+  const reportHits = reportBoard ? reportBoard.shots.flat().filter(v => v === 'hit').length : 0
+
   const canUndo =
     phase === 'battle' && history.length > 0 && (mode === 'ai' ? turn === 0 : pendingEnd)
 
@@ -372,7 +400,9 @@ export default function Battleship() {
   return (
     <div className="bs-game">
       <div className="bs-statusbar">
-        <span className="bs-message">{message}</span>
+        <span key={message} className="bs-message">
+          {message}
+        </span>
         <span className="bs-status-right">
           {mode === 'ai' ? (
             <span className="bs-record">
@@ -395,6 +425,7 @@ export default function Battleship() {
       {/* 設定畫面 */}
       {phase === 'setup' && (
         <div className="bs-setup">
+          <img className="bs-hero" src={SHIP_IMG.carrier.h} alt="" />
           <h3 className="bs-setup-title">選擇對戰模式</h3>
           <div className="bs-option-row">
             <button
@@ -526,15 +557,21 @@ export default function Battleship() {
       {(phase === 'battle' || phase === 'over') && boards[viewer] && boards[enemy] && (
         <>
           <div className="bs-toolbar">
-            {mode === 'ai' && <span className="bs-tool-tag">難度：{DIFF_LABEL[difficulty]}</span>}
-            <span className="bs-tool-tag">
+            {mode === 'ai' && (
+              <span className="bs-tool-tag bs-tool-diff">難度：{DIFF_LABEL[difficulty]}</span>
+            )}
+            <span
+              className={`bs-tool-tag bs-turn ${phase === 'over' ? '' : mode === 'ai' && turn === 1 ? 'waiting' : 'active'}`}
+            >
               {phase === 'over'
                 ? '對戰結束'
-                : mode === 'ai'
-                  ? turn === 0
-                    ? '🎯 換你開火'
-                    : '🤖 AI 思考中…'
-                  : `🎯 ${playerName(turn)} 開火中`}
+                : aimShown
+                  ? `🎯 鎖定 ${COLS[aimShown.c]}${aimShown.r + 1}`
+                  : mode === 'ai'
+                    ? turn === 0
+                      ? '🎯 換你開火'
+                      : '🤖 AI 思考中…'
+                    : `🎯 ${playerName(turn)} 開火中`}
             </span>
             <button className="bs-btn bs-tool-btn" disabled={!canUndo} onClick={handleUndo}>
               ↩ 上一步
@@ -548,29 +585,37 @@ export default function Battleship() {
 
           <div className="bs-battle">
             <div className="bs-board-wrap">
-              <h3 className="bs-board-title">
-                {mode === 'ai' ? '敵方海域' : `${playerName(enemy)} 海域`}
-                <span className="bs-remaining">剩 {enemyRemaining} 艘</span>
-              </h3>
+              <div className="bs-board-head">
+                <h3 className="bs-board-title">
+                  {mode === 'ai' ? '敵方海域' : `${playerName(enemy)} 海域`}
+                  <span className="bs-remaining">剩 {enemyRemaining} 艘</span>
+                </h3>
+                <FleetStatus ships={boards[enemy]!.ships} />
+              </div>
               <Grid
+                radar
                 shots={boards[enemy]!.shots}
                 ships={boards[enemy]!.ships}
                 showShips={phase === 'over'}
                 revealSunk
-                clickable={
-                  phase === 'battle' && (mode === 'ai' ? turn === 0 : !pendingEnd)
-                }
+                clickable={canFire}
                 onCellClick={handleAttack}
+                onCellHover={canFire ? (r, c) => setAim({ r, c }) : undefined}
+                onLeave={() => setAim(null)}
+                aim={aimShown}
                 burst={sinkFx?.board === enemy ? sinkFx : undefined}
                 lastShot={lastShot?.board === enemy ? lastShot : undefined}
               />
             </div>
 
-            <div className="bs-board-wrap">
-              <h3 className="bs-board-title">
-                {mode === 'ai' ? '我方海域' : `${playerName(viewer)} 海域`}
-                <span className="bs-remaining">剩 {ownRemaining} 艘</span>
-              </h3>
+            <div className="bs-board-wrap own">
+              <div className="bs-board-head">
+                <h3 className="bs-board-title">
+                  {mode === 'ai' ? '我方海域' : `${playerName(viewer)} 海域`}
+                  <span className="bs-remaining">剩 {ownRemaining} 艘</span>
+                </h3>
+                <FleetStatus ships={boards[viewer]!.ships} />
+              </div>
               <Grid
                 shots={boards[viewer]!.shots}
                 ships={boards[viewer]!.ships}
@@ -601,6 +646,17 @@ export default function Battleship() {
                   : '你的艦隊全數沉沒。'
                 : `${playerName(winner)} 擊沉了對手所有戰艦。`}
             </p>
+            <div className="bs-report">
+              <span>
+                <b>{reportShots}</b>開火
+              </span>
+              <span>
+                <b>{reportHits}</b>命中
+              </span>
+              <span>
+                <b>{reportShots ? Math.round((reportHits / reportShots) * 100) : 0}%</b>命中率
+              </span>
+            </div>
             <div className="bs-result-btns">
               <button className="bs-btn bs-btn-go" onClick={playAgain}>
                 再玩一次
@@ -629,7 +685,9 @@ interface GridProps {
   onCellHover?: (r: number, c: number) => void
   onLeave?: () => void
   burst?: { r: number; c: number; key: number } // 擊沉爆炸特效
-  lastShot?: { r: number; c: number } // 最新一發的位置指示環
+  lastShot?: { r: number; c: number; hit: boolean; key: number } // 最新一發的位置指示環
+  radar?: boolean // 敵方海域：雷達掃描外觀
+  aim?: Coord | null // 瞄準中的格子，顯示十字準線
 }
 
 function Grid({
@@ -645,8 +703,27 @@ function Grid({
   onLeave,
   burst,
   lastShot,
+  radar = false,
+  aim,
 }: GridProps) {
   const previewSet = new Set(preview.map(c => `${c.r},${c.c}`))
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  // 命中時棋盤短促震動（Web Animations，不需重掛元件）
+  const impactKey = lastShot?.hit ? lastShot.key : 0
+  useEffect(() => {
+    if (!impactKey) return
+    gridRef.current?.animate(
+      [
+        { transform: 'translate(0, 0)' },
+        { transform: 'translate(-4px, 2px)' },
+        { transform: 'translate(4px, -2px)' },
+        { transform: 'translate(-2px, 1px)' },
+        { transform: 'translate(0, 0)' },
+      ],
+      { duration: 260, easing: 'ease-out' },
+    )
+  }, [impactKey])
 
   // 要繪製的船：我方海域顯示全部；敵方僅顯示已擊沉，對戰結束時全顯示
   const drawnShips = ships.filter(
@@ -654,7 +731,11 @@ function Grid({
   )
 
   return (
-    <div className={`bs-grid ${clickable ? 'clickable' : ''}`} onMouseLeave={onLeave}>
+    <div
+      ref={gridRef}
+      className={`bs-grid ${clickable ? 'clickable' : ''} ${radar ? 'radar' : ''}`}
+      onMouseLeave={onLeave}
+    >
       {/* 所有格子皆指定座標，避免覆蓋物干擾自動排列導致錯位 */}
       <div className="bs-corner" style={{ gridColumn: 1, gridRow: 1 }} />
       {COLS.map((col, ci) => (
@@ -692,6 +773,15 @@ function Grid({
         }),
       )}
 
+      {/* 雷達掃描（僅敵方海域）與瞄準十字準線，蓋在水面上、船艦之下 */}
+      {radar && <span className="bs-radar" />}
+      {aim && (
+        <>
+          <span className="bs-aim" style={{ gridRow: aim.r + 2, gridColumn: '2 / span 10' }} />
+          <span className="bs-aim" style={{ gridColumn: aim.c + 2, gridRow: '2 / span 10' }} />
+        </>
+      )}
+
       {/* 船艦俯視圖：橫跨佔據的格子漂浮於水面，點擊穿透至底下格子 */}
       {drawnShips.map(s => {
         const horizontal = s.size < 2 || s.cells[0].r === s.cells[1].r
@@ -700,13 +790,16 @@ function Grid({
         return (
           <img
             key={s.id}
-            className={`bs-ship-img ${s.hits >= s.size ? 'sunk' : ''}`}
+            className={`bs-ship-img ${horizontal ? 'h' : 'v'} ${s.hits >= s.size ? 'sunk' : ''}`}
             src={horizontal ? SHIP_IMG[s.id].h : SHIP_IMG[s.id].v}
             alt={s.name}
-            style={{
-              gridColumn: `${minC + 2} / span ${horizontal ? s.size : 1}`,
-              gridRow: `${minR + 2} / span ${horizontal ? 1 : s.size}`,
-            }}
+            style={
+              {
+                gridColumn: `${minC + 2} / span ${horizontal ? s.size : 1}`,
+                gridRow: `${minR + 2} / span ${horizontal ? 1 : s.size}`,
+                '--beam': SHIP_BEAM[s.id],
+              } as CSSProperties
+            }
           />
         )
       })}
@@ -745,6 +838,26 @@ function Grid({
           <span className="bs-burst-emoji">💥</span>
         </span>
       )}
+    </div>
+  )
+}
+
+// ── 艦隊狀態列：以船艦剪影顯示存活 / 沉沒 ─────────────────────
+function FleetStatus({ ships }: { ships: Ship[] }) {
+  return (
+    <div className="bs-fleet-strip">
+      {ships.map(s => {
+        const sunk = s.hits >= s.size
+        return (
+          <span
+            key={s.id}
+            className={`bs-fleet-chip ${sunk ? 'sunk' : ''}`}
+            title={`${s.name}${sunk ? '（已沉沒）' : ''}`}
+          >
+            <img src={SHIP_IMG[s.id].h} alt={s.name} style={{ '--len': s.size } as CSSProperties} />
+          </span>
+        )
+      })}
     </div>
   )
 }
