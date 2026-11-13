@@ -242,6 +242,8 @@ export default function EndgamePractice() {
           checkKing={findKingInCheck()}
           flipped={flipped}
           onSquareClick={handleSquareClick}
+          capturedByWhite={state.capturedByWhite}
+          capturedByBlack={state.capturedByBlack}
         />
 
         <div className="ep-nav">

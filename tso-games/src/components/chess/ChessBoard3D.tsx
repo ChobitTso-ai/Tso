@@ -1,99 +1,20 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import type { BoardArray, Color, Move, PieceType } from '../../chess/types'
+import type { BoardArray, Color, Move, Piece } from '../../chess/types'
 import type { ChessBoardProps } from './ChessBoard'
+import { createPiece } from './three/pieces'
+import { createBurst } from './three/effects'
+import { buildHall, PLINTH_Y } from './three/hall'
 
 // 世界座標：一格 = 1，棋盤上表面 y = 0；board[r][f] 位於 x = f - 3.5、z = r - 3.5（r = 0 是第 8 橫列，在 -z 遠端）
 const FRAME = 0.6
 const HALF = 4 + FRAME
-
-const v = (x: number, y: number) => new THREE.Vector2(x, y)
-
-function arc(cx: number, cy: number, r: number, a0: number, a1: number, n: number) {
-  const pts: THREE.Vector2[] = []
-  for (let i = 0; i <= n; i++) {
-    const a = a0 + (a1 - a0) * (i / n)
-    pts.push(v(cx + r * Math.cos(a), cy + r * Math.sin(a)))
-  }
-  return pts
-}
-
-const BASE = [v(0, 0), v(0.4, 0), v(0.4, 0.07), v(0.36, 0.1), v(0.37, 0.14), v(0.31, 0.18)]
-
-function lathe(points: THREE.Vector2[]) {
-  return new THREE.LatheGeometry(points, 48)
-}
-
-interface Part { geo: THREE.BufferGeometry; pos?: [number, number, number]; rotY?: number }
-
-function buildPieceParts(): Record<PieceType, Part[]> {
-  const half = Math.PI / 2
-
-  const pawn = lathe([...BASE, v(0.2, 0.24), v(0.13, 0.42), v(0.21, 0.47), v(0.21, 0.51), v(0.11, 0.54),
-    ...arc(0, 0.69, 0.16, -0.81, half, 14)])
-
-  const rookBody = lathe([...BASE, v(0.26, 0.24), v(0.21, 0.62), v(0.29, 0.68), v(0.29, 0.92),
-    v(0.21, 0.92), v(0.21, 0.86), v(0, 0.86)])
-  const crenel = new THREE.BoxGeometry(0.14, 0.1, 0.1)
-  const rook: Part[] = [{ geo: rookBody }]
-  for (let i = 0; i < 4; i++) {
-    const a = (i * Math.PI) / 2
-    rook.push({ geo: crenel, pos: [Math.sin(a) * 0.245, 0.97, Math.cos(a) * 0.245], rotY: a })
-  }
-
-  const bishop = lathe([...BASE, v(0.23, 0.24), v(0.13, 0.62), v(0.23, 0.68), v(0.23, 0.72), v(0.12, 0.75),
-    v(0.17, 0.82), v(0.19, 0.92), v(0.15, 1.02), v(0.07, 1.1), ...arc(0, 1.17, 0.055, -0.8, half, 8)])
-
-  const queenBody = lathe([...BASE, v(0.25, 0.24), v(0.15, 0.82), v(0.25, 0.88), v(0.25, 0.93), v(0.15, 0.97),
-    v(0.2, 1.1), v(0.27, 1.2), v(0.22, 1.21), v(0.12, 1.25), v(0.08, 1.28), ...arc(0, 1.34, 0.07, -0.85, half, 8)])
-  const bead = new THREE.SphereGeometry(0.045, 16, 12)
-  const queen: Part[] = [{ geo: queenBody }]
-  for (let i = 0; i < 8; i++) {
-    const a = (i * Math.PI) / 4
-    queen.push({ geo: bead, pos: [Math.sin(a) * 0.255, 1.22, Math.cos(a) * 0.255] })
-  }
-
-  const king: Part[] = [
-    { geo: lathe([...BASE, v(0.26, 0.24), v(0.16, 0.9), v(0.26, 0.96), v(0.26, 1.01), v(0.16, 1.05),
-      v(0.21, 1.18), v(0.25, 1.28), v(0.15, 1.32), v(0, 1.33)]) },
-    { geo: new THREE.BoxGeometry(0.07, 0.28, 0.07), pos: [0, 1.46, 0] },
-    { geo: new THREE.BoxGeometry(0.22, 0.07, 0.07), pos: [0, 1.5, 0] },
-  ]
-
-  const head = new THREE.Shape()
-  head.moveTo(-0.22, 0.28)
-  head.lineTo(-0.25, 0.45)
-  head.quadraticCurveTo(-0.27, 0.75, -0.12, 0.95)
-  head.lineTo(-0.1, 1.05)
-  head.lineTo(-0.03, 1.13)
-  head.lineTo(0, 1.0)
-  head.quadraticCurveTo(0.12, 0.98, 0.22, 0.86)
-  head.quadraticCurveTo(0.33, 0.74, 0.38, 0.64)
-  head.quadraticCurveTo(0.4, 0.56, 0.33, 0.55)
-  head.lineTo(0.26, 0.57)
-  head.quadraticCurveTo(0.16, 0.58, 0.1, 0.62)
-  head.quadraticCurveTo(0.04, 0.55, 0.12, 0.45)
-  head.quadraticCurveTo(0.22, 0.36, 0.22, 0.28)
-  head.closePath()
-  const headGeo = new THREE.ExtrudeGeometry(head, {
-    depth: 0.16, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.04, bevelSegments: 5, curveSegments: 12,
-  })
-  headGeo.translate(-0.06, 0, -0.08)
-  const knight: Part[] = [
-    { geo: lathe([...BASE, v(0.28, 0.24), v(0.26, 0.3), v(0, 0.3)]) },
-    { geo: headGeo },
-  ]
-
-  return { P: [{ geo: pawn }], R: rook, B: [{ geo: bishop }], Q: queen, K: king, N: knight }
-}
-
-let pieceParts: Record<PieceType, Part[]> | null = null
-
-const MATERIALS: Record<Color, THREE.MeshStandardMaterial> = {
-  w: new THREE.MeshStandardMaterial({ color: 0xf3ece0, roughness: 0.3 }),
-  b: new THREE.MeshStandardMaterial({ color: 0x232327, roughness: 0.26, metalness: 0.15 }),
-}
+const ASPECT = 0.9
+const PIECE_SCALE = 0.8
+const GRAVE_SCALE = 0.5
+const GRAVE_Z = HALF + 0.8
+const SLIDE = 0.34
 
 function overlay(color: number, opacity: number) {
   return new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
@@ -163,13 +84,29 @@ interface Snapshot {
   lastMove: Move | null
   checkKing: [number, number] | null
   flipped: boolean
+  capturedByWhite?: Piece[]
+  capturedByBlack?: Piece[]
 }
 
-function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => void) {
-  pieceParts ??= buildPieceParts()
-  const parts = pieceParts
+interface Slide {
+  obj: THREE.Object3D
+  from: THREE.Vector3
+  to: THREE.Vector3
+  t: number
+  hop: boolean
+  onImpact?: () => void
+}
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+const squarePos = (r: number, f: number) => new THREE.Vector3(f - 3.5, 0, r - 3.5)
+// 陣亡區：被吃的棋子排在吃子方那一側的石台上
+const gravePos = (capturer: Color, i: number) =>
+  new THREE.Vector3((i - 7) * 0.58, PLINTH_Y, capturer === 'w' ? GRAVE_Z : -GRAVE_Z)
+const floorY = (x: number, z: number) => (Math.abs(x) < HALF && Math.abs(z) < HALF ? 0 : PLINTH_Y)
+
+function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => void) {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.shadowMap.enabled = true
@@ -180,42 +117,104 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
   const pmrem = new THREE.PMREMGenerator(renderer)
   const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
   scene.environment = envTex
+  const disposeHall = buildHall(scene, HALF)
 
-  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100)
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 120)
+  const camBase = new THREE.Vector3()
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x3a2a1a, 0.35))
-  const sun = new THREE.DirectionalLight(0xfff3e0, 2.2)
+  scene.add(new THREE.HemisphereLight(0xfff1dc, 0x2a2018, 0.7))
+  const sun = new THREE.DirectionalLight(0xffe9c8, 3)
   sun.position.set(-4, 11, 6)
   sun.castShadow = true
   sun.shadow.mapSize.set(2048, 2048)
-  sun.shadow.camera.left = sun.shadow.camera.bottom = -6
-  sun.shadow.camera.right = sun.shadow.camera.top = 6
+  sun.shadow.camera.left = sun.shadow.camera.bottom = -8
+  sun.shadow.camera.right = sun.shadow.camera.top = 8
   sun.shadow.bias = -0.0005
   scene.add(sun)
 
   const boardTex = boardTexture()
   const top = new THREE.Mesh(
     new THREE.PlaneGeometry(HALF * 2, HALF * 2).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.55 }),
+    new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.4 }),
   )
   top.receiveShadow = true
   scene.add(top)
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(HALF * 2, 0.4, HALF * 2),
+    new THREE.BoxGeometry(HALF * 2, -PLINTH_Y, HALF * 2),
     new THREE.MeshStandardMaterial({ color: 0x3f2410, roughness: 0.6 }),
   )
-  body.position.y = -0.201
+  body.position.y = PLINTH_Y / 2 - 0.001
+  body.castShadow = true
   scene.add(body)
 
   const pieces = new THREE.Group()
   const marks = new THREE.Group()
-  scene.add(pieces, marks)
+  const graves = new THREE.Group()
+  const fx = new THREE.Group()
+  scene.add(pieces, marks, graves, fx)
+
+  let prev: Snapshot | null = null
+  let slides: Slide[] = []
+  let bursts: ReturnType<typeof createBurst>[] = []
+  // 碎片還沒聚合完成的陣亡區位置，先不顯示
+  const pending = new Set<string>()
+  let shake = 0
+  let raf = 0
+  let last = 0
 
   const render = () => renderer.render(scene, camera)
 
+  const tick = (now: number) => {
+    const dt = Math.min(0.1, (now - last) / 1000)
+    last = now
+
+    slides = slides.filter(sl => {
+      sl.t += dt / SLIDE
+      const k = Math.min(1, sl.t)
+      // 吃子時一路加速撞上去；一般移動則緩進緩出
+      const e = sl.onImpact ? k * k : k * k * (3 - 2 * k)
+      sl.obj.position.lerpVectors(sl.from, sl.to, e)
+      if (sl.hop) sl.obj.position.y = Math.sin(Math.PI * k) * 0.7
+      if (k < 1) return true
+      sl.onImpact?.()
+      return false
+    })
+
+    bursts = bursts.filter(b => {
+      if (b.update(dt)) return true
+      fx.remove(b.group)
+      b.dispose()
+      return false
+    })
+
+    camera.position.copy(camBase)
+    if (shake > 0) {
+      shake -= dt
+      const amp = Math.max(0, shake) * 0.45
+      camera.position.x += (Math.random() - 0.5) * amp
+      camera.position.y += (Math.random() - 0.5) * amp
+    }
+
+    render()
+    raf = slides.length || bursts.length || shake > 0 ? requestAnimationFrame(tick) : 0
+  }
+  const start = () => {
+    if (raf) return
+    last = performance.now()
+    raf = requestAnimationFrame(tick)
+  }
+
+  const clearFx = () => {
+    slides = []
+    bursts.forEach(b => b.dispose())
+    bursts = []
+    fx.clear()
+    pending.clear()
+  }
+
   const resize = () => {
     const w = wrap.clientWidth
-    const h = Math.round(w * 0.8)
+    const h = Math.round(w * ASPECT)
     renderer.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
@@ -230,13 +229,53 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
     marks.add(m)
   }
 
+  const capturedBy = (s: Snapshot, c: Color) => (c === 'w' ? s.capturedByWhite : s.capturedByBlack) ?? []
+
+  // 判斷這次更新是不是「往前走了一步」（悔棋、讀檔、換題都不播動畫）
+  const detectMove = (before: Snapshot, s: Snapshot) => {
+    const m = s.lastMove
+    if (!m || s.board === before.board) return null
+    const mover = before.board[m.from[0]][m.from[1]]
+    const now = s.board[m.to[0]][m.to[1]]
+    if (!mover || !now || now.color !== mover.color || s.board[m.from[0]][m.from[1]]) return null
+    let diff = 0
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const a = before.board[r][f]
+        const b = s.board[r][f]
+        if (a?.type !== b?.type || a?.color !== b?.color) diff++
+      }
+    }
+    if (diff > 4) return null
+    const victimSq: [number, number] = m.enPassant ? [m.from[0], m.to[1]] : m.to
+    const victim = before.board[victimSq[0]][victimSq[1]]
+    const grew = capturedBy(s, mover.color).length > capturedBy(before, mover.color).length
+    const hasGraves = !!s.capturedByWhite
+    return { m, mover, victim: victim && (grew || !hasGraves) ? victim : null, victimSq, hasGraves }
+  }
+
   const update = (s: Snapshot) => {
     const side = s.flipped ? -1 : 1
-    camera.position.set(0, 13.2, 10.6 * side)
-    camera.lookAt(0, -0.6, 0.7 * side)
+    camBase.set(0, 14.2, 12.2 * side)
+    camera.position.copy(camBase)
+    camera.lookAt(0, -0.6, 0.5 * side)
+
+    const moved = prev && !reducedMotion ? detectMove(prev, s) : null
+    const shrank = prev && (['w', 'b'] as Color[]).some(c => capturedBy(s, c).length < capturedBy(prev!, c).length)
+    if (shrank) clearFx()
+
+    // 上一步的滑動還沒結束就被打斷：直接觸發撞擊，特效不會漏掉
+    slides.forEach(sl => sl.onImpact?.())
+    slides = []
+
+    const graveKey = moved?.victim && moved.hasGraves
+      ? `${moved.mover.color}:${capturedBy(s, moved.mover.color).length - 1}`
+      : null
+    if (graveKey) pending.add(graveKey)
 
     pieces.clear()
     marks.clear()
+    graves.clear()
 
     if (s.lastMove) {
       mark(SQUARE_GEO, HL.last, s.lastMove.from[0], s.lastMove.from[1], 0.002)
@@ -250,27 +289,78 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
       mark(capture ? RING_GEO : DOT_GEO, HL.hint, r, f, 0.005)
     }
 
+    const holders = new Map<string, THREE.Group>()
     for (let r = 0; r < 8; r++) {
       for (let f = 0; f < 8; f++) {
         const p = s.board[r][f]
         if (!p) continue
-        const g = new THREE.Group()
-        for (const part of parts[p.type]) {
-          const mesh = new THREE.Mesh(part.geo, MATERIALS[p.color])
-          mesh.castShadow = true
-          if (part.pos) mesh.position.set(...part.pos)
-          if (part.rotY) mesh.rotation.y = part.rotY
-          g.add(mesh)
-        }
+        const g = createPiece(p.type, p.color)
         const lifted = s.selected?.[0] === r && s.selected?.[1] === f
         g.position.set(f - 3.5, lifted ? 0.15 : 0, r - 3.5)
-        g.scale.setScalar(0.8)
-        // 馬頭朝向對手並略轉向側面，讓鏡頭看得到側臉輪廓
-        if (p.type === 'N') g.rotation.y = p.color === 'w' ? Math.PI / 2 + 0.6 : -Math.PI / 2 + 0.6
+        g.scale.setScalar(PIECE_SCALE)
         g.userData = { r, f }
         pieces.add(g)
+        holders.set(`${r},${f}`, g)
       }
     }
+
+    for (const c of ['w', 'b'] as Color[]) {
+      capturedBy(s, c).forEach((p, i) => {
+        const g = createPiece(p.type, p.color)
+        g.position.copy(gravePos(c, i))
+        g.scale.setScalar(GRAVE_SCALE)
+        g.userData = { key: `${c}:${i}` }
+        g.visible = !pending.has(`${c}:${i}`)
+        graves.add(g)
+      })
+    }
+
+    if (moved) {
+      const { m, mover, victim, victimSq } = moved
+      const from = squarePos(...m.from)
+      const to = squarePos(...m.to)
+      let onImpact: (() => void) | undefined
+      if (victim) {
+        const ghost = createPiece(victim.type, victim.color)
+        ghost.position.copy(squarePos(...victimSq))
+        ghost.scale.setScalar(PIECE_SCALE)
+        fx.add(ghost)
+        const at = ghost.position.clone()
+        const dir = to.clone().sub(from).setY(0).normalize()
+        const home = graveKey ? gravePos(mover.color, Number(graveKey.split(':')[1])) : null
+        onImpact = () => {
+          fx.remove(ghost)
+          const burst = createBurst({
+            type: victim.type, color: victim.color, at, dir, scale: PIECE_SCALE, home, floorY,
+            onDone: () => {
+              if (!graveKey) return
+              pending.delete(graveKey)
+              const g = graves.children.find(ch => ch.userData.key === graveKey)
+              if (g) g.visible = true
+            },
+          })
+          fx.add(burst.group)
+          bursts.push(burst)
+          shake = 0.28
+        }
+      }
+      const obj = holders.get(`${m.to[0]},${m.to[1]}`)!
+      obj.position.copy(from)
+      slides.push({ obj, from, to, t: 0, hop: mover.type === 'N', onImpact })
+
+      if (m.castling) {
+        const r = m.from[0]
+        const [rf, rt] = m.castling === 'K' ? [7, 5] : [0, 3]
+        const rook = holders.get(`${r},${rt}`)
+        if (rook) {
+          rook.position.copy(squarePos(r, rf))
+          slides.push({ obj: rook, from: squarePos(r, rf), to: squarePos(r, rt), t: 0, hop: false })
+        }
+      }
+      start()
+    }
+
+    prev = s
     render()
   }
 
@@ -295,8 +385,11 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
   renderer.domElement.addEventListener('pointerdown', onClick)
 
   const dispose = () => {
+    cancelAnimationFrame(raf)
+    clearFx()
     ro.disconnect()
     renderer.domElement.removeEventListener('pointerdown', onClick)
+    disposeHall()
     boardTex.dispose()
     envTex.dispose()
     pmrem.dispose()
@@ -308,7 +401,7 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
 }
 
 export default function ChessBoard3D(props: ChessBoardProps) {
-  const { board, selected, legalMoves, lastMove, checkKing, flipped, onSquareClick } = props
+  const { board, selected, legalMoves, lastMove, checkKing, flipped, onSquareClick, capturedByWhite, capturedByBlack } = props
   const wrapRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<ReturnType<typeof createScene> | null>(null)
   const pickRef = useRef(onSquareClick)
@@ -321,8 +414,8 @@ export default function ChessBoard3D(props: ChessBoardProps) {
   }, [])
 
   useEffect(() => {
-    sceneRef.current?.update({ board, selected, legalMoves, lastMove, checkKing, flipped })
-  }, [board, selected, legalMoves, lastMove, checkKing, flipped])
+    sceneRef.current?.update({ board, selected, legalMoves, lastMove, checkKing, flipped, capturedByWhite, capturedByBlack })
+  }, [board, selected, legalMoves, lastMove, checkKing, flipped, capturedByWhite, capturedByBlack])
 
   return <div ref={wrapRef} className="cb3d" />
 }

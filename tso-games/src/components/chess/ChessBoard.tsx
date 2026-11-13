@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import type { BoardArray, Move, PieceType } from '../../chess/types'
+import type { BoardArray, Move, Piece, PieceType } from '../../chess/types'
 import './ChessBoard.css'
 
 // Three.js 約 150KB(gzip)，延遲載入，只有進到棋盤頁才下載
@@ -27,6 +27,9 @@ export interface ChessBoardProps {
   checkKing: [number, number] | null
   flipped: boolean
   onSquareClick: (r: number, f: number) => void
+  // 3D 棋盤的場外陣亡區用；不傳就不顯示
+  capturedByWhite?: Piece[]
+  capturedByBlack?: Piece[]
 }
 
 export default function ChessBoard(props: ChessBoardProps) {
