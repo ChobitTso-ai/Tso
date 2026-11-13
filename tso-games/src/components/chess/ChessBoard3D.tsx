@@ -165,7 +165,7 @@ function createScene(wrap: HTMLDivElement, onPick: (r: number, f: number) => voi
   const render = () => renderer.render(scene, camera)
 
   const tick = (now: number) => {
-    const dt = Math.min(0.05, (now - last) / 1000)
+    const dt = Math.min(0.1, (now - last) / 1000)
     last = now
 
     slides = slides.filter(sl => {
