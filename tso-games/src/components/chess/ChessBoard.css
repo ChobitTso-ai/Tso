@@ -150,7 +150,9 @@
 /* 3D 棋盤容器（ChessBoard3D 延遲載入，佔位框要先有尺寸） */
 .cb3d {
   width: min(680px, 94vw);
-  aspect-ratio: 1 / 0.8;
+  aspect-ratio: 1 / 0.9;
+  border-radius: 10px;
+  overflow: hidden;
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;

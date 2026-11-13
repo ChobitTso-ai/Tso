@@ -223,6 +223,8 @@ export default function ChessGame() {
             checkKing={findKingInCheck()}
             flipped={flipped}
             onSquareClick={handleSquareClick}
+            capturedByWhite={state.capturedByWhite}
+            capturedByBlack={state.capturedByBlack}
           />
         </div>
         <Sidebar
