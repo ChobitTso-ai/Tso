@@ -321,6 +321,31 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {...}
 - **新增或修改殘局 FEN 前必須驗證合法性**：雙王都在、兩王不相鄰、「不是輪到走的那方」的王不能正被將軍。
   初版 100 題中有 19 題不合法，就是沒驗證造成的
 
+#### 3D 棋盤（對戰與殘局共用）
+
+`ChessBoard.tsx` 是唯一入口，兩個頁面都只 import 它，改棋盤外觀兩邊會一起變。
+
+- **檔案分工**（都在 `components/chess/`）：
+  - `ChessBoard.tsx`：偵測 WebGL，有就 `lazy()` 載入 3D 版，沒有就用同檔的 `ChessBoard2D`（CSS 傾斜棋盤）
+  - `ChessBoard3D.tsx`：場景、相機、點擊判定、走子動畫、陣亡區
+  - `three/pieces.ts`：棋子造型與材質；`three/effects.ts`：吃子碎裂；`three/hall.ts`：石台、地板、石柱、火盆
+- **Three.js 一定要透過 `lazy()` 載入**，不可在 `ChessBoard.tsx` 或頁面直接 import `three`，
+  否則約 135KB(gzip) 會進主程式，拖慢首頁與其他遊戲
+- `three` 與 `@types/three` 都固定 `0.160.0`（遊戲島也用同一版），升版要兩個一起改
+- **世界座標**：一格 = 1，棋盤上表面 `y = 0`，`board[r][f]` 在 `x = f - 3.5`、`z = r - 3.5`
+  （第 8 橫列在 `-z` 遠端）。翻盤只把相機移到另一側，棋子座標不變
+- **畫布比例有兩處要同步**：`ChessBoard3D.tsx` 的 `ASPECT` 與 `ChessBoard.css` 的 `.cb3d { aspect-ratio }`
+- **不要常駐跑 `requestAnimationFrame`**：平常只在 props 變動時畫一次，
+  只有滑動、碎裂、鏡頭震動進行中才啟動迴圈，結束就停（省電）
+- **`update()` 每次都會重建棋子**，所以跨多次更新的特效要放在獨立的 `fx` 群組；
+  上一步的滑動若被新的更新打斷，要立刻觸發它的撞擊，吃子特效才不會漏掉
+- **只有「往前走一步」才播動畫**（`detectMove`）：悔棋、讀檔、換題都直接切換，不播
+- **陣亡區**靠選用 props `capturedByWhite` / `capturedByBlack`，不傳就不顯示；
+  被吃的棋子排在吃子方那一側，碎片聚合完成前那一格先隱藏
+- 使用者開啟 `prefers-reduced-motion` 時不播任何動畫
+- **測試**：無頭瀏覽器要加遊戲島那組 WebGL 參數（見「🏝 遊戲島」）。軟體繪圖只有約 6 fps，
+  動畫要等十幾秒才跑完，動畫中截圖請用 `deviceScaleFactor: 1`，否則會逾時；流暢度只能在實機確認
+
 ---
 
 ## 🎮 新增遊戲流程
