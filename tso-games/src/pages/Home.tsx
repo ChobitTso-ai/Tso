@@ -85,6 +85,24 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'wordgrid',
+    title: '方陣找找看',
+    description: '在字母方陣上連起相鄰格子拼出英文單字，也能切換數學模式連數字湊目標數。',
+    icon: '🔤',
+    path: '/wordgrid',
+    available: true,
+    tag: 'NEW',
+  },
+  {
+    id: 'slitherlink',
+    title: '數迴',
+    description: 'Loop Puzzle：在點與點之間畫線，連成不交叉、不分岔的迴路，數字是周圍的線數。',
+    icon: '➰',
+    path: '/slitherlink',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {

@@ -37,10 +37,10 @@ function addTree(kind, x, z, s) {
 }
 
 function buildFurniture(isl) {
-  const { cx, cz } = isl;
+  const { cx, cz } = isl, Ri = isl.R, Pi = PATH_R * isl.sc;
   // 路燈：六角形頂點
   for (let k = 0; k < 6; k++) {
-    const [x, z] = hexVert(k, R - .15);
+    const [x, z] = hexVert(k, Ri - .15);
     kit.add('cylinder', { pos: new THREE.Vector3(cx + x, TOP + .22, cz + z), scale: [.03, .44, .03] }, PAL.ink);
     kit.add('cylinder', { pos: new THREE.Vector3(cx + x, TOP + .02, cz + z), scale: [.08, .04, .08] }, PAL.ink);
     kit.add('glowsphere', { pos: new THREE.Vector3(cx + x, TOP + .47, cz + z), scale: .1 }, PAL.cream);
@@ -49,7 +49,7 @@ function buildFurniture(isl) {
   // 邊上：盆栽、灌木、花，以及島緣串燈（小物件，LOD）
   kit.lod = true;
   for (let k = 0; k < 6; k++) {
-    const a = hexVert(k, R - .12), b = hexVert((k + 1) % 6, R - .12);
+    const a = hexVert(k, Ri - .12), b = hexVert((k + 1) % 6, Ri - .12);
     for (let i = 1; i < 6; i++) {
       const t = i / 6, x = cx + a[0] + (b[0] - a[0]) * t, z = cz + a[1] + (b[1] - a[1]) * t;
       if (i === 3) continue; // 邊中點留給橋
@@ -65,7 +65,7 @@ function buildFurniture(isl) {
   }
   // 長椅：步道內側
   [1, 3, 5].forEach((k) => {
-    const [x, z] = hexMid(k, PATH_R - .32), yaw = Math.atan2(x, z);
+    const [x, z] = hexMid(k, Pi - .32), yaw = Math.atan2(x, z);
     const p = new THREE.Vector3(cx + x, TOP + .07, cz + z);
     kit.add('box', { pos: p, rot: [0, yaw + Math.PI / 2, 0], scale: [.26, .03, .09] }, PAL.wood);
     kit.add('box', { pos: p.clone().add(new THREE.Vector3(x, 0, z).normalize().multiplyScalar(.04)).setY(TOP + .12), rot: [0, yaw + Math.PI / 2, 0], scale: [.26, .08, .02] }, PAL.wood);
@@ -73,7 +73,7 @@ function buildFurniture(isl) {
   kit.lod = false;
   // 外圈大樹：4–6 棵，各島樹種不同；避開正前方，不擋建物
   const ks = [0, 1, 2, 3, 5].slice(0, 4 + (isl.idx % 2));
-  ks.forEach((k) => { const [x, z] = hexVert(k, 1.6); addTree(isl.data.tree, cx + x, cz + z, rr(.72, .9)); });
+  ks.forEach((k) => { const [x, z] = hexVert(k, 1.6 * isl.sc); addTree(isl.data.tree, cx + x, cz + z, rr(.72, .9)); });
 }
 
 // 光池：路燈下與窗前，強度乘上 night

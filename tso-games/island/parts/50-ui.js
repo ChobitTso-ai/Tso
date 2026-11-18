@@ -270,7 +270,7 @@ function handlePick(e) {
 function nearestIsland(p) {
   let b = null, bd = Infinity;
   S.islands.forEach((i) => { const d = Math.hypot(i.cx - p.x, i.cz - p.z); if (d < bd) { bd = d; b = i; } });
-  return bd < R + .3 ? b : null;
+  return b && bd < b.R + .3 ? b : null;
 }
 
 // ---------- 標籤碰撞避讓（8px hysteresis） ----------
