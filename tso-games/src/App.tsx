@@ -9,6 +9,8 @@ import MathQuestPage from './pages/MathQuestPage'
 import BattleshipPage from './pages/BattleshipPage'
 import ThreeKingdomsPage from './pages/ThreeKingdomsPage'
 import DrawBallPage from './pages/DrawBallPage'
+import SanguoGamePage from './pages/SanguoGamePage'
+import { SANGUO_GAMES } from './components/sanguo/games'
 
 export default function App() {
   return (
@@ -23,6 +25,9 @@ export default function App() {
           <Route path="/mathquest" element={<MathQuestPage />} />
           <Route path="/battleship" element={<BattleshipPage />} />
           <Route path="/threekingdoms" element={<ThreeKingdomsPage />} />
+          {SANGUO_GAMES.map(game => (
+            <Route key={game.id} path={game.path} element={<SanguoGamePage key={game.id} game={game} />} />
+          ))}
           <Route path="/drawball" element={<DrawBallPage />} />
         </Routes>
       </HashRouter>

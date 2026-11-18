@@ -446,6 +446,20 @@ useEffect(() => {
 `App.tsx` 與 `ThreeKingdomsPage.tsx` 會造成衝突——本專案已發生過一次分支互相覆蓋、
 事後靠 cherry-pick 才救回的事故。
 
+#### 單檔 HTML 子遊戲（`public/sanguo/`）
+
+使用者自己寫好的單檔 HTML 三國遊戲（Canvas 2D、零外部資源）**不改寫成 React**，原樣以 iframe 嵌入：
+
+1. HTML 放進 `tso-games/public/sanguo/<id>.html`
+2. 在 `src/components/sanguo/games.ts` 的 `SANGUO_GAMES` 加一筆。路由 `/<id>` 與 hub 卡片都由這份清單產生，
+   **不用改 `App.tsx` 與 `ThreeKingdomsPage.tsx`**；頁面共用 `SanguoGamePage.tsx`（導覽列＋iframe，返回鍵指向 `/threekingdoms`）
+3. HTML 併入時做三處修改，每處都標「`TSO：`」註記，方便和使用者的原檔對照：
+   - `<head>` 加登入檢查：`sessionStorage.tsoAuth !== 'ok'` 就 `location.replace('../')`（同遊戲島）
+   - `#game` 的 `max-width` 再加一條高度限制 `min(原寬, calc((100dvh - 20px) * 800 / 560))`（先寫一條 `vh` 版給舊瀏覽器），
+     否則手機橫拿時遊戲上下會被裁掉
+   - 存進度：localStorage key `sanguo_<id>_progress`，只存「已過關數」整數，在主迴圈偵測到變動就寫入；
+     讀回時必須是 0～關數的整數，否則清掉從頭開始
+
 ### 8. 🏝 遊戲島（新增遊戲時要一起加）
 
 首頁有兩個並列入口：**卡片首頁**（`Home.tsx` 的 `GAMES`）與 **遊戲島**（`tso-games/island/`，
