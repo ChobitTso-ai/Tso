@@ -370,7 +370,22 @@ import NewGamePage from './pages/NewGamePage'
 <Route path="/newgame" element={<NewGamePage />} />
 ```
 
-### 4. 加入首頁（`Home.tsx`）
+### 4. 首頁卡片與遊戲島：交給「TSO首頁整理」對話
+
+**⚠️ 核心規則：做遊戲的對話不要自己設計首頁卡片與遊戲島建物。**
+首頁卡片（`Home.tsx` 的 `GAMES`）與遊戲島（`island/` 底下的 `games.json`、建物、島嶼文字）
+由使用者的「**TSO首頁整理**」對話統一設計與維護。過去很多對話各自設計，風格不一致，
+這幾個共用檔案也反覆衝突。
+
+做遊戲的對話只負責遊戲本身和 `App.tsx` 路由，遊戲完成後：
+
+1. 不改 `Home.tsx`，也不改 `island/` 底下任何檔案
+2. 在 PR 說明寫一段「首頁交接」：遊戲 id、名稱、路由、一句話玩法、會練到什麼、使用者指定的島
+3. 有 `send_message` 工具就直接把交接內容傳給「TSO首頁整理」對話；沒有就請使用者轉交
+4. 遊戲的 PR 先合併，首頁的 PR 後合併：路由先存在，卡片和島上的連結才打得開
+
+以下是 TSO首頁整理 對話加卡片時用的格式：
+
 ```typescript
 const GAMES: GameCard[] = [
   // ...
@@ -452,8 +467,8 @@ useEffect(() => {
 3D 六角小島，每棟建物是一個遊戲）。使用者第一次選擇後記在 `sessionStorage.tsoEntry`，
 之後從遊戲按「← 首頁」會回到所選的那一種。
 
-**新增一個遊戲時，除了第 4 步加 `GAMES` 卡片，還要在 `island/data/games.json` 對應的島下加一筆**，
-欄位與做法見 `island/README.md`。只加卡片的話，`npm run build` 會印出提醒
+**卡片與島嶼一律由「TSO首頁整理」對話處理（見第 4 步）。** 它新增遊戲時，除了 `GAMES` 卡片，
+**還要在 `island/data/games.json` 對應的島下加一筆**，欄位與做法見 `island/README.md`。只加卡片的話，`npm run build` 會印出提醒
 （`首頁有這些遊戲，但島嶼上還沒有`），不會中斷建置。
 
 - 島嶼頁是**獨立的靜態頁面**，不在 React 路由內：`island/build.mjs` 把 `island/parts/` 串成
