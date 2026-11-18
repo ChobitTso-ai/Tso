@@ -22,10 +22,10 @@ const BASICS: Level[] = [
     name: '第一條線',
     hint: '在{A}的下方畫一條斜坡，讓{A}滾進竹籃！',
     starts: [{ x: 120, y: 80 }],
-    goal: g(620, 300),
+    goal: g(620, 400),
     walls: [],
     spikes: [],
-    par: 491,
+    par: 350,
   },
   {
     name: '跨越深谷',
