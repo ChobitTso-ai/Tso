@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { EntryChooser, EntrySwitch } from '../components/entry/EntryChooser'
 import { islandUrl, readEntry, saveEntry } from '../components/entry/entry'
 import type { Entry } from '../components/entry/entry'
@@ -103,13 +103,18 @@ export default function Home() {
 
   if (entry === null) return <EntryChooser onPick={pick} />
   if (entry === 'island') return null
+  // 星球版在 React 路由內，replace 讓「上一頁」不會卡在空白首頁
+  if (entry === 'planet') return <Navigate to="/planet" replace />
 
   return (
     <div className="home">
       <header className="home-header">
         <h1 className="home-title">🎮 TSO Games</h1>
         <p className="home-subtitle">免費、無需登入，打開即玩</p>
-        <EntrySwitch onSwitch={() => pick('island')} />
+        <div className="entry-switches">
+          <EntrySwitch to="island" onSwitch={() => pick('island')} />
+          <EntrySwitch to="planet" onSwitch={() => pick('planet')} />
+        </div>
       </header>
 
       <div className="game-grid">

@@ -5,7 +5,7 @@ interface ChooserProps {
   onPick: (entry: Entry) => void
 }
 
-// 第一次進來時的兩個入口
+// 第一次進來時的三個入口
 export function EntryChooser({ onPick }: ChooserProps) {
   return (
     <div className="entry">
@@ -28,20 +28,33 @@ export function EntryChooser({ onPick }: ChooserProps) {
           <span className="entry-desc">所有遊戲排成卡片，一眼看完，直接點選。</span>
           <span className="entry-hint">每種裝置都能順暢使用</span>
         </button>
+
+        <button type="button" className="entry-card entry-planet" onClick={() => onPick('planet')}>
+          <span className="entry-icon">🪐</span>
+          <span className="entry-name">遊戲星球</span>
+          <span className="entry-desc">轉動一顆小星球，點群島上的小島就能開始玩。</span>
+          <span className="entry-hint">測試版・每種裝置都能用</span>
+        </button>
       </div>
     </div>
   )
 }
 
+const SWITCH_LABELS: Record<'island' | 'planet', string> = {
+  island: '🏝️ 改用遊戲島',
+  planet: '🪐 改用遊戲星球',
+}
+
 interface SwitchProps {
+  to: 'island' | 'planet'
   onSwitch: () => void
 }
 
-// 卡片首頁上的「改去島嶼」小按鈕
-export function EntrySwitch({ onSwitch }: SwitchProps) {
+// 卡片首頁上的「改去島嶼／星球」小按鈕
+export function EntrySwitch({ to, onSwitch }: SwitchProps) {
   return (
     <button type="button" className="entry-switch" onClick={onSwitch}>
-      🏝️ 改用遊戲島
+      {SWITCH_LABELS[to]}
     </button>
   )
 }
