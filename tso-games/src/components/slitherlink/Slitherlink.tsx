@@ -12,7 +12,7 @@ import {
   topology,
 } from './logic'
 import type { Level, Mark, Puzzle, Size } from './logic'
-import { SKINS, loadSkinFont, readSkin } from '../skins/skins'
+import { SKINS, readSkin } from '../skins/skins'
 import type { Skin } from '../skins/skins'
 
 const STATE_KEY = 'slitherlink_state'
@@ -161,8 +161,8 @@ export default function Slitherlink() {
     localStorage.setItem(ERRORS_KEY, showErrors ? '1' : '0')
   }, [showErrors])
 
+  // 數迴的盤面只有數字，數字一律用一般字型，所以不用載入風格字型
   useEffect(() => {
-    loadSkinFont(skin)
     localStorage.setItem(SKIN_KEY, skin)
   }, [skin])
 

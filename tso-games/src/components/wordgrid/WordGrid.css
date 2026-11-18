@@ -112,6 +112,18 @@
 }
 .wg-skin-neon .wg-tile.shown { border-color: #39ff88; }
 
+/* 數字一律用一般字型：各風格的字型只用在英文字母（霓虹的字型會把 0 畫成 Ø） */
+.wg-grid.math .wg-tile {
+  font-family: inherit;
+  font-size: calc(var(--wg-board-size) / var(--n) * 0.42);
+}
+.wg-root .wg-target-num,
+.wg-root .wg-expr-num,
+.wg-root .wg-status.math,
+.wg-root .wg-words.math .wg-word {
+  font-family: inherit;
+}
+
 /* ── 版面 ─────────────────────────────── */
 
 .wg-shell {
