@@ -13,9 +13,11 @@ permissions:
   id-token: write
   issues: write
 
+# PR 的測試建置依 PR 分組，同一個 PR 有新推送才取消舊的；
+# main 的正式部署自成一組、進行中不取消，否則別的 PR 開跑建置就會把剛合併的部署取消掉（2026-11 發生過）
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages-deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
