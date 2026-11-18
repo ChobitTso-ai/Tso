@@ -497,7 +497,7 @@ export default function DrawBall() {
             <StarRow n={liveStars} size="small" />
           </div>
         </div>
-        {inkOut && <p className="db-toast">🖍️ 墨水用完了！按「↶ 復原」或「清除線條」把墨水拿回來。</p>}
+        {inkOut && <p className="db-toast">🖍️ 墨水用完了！按「↶ 上一步」或「清除線條」把墨水拿回來。</p>}
 
         <div className="db-stage">
           <canvas
@@ -606,7 +606,7 @@ export default function DrawBall() {
               </button>
             )}
             <button className="db-btn secondary" onClick={undo} disabled={strokeCount === 0}>
-              ↶ 復原
+              ↶ 上一步
             </button>
             <button className="db-btn danger" onClick={clearLines} disabled={strokeCount === 0}>
               🧽 清除線條
@@ -645,7 +645,7 @@ export default function DrawBall() {
               {limited && <>；有限墨水最多 {toDots(rules.limit)} 點</>}
             </div>
             <ul className="db-rule-notes">
-              <li>墨水只算<b>過關那一刻</b>畫面上的線。按「↶ 復原」或「清除線條」，墨水會還給你。</li>
+              <li>墨水只算<b>過關那一刻</b>畫面上的線。按「↶ 上一步」或「清除線條」，墨水會還給你。</li>
               <li>每一關會記住你拿過<b>最多</b>的星星，可以回去重玩刷新紀錄。</li>
               <li>選「♾️ 無限墨水」也一樣算星星，只是不會畫到一半沒墨水。</li>
               <li>1 點墨水 = 一小段線（約一顆球的一半長）。</li>
