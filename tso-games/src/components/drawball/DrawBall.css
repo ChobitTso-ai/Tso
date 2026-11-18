@@ -280,6 +280,105 @@
   cursor: default;
 }
 
+/* 畫面右上角的縮放／全螢幕按鈕 */
+.db-view-ctrls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.db-view-ctrls button {
+  width: 38px;
+  height: 38px;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  background: rgba(30, 42, 68, 0.75);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+  transition: all 0.15s;
+}
+.db-view-ctrls button:hover:not(:disabled) {
+  background: rgba(30, 42, 68, 0.95);
+  transform: translateY(-1px);
+}
+.db-view-ctrls button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.db-view-ctrls button.active {
+  background: var(--db-yellow);
+  color: #5a3d00;
+}
+.db-zoom-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(30, 42, 68, 0.75);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+/* 全螢幕：遊戲區撐滿整個畫面，畫布依可用空間等比放到最大 */
+.db-card.fs {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.db-card.fs .db-hint,
+.db-card.fs .db-best {
+  display: none;
+}
+.db-card.fs .db-info {
+  margin-bottom: 4px;
+}
+.db-card.fs .db-ink-row {
+  margin-bottom: 6px;
+}
+.db-card.fs .db-stage {
+  flex: 1;
+  min-height: 0;
+  /* 以舞台的實際寬高當基準，畫布取「寬度放滿」與「高度放滿」中較小者 */
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+}
+.db-card.fs .db-canvas {
+  width: min(100cqw, 160cqh);
+  border: 4px solid #fff;
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px #e0c98f;
+}
+.db-card.fs .db-controls {
+  margin-top: 8px;
+}
+
 .db-overlay {
   position: absolute;
   inset: 0;
@@ -688,4 +787,266 @@
     padding: 8px 12px;
     font-size: 14px;
   }
+  /* 全螢幕＋橫放：按鈕放畫布右側，高度全部留給畫布 */
+  .db-card.fs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+  .db-card.fs .db-info {
+    display: none;
+  }
+  /* 畫布靠左，右側空位放縮放按鈕，不擋住畫面 */
+  .db-card.fs .db-stage {
+    grid-column: 1;
+    grid-row: 4;
+    justify-content: flex-start;
+    justify-self: stretch;
+    max-width: none;
+  }
+  .db-card.fs .db-controls {
+    grid-column: 2;
+    grid-row: 4;
+    margin-top: 0;
+  }
+}
+
+/* ══ 蠟筆繪本主題 ══════════════════════════════════════
+   只改顏色、邊框與圓角，不動版面，全螢幕與橫放的排版規則照舊生效。
+   --db-wobble 是不規則圓角，讓框線看起來像手畫的。 */
+
+.db-game {
+  --db-ink: #4a3520;
+  --db-paper: #fdf8ec;
+  --db-wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --db-purple: #6a4bd0;
+  --db-purple-dark: #4a3520;
+  color: var(--db-ink);
+}
+
+.db-chip,
+.db-chip.static:hover {
+  background: var(--db-paper);
+  color: var(--db-ink);
+  border: 2.5px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+  box-shadow: 2px 3px 0 var(--db-ink);
+}
+.db-chip:hover {
+  background: #fff3c4;
+}
+.db-chip-sub {
+  color: #c2560f;
+}
+
+.db-ink-toggle {
+  background: var(--db-paper);
+  border: 2.5px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+  box-shadow: 2px 3px 0 var(--db-ink);
+}
+.db-ink-toggle button {
+  color: #8a7258;
+  border-radius: var(--db-wobble);
+}
+.db-ink-toggle button:hover:not(.active) {
+  color: var(--db-ink);
+}
+.db-ink-toggle button.active {
+  background: #ffd166;
+  color: var(--db-ink);
+  box-shadow: none;
+}
+
+.db-card {
+  position: relative;
+  background: var(--db-paper);
+  border: 3px solid var(--db-ink);
+  border-radius: 6px 14px 8px 16px / 16px 6px 14px 8px;
+  box-shadow: 6px 7px 0 rgba(74, 53, 32, 0.25);
+}
+/* 卡片上緣兩條紙膠帶 */
+.db-card::before,
+.db-card::after {
+  content: '';
+  position: absolute;
+  top: -13px;
+  width: 90px;
+  height: 26px;
+  pointer-events: none;
+}
+.db-card::before {
+  left: 40px;
+  background: rgba(255, 214, 110, 0.75);
+  transform: rotate(-6deg);
+}
+.db-card::after {
+  right: 40px;
+  background: rgba(140, 200, 255, 0.7);
+  transform: rotate(5deg);
+}
+.db-card.fs::before,
+.db-card.fs::after {
+  display: none;
+}
+
+.db-level-badge {
+  background: #e8553e;
+  border: 2px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+  box-shadow: none;
+}
+.db-level-name {
+  color: var(--db-ink);
+  letter-spacing: 2px;
+}
+.db-cast {
+  display: inline-flex;
+  gap: 8px;
+}
+.db-cast-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #8a7258;
+  white-space: nowrap;
+}
+.db-animal-icon {
+  display: block;
+}
+.db-hint {
+  background: #fffaf0;
+  color: #5a4128;
+  border: 2px dashed #b08a5a;
+  border-radius: 10px;
+}
+
+.db-ink-bar {
+  border: 2.5px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+}
+.db-ink-fill {
+  top: 2px;
+  bottom: 2px;
+  border-radius: var(--db-wobble);
+  background: repeating-linear-gradient(-55deg, #6a4bd0 0 4px, #9f86ea 4px 7px);
+  box-shadow: none;
+}
+.db-ink-text {
+  color: #6a4bd0;
+}
+.db-ink-row.out .db-ink-bar {
+  border-color: #e8553e;
+}
+.db-toast {
+  background: #ffe8e0;
+  color: #c2410c;
+  border: 2px dashed #e8553e;
+}
+.db-stars .on {
+  color: #f2a900;
+  text-shadow: none;
+}
+
+.db-stage {
+  border: 3px solid var(--db-ink);
+  border-radius: 4px 12px 6px 14px / 14px 4px 12px 6px;
+  box-shadow: none;
+}
+.db-card.fs .db-canvas {
+  border: 3px solid var(--db-ink);
+  border-radius: 4px 12px 6px 14px / 14px 4px 12px 6px;
+  box-shadow: none;
+}
+
+/* 按鈕：手畫外框＋右下實心陰影，按下時往陰影方向移動 */
+.db-btn {
+  color: var(--db-ink);
+  border: 3px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+  box-shadow: 3px 4px 0 var(--db-ink);
+}
+.db-btn.primary {
+  --c: #9fd77a;
+}
+.db-btn.secondary {
+  --c: #9ccbff;
+}
+.db-btn.danger {
+  --c: #ff9f8f;
+}
+.db-btn:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 5px 0 var(--db-ink);
+}
+.db-btn:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 var(--db-ink);
+}
+
+.db-view-ctrls button {
+  background: var(--db-paper);
+  color: var(--db-ink);
+  border: 2.5px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+  box-shadow: 2px 3px 0 var(--db-ink);
+}
+.db-view-ctrls button:hover:not(:disabled) {
+  background: #fff3c4;
+}
+.db-view-ctrls button.active {
+  background: #ffd166;
+  color: var(--db-ink);
+}
+.db-zoom-badge {
+  background: var(--db-paper);
+  color: var(--db-ink);
+  border: 2px solid var(--db-ink);
+}
+
+.db-overlay {
+  background: rgba(74, 53, 32, 0.28);
+}
+.db-overlay-box,
+.db-overlay-box.win,
+.db-overlay-box.fail,
+.db-modal-box {
+  background: var(--db-paper);
+  color: var(--db-ink);
+  border: 3px solid var(--db-ink);
+  border-radius: 8px 16px 10px 18px / 18px 8px 16px 10px;
+  box-shadow: 6px 7px 0 rgba(74, 53, 32, 0.35);
+}
+.db-overlay-title,
+.db-modal-head h3 {
+  color: var(--db-ink);
+}
+.db-overlay-sub {
+  color: #7a6248;
+}
+.db-win-stars .on {
+  color: #f2a900;
+  text-shadow: 2px 2px 0 var(--db-ink);
+}
+.db-new-best {
+  background: #e8553e;
+  border: 2px solid var(--db-ink);
+  border-radius: var(--db-wobble);
+}
+.db-close {
+  background: #fff3c4;
+  border: 2px solid var(--db-ink);
+  color: var(--db-ink);
+}
+.db-rule-level {
+  background: #fffaf0;
+  border-color: #b08a5a;
+}
+.db-rotate-hint {
+  background: #fff3c4;
+  color: var(--db-ink);
+  border: 2px dashed var(--db-ink);
 }

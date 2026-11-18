@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SANGUO_GAMES } from '../components/sanguo/games'
 import './ThreeKingdomsPage.css'
 
 interface MiniGame {
@@ -12,11 +13,19 @@ interface MiniGame {
 }
 
 const MINI_GAMES: MiniGame[] = [
+  ...SANGUO_GAMES.map(g => ({
+    id: g.id,
+    title: g.title,
+    description: g.description,
+    icon: g.icon,
+    path: g.path,
+    available: true,
+  })),
   {
     id: 'strategist',
     title: '軍師戰棋',
     description: '扮演蜀軍軍師：戰前佈陣、戰中用計，兩軍自動交戰，擊破敵方主帥就獲勝。共五場戰役。',
-    icon: '🏯',
+    icon: '🚩',
     path: '/strategist',
     available: true,
     tag: 'NEW',

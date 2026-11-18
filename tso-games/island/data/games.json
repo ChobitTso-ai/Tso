@@ -101,6 +101,34 @@
       "views": [],
       "sources": [],
       "updated": "2026-10-10"
+    },
+    {
+      "id": "wordgrid",
+      "name": "方陣找找看",
+      "en": "Word Grid",
+      "model": "wordgrid",
+      "status": "new",
+      "heat": 3,
+      "path": "/wordgrid",
+      "what": "在字母方陣上連起相鄰的格子拼出英文單字；也能切換數學模式，連數字湊出目標數。3×3 到 5×5，三種難度。",
+      "why": "練英文單字與四則運算，也練眼力。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
+    },
+    {
+      "id": "slitherlink",
+      "name": "數迴",
+      "en": "Loop Puzzle",
+      "model": "slitherlink",
+      "status": "new",
+      "heat": 3,
+      "path": "/slitherlink",
+      "what": "在點和點之間畫線，連成一條不交叉、不分岔的迴路；格子裡的數字是周圍有幾條線。三種盤面、兩種難度，電腦即時出題。",
+      "why": "練邏輯推理：從 0 和 3 開始推，一步步排除不可能。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
     }
   ],
   "kingdom": [
@@ -119,18 +147,46 @@
       "updated": "2026-07-04"
     },
     {
-      "id": "strategist",
-      "name": "軍師戰棋",
-      "en": "Strategist",
-      "model": "warcamp",
+      "id": "guandu",
+      "name": "官渡奇謀大冒險",
+      "en": "Battle of Guandu",
+      "model": "guandu",
       "status": "new",
       "heat": 3,
-      "path": "/strategist",
-      "what": "扮演蜀軍軍師：戰前把兵團擺好位置，開戰後兩軍自動交戰，看準時機施放火計、擾亂、鼓舞。共五場戰役，依保存的兵力評三星。",
-      "why": "練習兵種相剋（槍剋騎、騎剋弓、弓剋槍）與地形運用：先想好陣形，再挑對時機出手。",
+      "path": "/guandu",
+      "what": "西元 200 年官渡之戰。幫曹操闖過四個計謀關卡：白馬解圍、延津餌敵、霹靂車打垮箭樓、夜襲火燒烏巢。",
+      "why": "學會用計謀以少勝多，一關一關看懂戰局怎麼翻轉。",
       "views": [],
       "sources": [],
-      "updated": "2026-11-06"
+      "updated": "2026-11-18"
+    },
+    {
+      "id": "changban",
+      "name": "趙雲七進七出・長坂坡",
+      "en": "Zhao Yun at Changban",
+      "model": "changban",
+      "status": "new",
+      "heat": 3,
+      "path": "/changban",
+      "what": "西元 208 年長坂坡。化身趙雲單騎七進七出：尋主、救甘夫人與糜竺、奪青釭劍、懷抱阿斗突圍，最後張飛長坂橋三聲怒吼退敵。",
+      "why": "練反應與走位，七關各有不同任務，邊玩邊認識這段故事。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
+    },
+    {
+      "id": "chibi",
+      "name": "赤壁妙計大冒險",
+      "en": "Battle of Red Cliffs",
+      "model": "chibi",
+      "status": "new",
+      "heat": 3,
+      "path": "/chibi",
+      "what": "西元 208 年赤壁之戰。草船借箭、鐵索連環、借東風、火燒連環船，用四個妙計打贏曹操。",
+      "why": "學會把四個妙計接成一個完整計畫，看懂赤壁怎麼贏。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
     }
   ]
 }

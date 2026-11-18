@@ -54,6 +54,17 @@ const store = {
 
 // 六角座標：pointy-top，頂點朝 ±z
 function axialToWorld(q, r) { return { x: SQ3 * SPACING * (q + r / 2), z: 1.5 * SPACING * r }; }
+// 大島（islands 的 scale > 1）：中心沿「遠離相鄰島」的方向推開，讓橋長與一般島相近
+function islandCenter(d, all) {
+  const base = axialToWorld(d.q, d.r), sc = d.scale || 1;
+  if (sc <= 1) return base;
+  const dirs = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const nb = all.filter((o) => o !== d && dirs.some(([dq, dr]) => o.q === d.q + dq && o.r === d.r + dr)).map((o) => axialToWorld(o.q, o.r));
+  if (!nb.length) return base;
+  const mx = nb.reduce((s, p) => s + p.x, 0) / nb.length, mz = nb.reduce((s, p) => s + p.z, 0) / nb.length;
+  const vx = base.x - mx, vz = base.z - mz, len = Math.hypot(vx, vz) || 1, push = (sc - 1) * R * 1.1;
+  return { x: base.x + vx / len * push, z: base.z + vz / len * push };
+}
 // 第 k 個頂點（k=0..5），角度 a = π/6 + kπ/3；世界座標 (r cos a, -r sin a)
 function hexVert(k, rad) { const a = Math.PI / 6 + k * Math.PI / 3; return [rad * Math.cos(a), -rad * Math.sin(a)]; }
 // 第 k 條邊中點（介於頂點 k-1 與 k 之間，角度 kπ/3）
@@ -108,7 +119,7 @@ function setupRenderer() {
 }
 
 const OVERVIEW_DIR = () => new THREE.Vector3(.24, .33, .87).normalize();
-function overviewDist() { const a = innerWidth / innerHeight; return a > 1.3 ? 22 : a > .8 ? 28 : 40; }
+function overviewDist() { const a = innerWidth / innerHeight; return (a > 1.3 ? 22 : a > .8 ? 28 : 40) * 1.12; } // 1.12：三國島放大後，總覽要多退一點
 
 // 飛行：同時插值 position 與 target；reduced-motion 時瞬移
 function flyTo(target, pos) {

@@ -8,7 +8,7 @@ export default function StrategistPage() {
     <div className="strategist-page">
       <nav className="strategist-nav">
         <Link to="/threekingdoms" className="nav-home">← 三國演義</Link>
-        <span className="nav-title">🏯 軍師戰棋</span>
+        <span className="nav-title">🚩 軍師戰棋</span>
       </nav>
       <StrategistGame />
     </div>

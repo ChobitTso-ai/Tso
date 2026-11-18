@@ -400,7 +400,7 @@ export default function StrategistGame() {
       {phase === 'levels' && (
         <div className="sg-levels">
           <header className="sg-intro">
-            <h1>🏯 軍師戰棋</h1>
+            <h1>🚩 軍師戰棋</h1>
             <p>你是蜀軍的軍師。開戰前把兵團擺好位置，開戰後兩軍自動交戰，你可以看準時機施放計策。</p>
             <p className="sg-goal">擊破敵方主帥（★）就能獲勝；我方主帥被擊破就輸了。</p>
             <div className="sg-chips">
