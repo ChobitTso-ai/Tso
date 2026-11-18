@@ -102,17 +102,19 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; /* 手機點擊時不要閃藍色方塊 */
 }
 .sl-board.busy { opacity: 0.35; }
 
+/* 盤面座標每格 40 單位，以下線寬、字級都以此為準 */
 .sl-guide {
   stroke: #d8cfb8;
-  stroke-width: 0.025;
+  stroke-width: 1;
 }
 
 .sl-line {
   stroke: #24325e;
-  stroke-width: 0.13;
+  stroke-width: 5.2;
   stroke-linecap: round;
 }
 .sl-board.solved .sl-line { stroke: #2f8f4a; }
@@ -120,7 +122,7 @@
 
 .sl-cross line {
   stroke: #c0564a;
-  stroke-width: 0.045;
+  stroke-width: 1.8;
   stroke-linecap: round;
 }
 .sl-cross.hinted line { stroke: #e08a1e; }
@@ -128,7 +130,7 @@
 .sl-hint-ring {
   fill: none;
   stroke: #e08a1e;
-  stroke-width: 0.05;
+  stroke-width: 2;
   animation: sl-blink 0.5s 3;
 }
 
@@ -137,11 +139,9 @@
 }
 
 .sl-clue {
-  font-size: 0.6px;
+  font-size: 24px;
   font-weight: 800;
   fill: #1f2a4d;
-  text-anchor: middle;
-  dominant-baseline: central;
   pointer-events: none;
   transition: fill 0.15s;
 }
@@ -152,16 +152,15 @@
   fill: #2a2f3d;
   pointer-events: none;
 }
-.sl-dot.error {
-  fill: var(--sl-bad);
-  r: 0.12;
-}
+.sl-dot.error { fill: var(--sl-bad); }
 
 .sl-hit {
   fill: transparent;
   cursor: pointer;
 }
-.sl-hit:hover { fill: rgba(36, 50, 94, 0.08); }
+@media (hover: hover) {
+  .sl-hit:hover { fill: rgba(36, 50, 94, 0.08); }
+}
 
 .sl-actions {
   display: flex;

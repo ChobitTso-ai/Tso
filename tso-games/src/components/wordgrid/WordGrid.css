@@ -140,6 +140,7 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; /* 手機點擊時不要閃藍色方塊 */
 }
 .wg-grid.locked { cursor: default; }
 

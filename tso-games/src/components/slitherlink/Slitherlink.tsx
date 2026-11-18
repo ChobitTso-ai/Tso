@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
 import './Slitherlink.css'
 import {
   LEVELS,
@@ -30,6 +29,8 @@ type Stats = Record<string, { solved: number; best: number | null }>
 
 const DEFAULT_SIZE: Size = 5
 const DEFAULT_LEVEL: Level = 'normal'
+// 盤面每格 40 個 SVG 單位。若用 1 當一格，數字的字級會小於 1px，部分瀏覽器（尤其 Safari）會顯示異常
+const U = 40
 
 function newGame(puzzle: Puzzle): Game {
   return { puzzle, marks: new Array<Mark>(topology(puzzle.size).edgeCount).fill(0), elapsed: 0, hints: 0, solved: false }
@@ -201,12 +202,12 @@ export default function Slitherlink() {
     }
   }
 
-  // 左鍵／手指點一下：空白 → 線 → 叉 → 空白；右鍵直接切換叉
-  const onEdgeDown = (e: ReactPointerEvent<SVGPolygonElement>, edge: number) => {
+  // 點一下：空白 → 線 → 叉 → 空白；右鍵直接切換叉。
+  // 用 click 而不是 pointerdown：手機上從盤面開始滑動捲頁時不會誤畫線
+  const onEdgeTap = (edge: number, crossOnly: boolean) => {
     if (locked) return
-    e.preventDefault()
     const now = current.marks[edge]
-    const next: Mark = e.button === 2 ? (now === 2 ? 0 : 2) : now === 0 ? 1 : now === 1 ? 2 : 0
+    const next: Mark = crossOnly ? (now === 2 ? 0 : 2) : now === 0 ? 1 : now === 1 ? 2 : 0
     const marks = [...current.marks]
     marks[edge] = next
     applyMarks(marks, false)
@@ -233,7 +234,8 @@ export default function Slitherlink() {
     setHinted(h => ({ edge, key: (h?.key ?? 0) + 1 }))
   }
 
-  const point = (v: number) => [v % (n + 1), Math.floor(v / (n + 1))]
+  const point = (v: number) => [(v % (n + 1)) * U, Math.floor(v / (n + 1)) * U]
+  const X = 0.1 * U // 叉的半徑
 
   // 每條邊的點擊範圍是以它為對角線的菱形，這些菱形剛好鋪滿整個盤面，點哪裡都會命中最近的邊
   const hitPolygon = (edge: number) => {
@@ -296,7 +298,7 @@ export default function Slitherlink() {
       <div className="sl-board-wrap">
         <svg
           className={`sl-board ${current.solved ? 'solved' : ''} ${generating ? 'busy' : ''}`}
-          viewBox={`-0.5 -0.5 ${n + 1} ${n + 1}`}
+          viewBox={`${-U / 2} ${-U / 2} ${(n + 1) * U} ${(n + 1) * U}`}
           onContextMenu={e => e.preventDefault()}
         >
           {topo.edgeVerts.map(([a, b], edge) => {
@@ -312,11 +314,11 @@ export default function Slitherlink() {
                 )}
                 {mark === 2 && (
                   <g className={`sl-cross ${isHinted ? 'hinted' : ''}`}>
-                    <line x1={(x1 + x2) / 2 - 0.1} y1={(y1 + y2) / 2 - 0.1} x2={(x1 + x2) / 2 + 0.1} y2={(y1 + y2) / 2 + 0.1} />
-                    <line x1={(x1 + x2) / 2 - 0.1} y1={(y1 + y2) / 2 + 0.1} x2={(x1 + x2) / 2 + 0.1} y2={(y1 + y2) / 2 - 0.1} />
+                    <line x1={(x1 + x2) / 2 - X} y1={(y1 + y2) / 2 - X} x2={(x1 + x2) / 2 + X} y2={(y1 + y2) / 2 + X} />
+                    <line x1={(x1 + x2) / 2 - X} y1={(y1 + y2) / 2 + X} x2={(x1 + x2) / 2 + X} y2={(y1 + y2) / 2 - X} />
                   </g>
                 )}
-                {isHinted && mark === 0 && <circle className="sl-hint-ring" cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={0.22} />}
+                {isHinted && mark === 0 && <circle className="sl-hint-ring" cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={0.22 * U} />}
               </g>
             )
           })}
@@ -332,8 +334,10 @@ export default function Slitherlink() {
               <text
                 key={cell}
                 className={cls.filter(Boolean).join(' ')}
-                x={(cell % n) + 0.5}
-                y={Math.floor(cell / n) + 0.5}
+                x={((cell % n) + 0.5) * U}
+                y={(Math.floor(cell / n) + 0.5) * U}
+                textAnchor="middle"
+                dominantBaseline="central"
               >
                 {k}
               </text>
@@ -342,12 +346,22 @@ export default function Slitherlink() {
 
           {topo.vertEdges.map((_, v) => {
             const [x, y] = point(v)
-            return <circle key={v} className={`sl-dot ${problems?.verts.has(v) ? 'error' : ''}`} cx={x} cy={y} r={0.07} />
+            const bad = !!problems?.verts.has(v)
+            return <circle key={v} className={`sl-dot ${bad ? 'error' : ''}`} cx={x} cy={y} r={(bad ? 0.12 : 0.07) * U} />
           })}
 
           {!locked &&
             topo.edgeVerts.map((_, edge) => (
-              <polygon key={edge} className="sl-hit" points={hitPolygon(edge)} onPointerDown={e => onEdgeDown(e, edge)} />
+              <polygon
+                key={edge}
+                className="sl-hit"
+                points={hitPolygon(edge)}
+                onClick={() => onEdgeTap(edge, false)}
+                onContextMenu={e => {
+                  e.preventDefault()
+                  onEdgeTap(edge, true)
+                }}
+              />
             ))}
         </svg>
       </div>
