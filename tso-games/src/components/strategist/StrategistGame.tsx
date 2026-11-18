@@ -42,6 +42,15 @@ const REASON_TEXT: Record<'won' | 'lost', Partial<Record<EndReason, string>>> = 
   },
 }
 
+// 無痕模式或被封鎖的儲存空間，存取 localStorage 會直接丟例外；存不了就當沒有存檔，遊戲照常能玩
+function clearSave() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // 儲存空間不能用，沒有東西可清
+  }
+}
+
 function loadProgress(): Progress {
   const fallback: Progress = { stars: LEVELS.map(() => 0) }
   try {
@@ -49,7 +58,7 @@ function loadProgress(): Progress {
     if (!saved) return fallback
     const p = JSON.parse(saved) as Partial<Progress>
     if (!Array.isArray(p.stars)) {
-      localStorage.removeItem(STORAGE_KEY)
+      clearSave()
       return fallback
     }
     return {
@@ -59,7 +68,7 @@ function loadProgress(): Progress {
       }),
     }
   } catch {
-    localStorage.removeItem(STORAGE_KEY)
+    clearSave()
     return fallback
   }
 }
@@ -142,7 +151,11 @@ export default function StrategistGame() {
   const level = LEVELS[levelIdx]
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    } catch {
+      // 存不了只是下次要重新解鎖，不影響這一局
+    }
     bestRef.current = progress.stars
   }, [progress])
 
