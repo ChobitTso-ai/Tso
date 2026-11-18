@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
-  STEP, autoDeploy, canDeploy, castTactic, createBattle, defaultStance, parseMap, retreat, runToEnd, starsFor, stepBattle,
+  STEP, autoDeploy, canDeploy, castTactic, createBattle, defaultStance, retreat, runToEnd, starsFor, stepBattle,
   sumTroops, survivalRatio,
 } from './battle'
 import {
   COUNTER, COUNTER_TIPS, LEVELS, TACTICS, UNIT_STATS, bannerChar, maxTroopsOf, shortName, squadName,
 } from './data'
-import { VIEW_H, VIEW_W, createFx, createTerrainLayer, pushEvents, render, updateFx } from './render'
+import { VIEW_H, VIEW_W, createFx, drawLevelThumb, levelLayer, pushEvents, render, updateFx } from './render'
 import type { Fx } from './render'
 import type { Battle, EndReason, Phase, Placement, Progress, SquadSpec, Stance, TacticId, UnitType } from './types'
 import { MAP_H, MAP_W } from './types'
@@ -90,6 +90,14 @@ function Stars({ n }: { n: number }) {
   )
 }
 
+function LevelThumb({ idx }: { idx: number }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    if (ref.current) drawLevelThumb(ref.current, idx)
+  }, [idx])
+  return <canvas ref={ref} className="sg-level-thumb" width={384} height={240} aria-hidden="true" />
+}
+
 function Badge({ spec, side }: { spec: SquadSpec; side: 'player' | 'enemy' }) {
   return <span className={`sg-badge ${side} ${spec.commander ? 'commander' : ''}`}>{bannerChar(spec)}</span>
 }
@@ -167,16 +175,6 @@ export default function StrategistGame() {
     canvas.width = VIEW_W * dpr
     canvas.height = VIEW_H * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const layers = new Map<number, HTMLCanvasElement>()
-    const layerFor = (i: number) => {
-      let layer = layers.get(i)
-      if (!layer) {
-        layer = createTerrainLayer(parseMap(LEVELS[i].map), dpr, i)
-        layers.set(i, layer)
-      }
-      return layer
-    }
-
     const finish = (b: Battle) => {
       const idx = levelRef.current
       const stars = starsFor(b)
@@ -228,8 +226,8 @@ export default function StrategistGame() {
         }
         const fxDt = ph === 'battle' ? (running ? dt * speedRef.current : 0) : dt
         anim += fxDt
-        updateFx(fxRef.current, fxDt)
-        render(ctx, layerFor(levelRef.current), b, fxRef.current, {
+        updateFx(fxRef.current, fxDt, b)
+        render(ctx, levelLayer(levelRef.current), b, fxRef.current, {
           phase: ph === 'deploy' ? 'deploy' : 'battle',
           selectedId: ph === 'deploy' ? selectedIdRef.current : null,
           hover: hoverRef.current,
@@ -415,6 +413,10 @@ export default function StrategistGame() {
               const open = isUnlocked(progress.stars, i)
               return (
                 <button key={lv.name} className={`sg-level-card ${open ? '' : 'locked'}`} disabled={!open} onClick={() => openLevel(i)}>
+                  <span className="sg-level-map">
+                    <LevelThumb idx={i} />
+                    {!open && <span className="sg-level-lock">🔒</span>}
+                  </span>
                   <span className="sg-level-no">第 {i + 1} 戰</span>
                   <span className="sg-level-name">{lv.name}</span>
                   <span className="sg-level-story">{open ? lv.story : '🔒 打贏上一戰才能挑戰'}</span>
