@@ -385,66 +385,6 @@ const MODELS = {
       L('box', [x + .09, .76, z], [.16, .12, .012], c);
     });
   },
-
-  // 方陣找找看：3×3 字母骰盤面（金色是連起來的字），後方疊著骰子塔，旁邊立一支放大鏡
-  dice(L) {
-    const DIE = '#fbf6ea', PICK = PAL.yellow, NAVY = '#3b4f8a';
-    L('rbox', [0, .03, 0], [1, .06, .96], '#efe6d6');
-    L('rbox', [0, .09, .16], [.74, .06, .6], NAVY);
-    const picked = [[0, 0], [1, 1], [1, 2]];
-    const at = (c, r) => [-.22 + c * .22, .36 + (r - 2) * .2];
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
-      const [x, z] = at(c, r), on = picked.some(([pc, pr]) => pc === c && pr === r);
-      L('rbox', [x, .19, z], [.17, .14, .17], on ? PICK : DIE);
-      L('box', [x, .265, z], [.08, .012, .025], PAL.ink);
-      L('box', [x, .265, z], [.025, .012, .08], PAL.ink);
-    }
-    // 連線
-    L('box', [-.11, .3, .06], [.3, .025, .03], PAL.coral, [0, Math.atan2(.2, .22), 0]);
-    L('box', [0, .3, .26], [.03, .025, .2], PAL.coral);
-    // 骰子塔
-    L('rbox', [-.3, .3, -.3], [.3, .28, .28], DIE);
-    L('glowbox', [-.3, .3, -.158], [.1, .1, .012], PAL.yellow);
-    L('rbox', [-.28, .58, -.3], [.25, .25, .25], PAL.coral, [0, .3, 0]);
-    L('rbox', [-.3, .82, -.31], [.21, .21, .21], PAL.teal, [0, -.25, 0]);
-    L('glowsphere', [-.3, .98, -.31], .05, PAL.cream);
-    // 放大鏡
-    L('cylinder', [.26, .38, -.26], [.05, .44, .05], PAL.wood);
-    L('torus', [.26, .74, -.26], [.32, .32, .32], PAL.ink);
-    L('cylinder', [.26, .74, -.26], [.2, .02, .2], PAL.glass, [Math.PI / 2, 0, 0]);
-  },
-
-  // 數迴：點陣板上用圍籬圍出一條迴路，格子裡的小圓牌是提示數字，角落立著迴路告示牌
-  loop(L) {
-    const RAIL = '#24325e', BOARD = '#f4efe1';
-    L('rbox', [0, .03, 0], [1, .06, .96], '#e4dccb');
-    L('rbox', [0, .08, .04], [.88, .06, .84], BOARD);
-    const P = (i) => -.33 + i * .22;
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) L('sphere', [P(c), .12, P(r) + .04], .022, PAL.ink);
-    // 迴路的轉角點，依序連成一圈
-    const path = [[0, 0], [2, 0], [2, 1], [3, 1], [3, 3], [1, 3], [1, 2], [0, 2], [0, 0]];
-    for (let i = 0; i < path.length - 1; i++) {
-      const [c1, r1] = path[i], [c2, r2] = path[i + 1];
-      const x = (P(c1) + P(c2)) / 2, z = (P(r1) + P(r2)) / 2 + .04;
-      const len = Math.abs(P(c2) - P(c1)) + Math.abs(P(r2) - P(r1));
-      const horiz = r1 === r2;
-      [.17, .27].forEach((y) => L('box', [x, y, z], horiz ? [len, .035, .03] : [.03, .035, len], RAIL));
-    }
-    path.slice(0, -1).forEach(([c, r]) => {
-      L('cylinder', [P(c), .21, P(r) + .04], [.04, .22, .04], PAL.wood);
-      L('glowsphere', [P(c), .33, P(r) + .04], .03, PAL.yellow);
-    });
-    // 提示數字：圓牌上的點數
-    [[0, 0, 3], [2, 1, 2], [1, 2, 1]].forEach(([c, r, k]) => {
-      const x = (P(c) + P(c + 1)) / 2, z = (P(r) + P(r + 1)) / 2 + .04;
-      L('cylinder', [x, .125, z], [.12, .02, .12], PAL.coral);
-      for (let i = 0; i < k; i++) L('sphere', [x + (i - (k - 1) / 2) * .035, .14, z], .014, PAL.cream);
-    });
-    // 告示牌
-    L('cylinder', [-.4, .45, -.4], [.035, .8, .035], PAL.wood);
-    L('rbox', [-.4, .8, -.4], [.28, .28, .04], BOARD);
-    L('torus', [-.4, .8, -.375], [.26, .26, .2], RAIL);
-  },
 };
 
 // ================= 島內配置 =================

@@ -8,7 +8,7 @@ const DATA = {
     { id: 'learn', no: '02', name: '學習島', en: 'Learning Isle', q: 1, r: 0, ground: 'speckle', tree: 'fruit', band: '#58a6a6',
       summary: '數學、知識問答與程式思維，邊玩邊學。', summaryEn: 'Math, quizzes and coding logic. Learn while you play.' },
     { id: 'puzzle', no: '03', name: '解謎島', en: 'Puzzle Isle', q: 0, r: 1, ground: 'stripe', tree: 'cherry', band: '#fcea8b',
-      summary: '畫線、找字、推理迴路，動腦筋解開各種謎題。', summaryEn: 'Draw lines, hunt for words and trace loops to solve puzzles.' },
+      summary: '用手畫線、動腦筋，解開物理謎題。', summaryEn: 'Draw lines and solve physics puzzles.' },
     { id: 'kingdom', no: '04', name: '三國島', en: 'Kingdoms Isle', q: 1, r: 1, ground: 'brick', tree: 'willow', band: '#db6a41',
       summary: '三國主題小遊戲，陸續加入中。', summaryEn: 'Three Kingdoms mini games, coming one by one.' },
   ],
