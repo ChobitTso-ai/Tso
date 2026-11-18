@@ -480,7 +480,7 @@ export default function WordGrid() {
               目標數 <span className="wg-target-num">{current.target}</span>
             </div>
           )}
-          <div key={flash?.key} className={`wg-status ${status.kind}`}>
+          <div key={flash?.key} className={`wg-status ${status.kind} ${isMath ? 'math' : ''}`}>
             {status.text}
           </div>
 
@@ -593,7 +593,7 @@ export default function WordGrid() {
           </div>
 
           {current.revealed ? (
-            <div className="wg-words">
+            <div className={`wg-words ${isMath ? 'math' : ''}`}>
               {answerList.map(s => (
                 <button
                   key={s.text}
@@ -605,7 +605,7 @@ export default function WordGrid() {
               ))}
             </div>
           ) : (
-            <div className="wg-words">
+            <div className={`wg-words ${isMath ? 'math' : ''}`}>
               {[...foundSols].reverse().map(s => (
                 <span key={s.text} className={`wg-word found ${s.common ? '' : 'extra'}`}>
                   {isMath ? s.text : s.text.toUpperCase()}
