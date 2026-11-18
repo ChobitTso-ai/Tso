@@ -32,7 +32,7 @@
   flex-wrap: wrap;
   gap: 24px;
   justify-content: center;
-  max-width: 760px;
+  max-width: 1140px;
   width: 100%;
 }
 
@@ -85,6 +85,13 @@
 .entry-hint {
   color: #777;
   font-size: 13px;
+}
+
+.entry-switches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 .entry-switch {

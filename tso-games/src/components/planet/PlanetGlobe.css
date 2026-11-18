@@ -1,0 +1,60 @@
+.pl-globe {
+  position: relative;
+  width: 100%;
+  /* 要和 render.ts 的 CANVAS_RATIO（高 ÷ 寬 = 0.75）一致 */
+  aspect-ratio: 4 / 3;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  /* 手機上下滑仍能捲動頁面，左右拖曳才轉星球 */
+  touch-action: pan-y;
+  border-radius: 16px;
+}
+
+.pl-canvas:active { cursor: grabbing; }
+
+.pl-canvas:focus-visible {
+  outline: 2px solid #e4c97e;
+  outline-offset: 4px;
+}
+
+.pl-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  padding: 4px 10px 5px;
+  border-radius: 10px;
+  background: #16213e;
+  color: #f2e6c4;
+  border-bottom: 3px solid var(--pl-c);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  will-change: transform, opacity;
+}
+
+.pl-tag:hover,
+.pl-tag.on {
+  background: #1f2d52;
+  color: #e4c97e;
+  outline: 2px solid var(--pl-c);
+}
+
+@media (max-width: 768px) {
+  .pl-tag {
+    font-size: 12px;
+    padding: 3px 8px 4px;
+  }
+}

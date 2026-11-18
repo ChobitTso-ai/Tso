@@ -1,13 +1,13 @@
-// 首頁入口的選擇：島嶼版（3D）或卡片版。只記在這個分頁的 sessionStorage，
+// 首頁入口的選擇：島嶼版（3D）、星球版或卡片版。只記在這個分頁的 sessionStorage，
 // 與登入狀態相同，關掉分頁後重新選。
-export type Entry = 'island' | 'cards'
+export type Entry = 'island' | 'cards' | 'planet'
 
 const KEY = 'tsoEntry'
 
 export function readEntry(): Entry | null {
   try {
     const v = sessionStorage.getItem(KEY)
-    return v === 'island' || v === 'cards' ? v : null
+    return v === 'island' || v === 'cards' || v === 'planet' ? v : null
   } catch {
     return null
   }
