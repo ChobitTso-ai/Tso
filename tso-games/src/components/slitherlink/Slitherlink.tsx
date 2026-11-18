@@ -12,10 +12,13 @@ import {
   topology,
 } from './logic'
 import type { Level, Mark, Puzzle, Size } from './logic'
+import { SKINS, loadSkinFont, readSkin } from '../skins/skins'
+import type { Skin } from '../skins/skins'
 
 const STATE_KEY = 'slitherlink_state'
 const STATS_KEY = 'slitherlink_stats'
 const ERRORS_KEY = 'slitherlink_showErrors'
+const SKIN_KEY = 'slitherlink_skin'
 
 interface Game {
   puzzle: Puzzle
@@ -99,6 +102,7 @@ export default function Slitherlink() {
   const [stats, setStats] = useState<Stats>(loadStats)
   const [showErrors, setShowErrors] = useState(() => localStorage.getItem(ERRORS_KEY) !== '0')
   const [hinted, setHinted] = useState<{ edge: number; key: number } | null>(null)
+  const [skin, setSkin] = useState<Skin>(() => readSkin(SKIN_KEY))
   const workerRef = useRef<Worker | null>(null)
 
   const requestPuzzle = (nextSize: Size, nextLevel: Level) => {
@@ -158,6 +162,11 @@ export default function Slitherlink() {
   }, [showErrors])
 
   useEffect(() => {
+    loadSkinFont(skin)
+    localStorage.setItem(SKIN_KEY, skin)
+  }, [skin])
+
+  useEffect(() => {
     if (!hinted) return
     const id = setTimeout(() => setHinted(null), 1500)
     return () => clearTimeout(id)
@@ -174,8 +183,10 @@ export default function Slitherlink() {
 
   if (!game) {
     return (
-      <div className="sl-root">
-        <div className="sl-loading">出題中…</div>
+      <div className={`sl-shell sl-skin-${skin}`}>
+        <div className="sl-root">
+          <div className="sl-loading">出題中…</div>
+        </div>
       </div>
     )
   }
@@ -248,6 +259,7 @@ export default function Slitherlink() {
   }
 
   return (
+    <div className={`sl-shell sl-skin-${skin}`}>
     <div className="sl-root">
       <div className="sl-settings">
         <div className="sl-seg">
@@ -277,6 +289,18 @@ export default function Slitherlink() {
         <button className="sl-btn sl-btn-new" onClick={() => startNew(size, level)} disabled={generating}>
           🔄 新題目
         </button>
+        <div className="sl-seg" role="group" aria-label="畫面風格">
+          {SKINS.map(s => (
+            <button
+              key={s.id}
+              className={`sl-seg-btn ${skin === s.id ? 'active' : ''}`}
+              aria-pressed={skin === s.id}
+              onClick={() => setSkin(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="sl-info">
@@ -405,6 +429,7 @@ export default function Slitherlink() {
           <li>入門技巧：0 的四邊都打叉；角落的 3 貼著角的兩條邊一定是線；不能讓線提早圍成小圈。</li>
         </ul>
       </details>
+    </div>
     </div>
   )
 }

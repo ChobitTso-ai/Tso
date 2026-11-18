@@ -1,22 +1,141 @@
+/* ── 三種畫面風格：所有會隨風格改變的顏色都在這裡 ─────────── */
+
+/* 🌙 夜空金（預設，與網站深色主題一致） */
+.wg-skin-night {
+  --wg-page: transparent;
+  --wg-text: #e0e0e0;
+  --wg-soft: #c9d2e3;
+  --wg-muted: #9aa4b8;
+  --wg-faint: #6a748a;
+  --wg-panel: #0b1120;
+  --wg-panel-line: #1e2a3a;
+  --wg-row: #121c36;
+  --wg-accent: #e4c97e;
+  --wg-accent-text: #1a1a1a;
+  --wg-board: #121c36;
+  --wg-board-line: #1e2a4a;
+  --wg-font: inherit;
+  --wg-letter-scale: 0.42;
+  --wg-tile: linear-gradient(160deg, #2f4078, #24325e);
+  --wg-tile-border: none;
+  --wg-tile-shadow: 0 3px 0 #141d3b;
+  --wg-letter: #f5f0e1;
+  --wg-sel: linear-gradient(160deg, #f3dc9a, #e4c97e);
+  --wg-sel-border: none;
+  --wg-sel-shadow: 0 3px 0 #141d3b;
+  --wg-sel-letter: #2a1f05;
+  --wg-last: #ffffff;
+  --wg-shown: linear-gradient(160deg, #6fd6c4, #3aa392);
+  --wg-shown-letter: #062b25;
+  --wg-path: rgba(255, 255, 255, 0.55);
+  --wg-word: #1a2547;
+  --wg-word-text: #f5f0e1;
+  --wg-found: #1f4a2c;
+  --wg-extra: #3a2f6b;
+  --wg-missed-line: #34405e;
+  --wg-op: #18223d;
+  --wg-op-line: #2c3a5a;
+}
+
+/* 🪵 木頭桌遊：楓木字母塊、胡桃木托盤 */
+.wg-skin-wood {
+  --wg-page: radial-gradient(900px 420px at 50% -80px, rgba(232, 185, 106, 0.18), transparent 70%), #2b2018;
+  --wg-text: #f6e7cc;
+  --wg-soft: #ead6b3;
+  --wg-muted: #bfa47e;
+  --wg-faint: #8f7658;
+  --wg-panel: #20170f;
+  --wg-panel-line: #4a3424;
+  --wg-row: #3a2a1d;
+  --wg-accent: #e8b96a;
+  --wg-accent-text: #2b1a0a;
+  --wg-board: #4a3424;
+  --wg-board-line: #5d4230;
+  --wg-font: 'Fredoka', system-ui, sans-serif;
+  --wg-letter-scale: 0.44;
+  --wg-tile: linear-gradient(160deg, #f3dcaf, #d8b47a);
+  --wg-tile-border: none;
+  --wg-tile-shadow: 0 3px 0 #8a6236;
+  --wg-letter: #4a2e17;
+  --wg-sel: linear-gradient(160deg, #a9d793, #6fb35a);
+  --wg-sel-border: none;
+  --wg-sel-shadow: 0 3px 0 #3f7a30;
+  --wg-sel-letter: #173512;
+  --wg-last: #fbe9c8;
+  --wg-shown: linear-gradient(160deg, #9fd3e0, #5aa9bd);
+  --wg-shown-letter: #0e2a33;
+  --wg-path: rgba(255, 255, 255, 0.6);
+  --wg-word: #3a2a1d;
+  --wg-word-text: #fbf2dc;
+  --wg-found: #5f7d3a;
+  --wg-extra: #7a4f86;
+  --wg-missed-line: #6b4a2f;
+  --wg-op: #3a2a1d;
+  --wg-op-line: #6b4a2f;
+}
+
+/* 💡 霓虹電玩：黑底、發光外框 */
+.wg-skin-neon {
+  --wg-page: #07060f;
+  --wg-text: #e6fbff;
+  --wg-soft: #c8f7ff;
+  --wg-muted: #7fb8c9;
+  --wg-faint: #4f7f8f;
+  --wg-panel: #0d0b1f;
+  --wg-panel-line: #24204a;
+  --wg-row: #120f2a;
+  --wg-accent: #22e1ff;
+  --wg-accent-text: #04121a;
+  --wg-board: #0d0b1f;
+  --wg-board-line: rgba(34, 225, 255, 0.25);
+  --wg-font: 'Orbitron', system-ui, sans-serif;
+  --wg-letter-scale: 0.34;
+  --wg-tile: rgba(34, 225, 255, 0.04);
+  --wg-tile-border: 2px solid #22e1ff;
+  --wg-tile-shadow: 0 0 8px rgba(34, 225, 255, 0.55), inset 0 0 6px rgba(34, 225, 255, 0.25);
+  --wg-letter: #c8f7ff;
+  --wg-sel: rgba(255, 61, 242, 0.16);
+  --wg-sel-border: 2px solid #ff3df2;
+  --wg-sel-shadow: 0 0 10px rgba(255, 61, 242, 0.75);
+  --wg-sel-letter: #ffd6fb;
+  --wg-last: #ffd6fb;
+  --wg-shown: rgba(57, 255, 136, 0.14);
+  --wg-shown-letter: #c9ffe0;
+  --wg-path: rgba(255, 61, 242, 0.75);
+  --wg-word: #120f2a;
+  --wg-word-text: #c8f7ff;
+  --wg-found: rgba(34, 225, 255, 0.16);
+  --wg-extra: rgba(255, 61, 242, 0.18);
+  --wg-missed-line: #24204a;
+  --wg-op: #120f2a;
+  --wg-op-line: #24204a;
+}
+.wg-skin-neon .wg-tile.shown { border-color: #39ff88; }
+
+/* ── 版面 ─────────────────────────────── */
+
+.wg-shell {
+  flex: 1;
+  width: 100%;
+  background: var(--wg-page);
+}
+
 .wg-root {
-  --wg-gold: #e4c97e;
-  --wg-tile: #24325e;
-  --wg-tile-hi: #2f4078;
   --wg-good: #6fcf6f;
   --wg-bad: #ff7b7b;
-  --wg-board: min(88vw, 420px);
+  --wg-board-size: min(88vw, 420px);
   width: 100%;
   max-width: 980px;
   margin: 0 auto;
   padding: 16px;
   box-sizing: border-box;
-  color: #e0e0e0;
+  color: var(--wg-text);
 }
 
 .wg-loading {
   padding: 80px 0;
   text-align: center;
-  color: #9aa4b8;
+  color: var(--wg-muted);
 }
 
 /* ── 設定列 ───────────────────────────── */
@@ -31,8 +150,8 @@
 
 .wg-seg {
   display: flex;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--wg-panel);
+  border: 1px solid var(--wg-panel-line);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -40,16 +159,16 @@
 .wg-seg-btn {
   background: transparent;
   border: none;
-  color: #9aa4b8;
+  color: var(--wg-muted);
   padding: 8px 12px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
 }
-.wg-seg-btn:hover { color: #fff; }
+.wg-seg-btn:hover { color: var(--wg-text); }
 .wg-seg-btn.active {
-  background: var(--wg-gold);
-  color: #1a1a1a;
+  background: var(--wg-accent);
+  color: var(--wg-accent-text);
   font-weight: 700;
 }
 
@@ -86,7 +205,7 @@
 
 .wg-target {
   font-size: 18px;
-  color: #c9d2e3;
+  color: var(--wg-soft);
 }
 .wg-target-num {
   display: inline-block;
@@ -94,8 +213,9 @@
   margin-left: 6px;
   padding: 2px 12px;
   border-radius: 10px;
-  background: var(--wg-gold);
-  color: #1a1a1a;
+  background: var(--wg-accent);
+  color: var(--wg-accent-text);
+  font-family: var(--wg-font);
   font-size: 28px;
   font-weight: 800;
   text-align: center;
@@ -106,11 +226,11 @@
   font-size: 18px;
   font-weight: 700;
   text-align: center;
-  color: #9aa4b8;
+  color: var(--wg-muted);
 }
-.wg-status.typing { color: #fff; letter-spacing: 3px; font-size: 22px; }
+.wg-status.typing { color: var(--wg-text); letter-spacing: 3px; font-size: 22px; font-family: var(--wg-font); }
 .wg-status.good { color: var(--wg-good); animation: wg-pop 0.3s; }
-.wg-status.dup { color: var(--wg-gold); }
+.wg-status.dup { color: var(--wg-accent); }
 .wg-status.bad { color: var(--wg-bad); animation: wg-shake 0.35s; }
 .wg-status.info { font-weight: 400; font-size: 15px; }
 
@@ -128,15 +248,15 @@
 /* 格子用等寬的 cell 排，字塊在 cell 內留邊；這樣格子中心剛好落在 (c + 0.5) / n，連線與觸控判定才對得準 */
 .wg-grid {
   position: relative;
-  width: var(--wg-board);
-  height: var(--wg-board);
+  width: var(--wg-board-size);
+  height: var(--wg-board-size);
   display: grid;
   grid-template-columns: repeat(var(--n), 1fr);
   grid-template-rows: repeat(var(--n), 1fr);
   padding: 0;
   border-radius: 16px;
-  background: #121c36;
-  box-shadow: inset 0 0 0 2px #1e2a4a;
+  background: var(--wg-board);
+  box-shadow: inset 0 0 0 2px var(--wg-board-line);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -158,24 +278,28 @@
   align-items: center;
   justify-content: center;
   border-radius: 14%;
-  background: linear-gradient(160deg, var(--wg-tile-hi), var(--wg-tile));
-  box-shadow: 0 3px 0 #141d3b;
-  color: #f5f0e1;
+  background: var(--wg-tile);
+  border: var(--wg-tile-border);
+  box-shadow: var(--wg-tile-shadow);
+  color: var(--wg-letter);
+  font-family: var(--wg-font);
   font-weight: 800;
-  font-size: calc(var(--wg-board) / var(--n) * 0.42);
+  font-size: calc(var(--wg-board-size) / var(--n) * var(--wg-letter-scale));
   cursor: pointer;
   transition: all 0.15s;
 }
 .wg-grid.math .wg-tile { font-variant-numeric: tabular-nums; }
 .wg-tile.sel {
-  background: linear-gradient(160deg, #f3dc9a, var(--wg-gold));
-  color: #2a1f05;
+  background: var(--wg-sel);
+  border: var(--wg-sel-border);
+  box-shadow: var(--wg-sel-shadow);
+  color: var(--wg-sel-letter);
   transform: scale(0.94);
 }
-.wg-tile.last { box-shadow: 0 0 0 3px #fff; }
+.wg-tile.last { box-shadow: 0 0 0 3px var(--wg-last); }
 .wg-tile.shown {
-  background: linear-gradient(160deg, #6fd6c4, #3aa392);
-  color: #062b25;
+  background: var(--wg-shown);
+  color: var(--wg-shown-letter);
 }
 
 .wg-lines {
@@ -187,7 +311,7 @@
 }
 .wg-lines polyline {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.55);
+  stroke: var(--wg-path);
   stroke-width: 0.12;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -196,15 +320,15 @@
 /* ── 數學：挑運算符號 ─────────────────── */
 
 .wg-builder {
-  width: var(--wg-board);
+  width: var(--wg-board-size);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   padding: 12px;
   box-sizing: border-box;
-  background: #0b1120;
-  border: 1px solid #2c3a5a;
+  background: var(--wg-panel);
+  border: 1px solid var(--wg-op-line);
   border-radius: 14px;
 }
 
@@ -216,8 +340,15 @@
   gap: 4px;
 }
 .wg-expr-part { display: flex; align-items: center; gap: 4px; }
-.wg-expr-num { font-size: 26px; font-weight: 800; color: #fff; min-width: 20px; text-align: center; }
-.wg-expr-eq { font-size: 22px; font-weight: 700; color: var(--wg-gold); margin-left: 6px; }
+.wg-expr-num {
+  font-family: var(--wg-font);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--wg-text);
+  min-width: 20px;
+  text-align: center;
+}
+.wg-expr-eq { font-size: 22px; font-weight: 700; color: var(--wg-accent); margin-left: 6px; }
 
 .wg-ops {
   display: grid;
@@ -227,16 +358,16 @@
 .wg-op {
   width: 30px;
   height: 30px;
-  border: 1px solid #2c3a5a;
+  border: 1px solid var(--wg-op-line);
   border-radius: 8px;
-  background: #18223d;
-  color: #c9d2e3;
+  background: var(--wg-op);
+  color: var(--wg-soft);
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
 }
-.wg-op.active { background: var(--wg-gold); color: #1a1a1a; border-color: var(--wg-gold); }
+.wg-op.active { background: var(--wg-accent); color: var(--wg-accent-text); border-color: var(--wg-accent); }
 
 .wg-builder-actions { display: flex; gap: 10px; }
 
@@ -256,19 +387,19 @@
   flex-direction: column;
   align-items: center;
   padding: 8px 4px;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--wg-panel);
+  border: 1px solid var(--wg-panel-line);
   border-radius: 10px;
 }
-.wg-num-label { font-size: 12px; color: #8a94a8; }
-.wg-num-value { font-size: 20px; font-weight: 700; color: #fff; }
-.wg-num-value small { font-size: 13px; color: #8a94a8; font-weight: 400; }
+.wg-num-label { font-size: 12px; color: var(--wg-muted); }
+.wg-num-value { font-size: 20px; font-weight: 700; color: var(--wg-text); }
+.wg-num-value small { font-size: 13px; color: var(--wg-muted); font-weight: 400; }
 
 .wg-progress {
   position: relative;
   height: 12px;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--wg-panel);
+  border: 1px solid var(--wg-panel-line);
   border-radius: 6px;
 }
 .wg-progress-bar {
@@ -283,7 +414,7 @@
   bottom: -4px;
   width: 3px;
   margin-left: -1px;
-  background: var(--wg-gold);
+  background: var(--wg-accent);
   border-radius: 2px;
 }
 
@@ -306,9 +437,9 @@
   justify-content: space-between;
   padding: 4px 10px;
   border-radius: 8px;
-  background: #121c36;
+  background: var(--wg-row);
   font-size: 13px;
-  color: #c9d2e3;
+  color: var(--wg-soft);
 }
 .wg-group.done { color: var(--wg-good); }
 .wg-group.extra { color: #b9a7ff; }
@@ -325,22 +456,23 @@
   padding: 3px 9px;
   border-radius: 8px;
   border: 1px solid transparent;
-  background: #1a2547;
-  color: #f5f0e1;
+  background: var(--wg-word);
+  color: var(--wg-word-text);
+  font-family: var(--wg-font);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 button.wg-word { cursor: pointer; transition: all 0.15s; }
-.wg-word.found { background: #1f4a2c; }
-.wg-word.extra { background: #3a2f6b; }
-.wg-word.missed { background: transparent; border-color: #34405e; color: #8a94a8; }
+.wg-word.found { background: var(--wg-found); }
+.wg-word.extra { background: var(--wg-extra); }
+.wg-word.missed { background: transparent; border-color: var(--wg-missed-line); color: var(--wg-muted); }
 .wg-word.active { border-color: #6fd6c4; color: #6fd6c4; }
-.wg-empty { color: #6a748a; font-size: 14px; }
+.wg-empty { color: var(--wg-faint); font-size: 14px; }
 
 .wg-side-actions { display: flex; gap: 10px; }
 
-.wg-record { font-size: 13px; color: #8a94a8; }
+.wg-record { font-size: 13px; color: var(--wg-muted); }
 
 /* ── 規則 ─────────────────────────────── */
 
@@ -348,22 +480,22 @@ button.wg-word { cursor: pointer; transition: all 0.15s; }
   margin: 24px auto 0;
   max-width: 760px;
   padding: 12px 16px;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--wg-panel);
+  border: 1px solid var(--wg-panel-line);
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.7;
-  color: #c9d2e3;
+  color: var(--wg-soft);
 }
-.wg-rules summary { cursor: pointer; color: var(--wg-gold); font-weight: 700; }
+.wg-rules summary { cursor: pointer; color: var(--wg-accent); font-weight: 700; }
 .wg-rules ul { padding-left: 20px; margin: 8px 0; }
-.wg-credit { margin: 8px 0 0; font-size: 12px; color: #6a748a; }
-.wg-credit a { color: #8a94a8; }
+.wg-credit { margin: 8px 0 0; font-size: 12px; color: var(--wg-faint); }
+.wg-credit a { color: var(--wg-muted); }
 
 @media (max-width: 768px) {
   .wg-root { padding: 12px; }
   .wg-main { flex-direction: column; align-items: center; }
-  .wg-side { width: var(--wg-board); }
+  .wg-side { width: var(--wg-board-size); }
   .wg-seg-btn { padding: 7px 9px; font-size: 13px; }
 }
 
