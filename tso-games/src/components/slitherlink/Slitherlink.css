@@ -1,8 +1,95 @@
-.sl-root {
-  --sl-gold: #e4c97e;
-  --sl-good: #6fcf6f;
+/* ── 三種畫面風格：所有會隨風格改變的顏色都在這裡 ─────────── */
+
+/* 🌙 夜空金（預設）：深藍頁面、米色紙板 */
+.sl-skin-night {
+  --sl-page: transparent;
+  --sl-text: #e0e0e0;
+  --sl-soft: #c9d2e3;
+  --sl-muted: #9aa4b8;
+  --sl-faint: #8a94a8;
+  --sl-panel: #0b1120;
+  --sl-panel-line: #1e2a3a;
+  --sl-accent: #e4c97e;
+  --sl-accent-text: #1a1a1a;
+  --sl-font: inherit;
+  --sl-board: #f4efe1;
+  --sl-board-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --sl-guide: #d8cfb8;
+  --sl-dot: #2a2f3d;
+  --sl-line: #24325e;
+  --sl-line-glow: none;
+  --sl-solved: #2f8f4a;
+  --sl-cross: #c0564a;
+  --sl-clue: #1f2a4d;
+  --sl-done: #a9a089;
   --sl-bad: #ff6b6b;
-  --sl-board: min(92vw, 520px);
+  --sl-hover: rgba(36, 50, 94, 0.08);
+}
+
+/* 🪵 木頭桌遊：胡桃木頁面、牛皮紙配鉛筆線 */
+.sl-skin-wood {
+  --sl-page: radial-gradient(900px 420px at 50% -80px, rgba(232, 185, 106, 0.18), transparent 70%), #2b2018;
+  --sl-text: #f6e7cc;
+  --sl-soft: #ead6b3;
+  --sl-muted: #bfa47e;
+  --sl-faint: #8f7658;
+  --sl-panel: #20170f;
+  --sl-panel-line: #4a3424;
+  --sl-accent: #e8b96a;
+  --sl-accent-text: #2b1a0a;
+  --sl-font: 'Fredoka', system-ui, sans-serif;
+  --sl-board: #e9d3a8;
+  --sl-board-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), inset 0 0 0 6px #8a6236;
+  --sl-guide: #cdb183;
+  --sl-dot: #5a3d22;
+  --sl-line: #5a3d22;
+  --sl-line-glow: none;
+  --sl-solved: #2f7d3a;
+  --sl-cross: #c0392b;
+  --sl-clue: #3d2614;
+  --sl-done: #a88d63;
+  --sl-bad: #d64532;
+  --sl-hover: rgba(90, 61, 34, 0.1);
+}
+
+/* 💡 霓虹電玩：黑底、發光的線 */
+.sl-skin-neon {
+  --sl-page: #07060f;
+  --sl-text: #e6fbff;
+  --sl-soft: #c8f7ff;
+  --sl-muted: #7fb8c9;
+  --sl-faint: #4f7f8f;
+  --sl-panel: #0d0b1f;
+  --sl-panel-line: #24204a;
+  --sl-accent: #22e1ff;
+  --sl-accent-text: #04121a;
+  --sl-font: 'Orbitron', system-ui, sans-serif;
+  --sl-board: #0d0b1f;
+  --sl-board-shadow: 0 0 0 1px rgba(34, 225, 255, 0.35), 0 0 28px rgba(34, 225, 255, 0.18);
+  --sl-guide: rgba(34, 225, 255, 0.14);
+  --sl-dot: #22e1ff;
+  --sl-line: #ff3df2;
+  --sl-line-glow: drop-shadow(0 0 3px #ff3df2);
+  --sl-solved: #39ff88;
+  --sl-cross: #ffb020;
+  --sl-clue: #c8f7ff;
+  --sl-done: rgba(200, 247, 255, 0.3);
+  --sl-bad: #ff5470;
+  --sl-hover: rgba(34, 225, 255, 0.08);
+}
+.sl-skin-neon .sl-board.solved .sl-line { filter: drop-shadow(0 0 3px #39ff88); }
+
+/* ── 版面 ─────────────────────────────── */
+
+.sl-shell {
+  flex: 1;
+  width: 100%;
+  background: var(--sl-page);
+}
+
+.sl-root {
+  --sl-good: #6fcf6f;
+  --sl-board-size: min(92vw, 520px);
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
@@ -12,12 +99,12 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: #e0e0e0;
+  color: var(--sl-text);
 }
 
 .sl-loading {
   padding: 80px 0;
-  color: #9aa4b8;
+  color: var(--sl-muted);
 }
 
 .sl-settings {
@@ -29,8 +116,8 @@
 
 .sl-seg {
   display: flex;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--sl-panel);
+  border: 1px solid var(--sl-panel-line);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -38,16 +125,16 @@
 .sl-seg-btn {
   background: transparent;
   border: none;
-  color: #9aa4b8;
+  color: var(--sl-muted);
   padding: 8px 14px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
 }
-.sl-seg-btn:hover:not(:disabled) { color: #fff; }
+.sl-seg-btn:hover:not(:disabled) { color: var(--sl-text); }
 .sl-seg-btn.active {
-  background: var(--sl-gold);
-  color: #1a1a1a;
+  background: var(--sl-accent);
+  color: var(--sl-accent-text);
   font-weight: 700;
 }
 .sl-seg-btn:disabled { cursor: default; }
@@ -71,7 +158,7 @@
   display: flex;
   gap: 18px;
   font-size: 15px;
-  color: #c9d2e3;
+  color: var(--sl-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -79,7 +166,7 @@
   min-height: 24px;
   text-align: center;
   font-size: 15px;
-  color: #9aa4b8;
+  color: var(--sl-muted);
 }
 .sl-status.win {
   color: var(--sl-good);
@@ -88,11 +175,11 @@
 }
 
 .sl-board-wrap {
-  width: var(--sl-board);
-  height: var(--sl-board);
+  width: var(--sl-board-size);
+  height: var(--sl-board-size);
   border-radius: 14px;
-  background: #f4efe1;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  background: var(--sl-board);
+  box-shadow: var(--sl-board-shadow);
 }
 
 .sl-board {
@@ -108,20 +195,21 @@
 
 /* 盤面座標每格 40 單位，以下線寬、字級都以此為準 */
 .sl-guide {
-  stroke: #d8cfb8;
+  stroke: var(--sl-guide);
   stroke-width: 1;
 }
 
 .sl-line {
-  stroke: #24325e;
+  stroke: var(--sl-line);
   stroke-width: 5.2;
   stroke-linecap: round;
+  filter: var(--sl-line-glow);
 }
-.sl-board.solved .sl-line { stroke: #2f8f4a; }
+.sl-board.solved .sl-line { stroke: var(--sl-solved); }
 .sl-line.hinted { stroke: #e08a1e; animation: sl-blink 0.5s 3; }
 
 .sl-cross line {
-  stroke: #c0564a;
+  stroke: var(--sl-cross);
   stroke-width: 1.8;
   stroke-linecap: round;
 }
@@ -139,17 +227,18 @@
 }
 
 .sl-clue {
+  font-family: var(--sl-font);
   font-size: 24px;
   font-weight: 800;
-  fill: #1f2a4d;
+  fill: var(--sl-clue);
   pointer-events: none;
   transition: fill 0.15s;
 }
-.sl-clue.done { fill: #a9a089; }
+.sl-clue.done { fill: var(--sl-done); }
 .sl-clue.error { fill: var(--sl-bad); }
 
 .sl-dot {
-  fill: #2a2f3d;
+  fill: var(--sl-dot);
   pointer-events: none;
 }
 .sl-dot.error { fill: var(--sl-bad); }
@@ -159,7 +248,7 @@
   cursor: pointer;
 }
 @media (hover: hover) {
-  .sl-hit:hover { fill: rgba(36, 50, 94, 0.08); }
+  .sl-hit:hover { fill: var(--sl-hover); }
 }
 
 .sl-actions {
@@ -174,13 +263,13 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #9aa4b8;
+  color: var(--sl-muted);
   cursor: pointer;
 }
 
 .sl-record {
   font-size: 13px;
-  color: #8a94a8;
+  color: var(--sl-faint);
 }
 
 .sl-rules {
@@ -188,14 +277,14 @@
   margin-top: 12px;
   padding: 12px 16px;
   box-sizing: border-box;
-  background: #0b1120;
-  border: 1px solid #1e2a3a;
+  background: var(--sl-panel);
+  border: 1px solid var(--sl-panel-line);
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.7;
-  color: #c9d2e3;
+  color: var(--sl-soft);
 }
-.sl-rules summary { cursor: pointer; color: var(--sl-gold); font-weight: 700; }
+.sl-rules summary { cursor: pointer; color: var(--sl-accent); font-weight: 700; }
 .sl-rules ul { padding-left: 20px; margin: 8px 0 0; }
 
 @media (max-width: 768px) {

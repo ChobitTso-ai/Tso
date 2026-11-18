@@ -21,9 +21,12 @@ import {
   totalPoints,
 } from './logic'
 import type { Dictionary, Difficulty, Mode, Op, Size, Solution } from './logic'
+import { SKINS, loadSkinFont, readSkin } from '../skins/skins'
+import type { Skin } from '../skins/skins'
 
 const STATE_KEY = 'wordgrid_state'
 const STATS_KEY = 'wordgrid_stats'
+const SKIN_KEY = 'wordgrid_skin'
 const MODES: Mode[] = ['word', 'math']
 const DIFFICULTIES: Difficulty[] = ['easy', 'hard', 'extreme']
 
@@ -140,6 +143,7 @@ export default function WordGrid() {
   const settingsRef = useRef(settings)
   const [busy, setBusy] = useState(false)
   const [stats, setStats] = useState<Stats>(loadStats)
+  const [skin, setSkin] = useState<Skin>(() => readSkin(SKIN_KEY))
 
   const gridRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
@@ -196,6 +200,11 @@ export default function WordGrid() {
   }, [stats])
 
   useEffect(() => {
+    loadSkinFont(skin)
+    localStorage.setItem(SKIN_KEY, skin)
+  }, [skin])
+
+  useEffect(() => {
     if (!flash) return
     const id = setTimeout(() => setFlash(null), 1800)
     return () => clearTimeout(id)
@@ -203,8 +212,10 @@ export default function WordGrid() {
 
   if (!game || !solutions) {
     return (
-      <div className="wg-root">
-        <div className="wg-loading">{loadError ? '單字表載入失敗，請重新整理頁面' : '準備盤面中…'}</div>
+      <div className={`wg-shell wg-skin-${skin}`}>
+        <div className="wg-root">
+          <div className="wg-loading">{loadError ? '單字表載入失敗，請重新整理頁面' : '準備盤面中…'}</div>
+        </div>
       </div>
     )
   }
@@ -409,6 +420,7 @@ export default function WordGrid() {
     : []
 
   return (
+    <div className={`wg-shell wg-skin-${skin}`}>
     <div className="wg-root">
       <div className="wg-settings">
         <div className="wg-seg">
@@ -447,6 +459,18 @@ export default function WordGrid() {
         <button className="wg-btn wg-btn-new" onClick={() => startGame(settings)} disabled={busy}>
           🔄 新盤面
         </button>
+        <div className="wg-seg" role="group" aria-label="畫面風格">
+          {SKINS.map(s => (
+            <button
+              key={s.id}
+              className={`wg-seg-btn ${skin === s.id ? 'active' : ''}`}
+              aria-pressed={skin === s.id}
+              onClick={() => setSkin(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="wg-main">
@@ -634,6 +658,7 @@ export default function WordGrid() {
           </a>
         </p>
       </details>
+    </div>
     </div>
   )
 }

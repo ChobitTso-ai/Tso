@@ -386,8 +386,8 @@ function drawHero(ctx: CanvasRenderingContext2D, world: World, idx: number, leve
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(fx.angles[idx])
-  // 畫得比碰撞半徑稍大一點，蠟筆細節才看得清楚
-  animal.draw(ctx, BALL_R * 1.15)
+  // 畫得比碰撞半徑大，手機上也看得清楚；代價是看起來會稍微陷進線條裡
+  animal.draw(ctx, BALL_R * 1.3)
   ctx.restore()
 }
 

@@ -13,6 +13,7 @@ import SanguoGamePage from './pages/SanguoGamePage'
 import { SANGUO_GAMES } from './components/sanguo/games'
 import WordGridPage from './pages/WordGridPage'
 import SlitherlinkPage from './pages/SlitherlinkPage'
+import StrategistPage from './pages/StrategistPage'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/drawball" element={<DrawBallPage />} />
           <Route path="/wordgrid" element={<WordGridPage />} />
           <Route path="/slitherlink" element={<SlitherlinkPage />} />
+          <Route path="/strategist" element={<StrategistPage />} />
         </Routes>
       </HashRouter>
     </LoginGate>
