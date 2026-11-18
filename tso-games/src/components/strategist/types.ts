@@ -101,7 +101,7 @@ export type BattleEvent =
   | { kind: 'arrow'; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'hit'; x: number; y: number }
   | { kind: 'charge'; x: number; y: number }
-  | { kind: 'rout'; x: number; y: number; side: Side; label: string }
+  | { kind: 'rout'; x: number; y: number; side: Side; unit: UnitType; label: string }
   | { kind: 'fire'; x: number; y: number; r: number }
   | { kind: 'confuse'; x: number; y: number; r: number }
   | { kind: 'rally' }

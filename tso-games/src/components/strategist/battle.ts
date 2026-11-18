@@ -194,7 +194,7 @@ function damage(b: Battle, t: Squad, amount: number, ev: BattleEvent[]) {
   if (t.troops > 0) return
   t.troops = 0
   t.alive = false
-  ev.push({ kind: 'rout', x: t.x, y: t.y, side: t.side, label: shortName(t) })
+  ev.push({ kind: 'rout', x: t.x, y: t.y, side: t.side, unit: t.type, label: shortName(t) })
   for (const s of b.squads) if (s.targetId === t.id) s.targetId = null
 }
 
