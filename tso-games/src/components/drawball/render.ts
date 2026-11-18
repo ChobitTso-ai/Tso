@@ -1,8 +1,12 @@
-// 畫線滾球 — 畫布繪製（純 Canvas，不依賴 React）
+// 畫線滾球 — 畫布繪製（蠟筆繪本風，純 Canvas，不依賴 React）
+import { animalFor } from './animals'
+import { crayonCircle, crayonLine, hash, hatch, paper } from './crayon'
 import { BALL_R, LINE_HALF, cupWalls, moverSeg, segLength } from './physics'
 import type { World } from './physics'
-import type { Ball, Goal, Level, Mover, Phase, Segment, Vec } from './types'
+import type { Goal, Level, Mover, Phase, Segment, Vec } from './types'
 import { WORLD_H, WORLD_W } from './types'
+
+type Pt = [number, number]
 
 export interface Particle {
   x: number
@@ -16,7 +20,7 @@ export interface Particle {
 
 /** 純視覺用的動態資料，不影響物理 */
 export interface FxState {
-  angles: number[] // 每顆球的滾動角度，用來轉動球上的笑臉
+  angles: number[] // 每顆球的滾動角度，用來轉動小動物
   trails: Vec[][]
   particles: Particle[]
 }
@@ -25,7 +29,7 @@ export function createFx(level: Level): FxState {
   return { angles: level.starts.map(() => 0), trails: level.starts.map(() => []), particles: [] }
 }
 
-const CONFETTI_COLORS = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff924c']
+const CONFETTI_COLORS = ['#e8553e', '#f6c90e', '#7cc35b', '#5aa9e6', '#9b7bd9', '#f08c4a']
 
 export function burstConfetti(fx: FxState, g: Goal) {
   for (let i = 0; i < 70; i++) {
@@ -49,7 +53,7 @@ export function updateFx(fx: FxState, world: World, phase: Phase, dt: number) {
     if (phase === 'rolling' && !ball.done) {
       fx.angles[i] += (ball.vel.x * dt) / BALL_R
       trail.push({ ...ball.pos })
-      if (trail.length > 12) trail.shift()
+      if (trail.length > 10) trail.shift()
     } else if (trail.length > 0) {
       trail.shift()
     }
@@ -64,198 +68,163 @@ export function updateFx(fx: FxState, world: World, phase: Phase, dt: number) {
   fx.particles = fx.particles.filter(p => p.life > 0)
 }
 
-type Painter = (ctx: CanvasRenderingContext2D) => void
+/* ── 各章紙張與塗鴉（順序對應 CHAPTERS，與關卡地圖主題一致） ── */
 
-function skyGradient(ctx: CanvasRenderingContext2D, stops: string[]) {
-  const sky = ctx.createLinearGradient(0, 0, 0, WORLD_H)
-  stops.forEach((c, i) => sky.addColorStop(i / (stops.length - 1), c))
-  ctx.fillStyle = sky
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H)
+interface Theme {
+  paper: string
+  grain: string // 蠟筆顆粒用紙色，才像沒塗到的空隙
+  ink: string // 玩家畫線顏色
+  pencil: string // 待放球時的虛線圈
+  doodle: (ctx: CanvasRenderingContext2D, g: string) => void
 }
 
-function clouds(ctx: CanvasRenderingContext2D, color: string) {
-  const list: [number, number, number][] = [
-    [90, 70, 1], [330, 40, 0.8], [520, 95, 1.1], [740, 55, 0.9], [230, 210, 0.7], [640, 250, 0.75],
-  ]
-  ctx.fillStyle = color
-  for (const [cx, cy, k] of list) {
-    ctx.beginPath()
-    ctx.ellipse(cx, cy, 46 * k, 16 * k, 0, 0, Math.PI * 2)
-    ctx.ellipse(cx - 22 * k, cy - 8 * k, 24 * k, 18 * k, 0, 0, Math.PI * 2)
-    ctx.ellipse(cx + 16 * k, cy - 12 * k, 28 * k, 22 * k, 0, 0, Math.PI * 2)
-    ctx.fill()
+function sun(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, edge: string, g: string) {
+  hatch(ctx, () => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2) }, [x - r, y - r, x + r, y + r], fill, { gap: 3, alpha: 0.7 })
+  crayonCircle(ctx, x, y, r, edge, 4, 11)
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2
+    crayonLine(ctx, [[x + Math.cos(a) * (r + 10), y + Math.sin(a) * (r + 10)], [x + Math.cos(a) * (r + 25), y + Math.sin(a) * (r + 25)]], edge, 4, { passes: 2, grain: g })
   }
 }
 
-/** 遠景起伏的山丘或沙丘，顏色很淡，避免被誤認成可以踩的地面 */
-function hills(ctx: CanvasRenderingContext2D, color: string, base: number, amp: number, waves: number) {
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(0, WORLD_H)
-  for (let x = 0; x <= WORLD_W; x += 10) {
-    ctx.lineTo(x, base - Math.sin((x / WORLD_W) * Math.PI * waves) * amp)
+function cloud(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string, g: string) {
+  const pts: Pt[] = []
+  for (let a = Math.PI; a <= Math.PI * 3.05; a += 0.25) {
+    const bump = 1 + 0.18 * Math.abs(Math.sin(a * 3))
+    pts.push([x + Math.cos(a) * 60 * s * bump, y + Math.sin(a) * 22 * s * bump])
   }
-  ctx.lineTo(WORLD_W, WORLD_H)
-  ctx.closePath()
-  ctx.fill()
+  crayonLine(ctx, pts, color, 3.5, { passes: 2, grain: g, seed: x })
 }
 
-function emojiDeco(ctx: CanvasRenderingContext2D, items: [string, number, number, number][], alpha: number) {
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  for (const [e, x, y, size] of items) {
-    ctx.font = `${size}px sans-serif`
-    ctx.fillText(e, x, y)
+function grass(ctx: CanvasRenderingContext2D, y: number, color: string, g: string) {
+  for (let x = 20; x < WORLD_W; x += 75) {
+    crayonLine(ctx, [[x, y], [x + 6, y - 16], [x + 10, y], [x + 16, y - 13], [x + 20, y]], color, 3, { passes: 2, grain: g, seed: x })
   }
-  ctx.restore()
 }
 
-// 每章一種背景，順序對應 CHAPTERS（與關卡地圖的主題一致）
-const PAINTERS: Painter[] = [
+const THEMES: Theme[] = [
   // 草原
-  ctx => {
-    skyGradient(ctx, ['#5fb8f5', '#a9dcfb', '#e3f4ff'])
-    clouds(ctx, 'rgba(255,255,255,0.55)')
-    hills(ctx, 'rgba(120,200,110,0.18)', 470, 25, 3)
+  {
+    paper: '#fbf4e2', grain: 'rgba(251,244,226,0.6)', ink: '#6a4bd0', pencil: 'rgba(74,53,32,0.6)',
+    doodle: (ctx, g) => {
+      sun(ctx, 700, 70, 32, '#ffcf3f', '#f0a020', g)
+      cloud(ctx, 130, 70, 1, '#7fb8e8', g)
+      cloud(ctx, 420, 55, 0.8, '#7fb8e8', g)
+      cloud(ctx, 260, 250, 0.65, '#a9cff0', g)
+      grass(ctx, 478, 'rgba(124,195,91,0.7)', g)
+    },
   },
   // 沙漠
-  ctx => {
-    skyGradient(ctx, ['#ffb56b', '#ffd59a', '#fff1d6'])
-    ctx.fillStyle = 'rgba(255,240,180,0.7)'
-    ctx.beginPath()
-    ctx.arc(690, 80, 46, 0, Math.PI * 2)
-    ctx.fill()
-    hills(ctx, 'rgba(214,150,70,0.18)', 460, 30, 2.5)
-    emojiDeco(ctx, [['🌵', 60, 430, 40], ['🌵', 470, 445, 30], ['🌵', 760, 420, 36]], 0.22)
+  {
+    paper: '#fbecd0', grain: 'rgba(251,236,208,0.6)', ink: '#6a4bd0', pencil: 'rgba(74,53,32,0.6)',
+    doodle: (ctx, g) => {
+      sun(ctx, 690, 80, 42, '#ffa94d', '#e8590c', g)
+      for (const [base, amp] of [[440, 26], [470, 18]]) {
+        const pts: Pt[] = []
+        for (let x = 0; x <= WORLD_W; x += 20) pts.push([x, base - Math.sin(x / 130) * amp])
+        crayonLine(ctx, pts, 'rgba(214,150,70,0.6)', 4, { passes: 2, grain: g, seed: base })
+      }
+      for (const [x, y, s] of [[60, 420, 1], [470, 440, 0.7], [760, 410, 0.9]]) {
+        crayonLine(ctx, [[x, y + 30 * s], [x, y - 30 * s]], 'rgba(95,160,80,0.75)', 9 * s, { passes: 2, grain: g, seed: x })
+        crayonLine(ctx, [[x, y], [x - 14 * s, y], [x - 14 * s, y - 16 * s]], 'rgba(95,160,80,0.75)', 6 * s, { passes: 2, grain: g, seed: x + 1 })
+        crayonLine(ctx, [[x, y - 8 * s], [x + 13 * s, y - 8 * s], [x + 13 * s, y - 22 * s]], 'rgba(95,160,80,0.75)', 6 * s, { passes: 2, grain: g, seed: x + 2 })
+      }
+    },
   },
   // 遊樂園
-  ctx => {
-    skyGradient(ctx, ['#f59ad0', '#ffc6e4', '#fff0f7'])
-    clouds(ctx, 'rgba(255,255,255,0.45)')
-    emojiDeco(ctx, [['🎡', 700, 380, 120], ['🎈', 60, 120, 34], ['🎈', 420, 60, 28], ['🎪', 120, 430, 70]], 0.18)
+  {
+    paper: '#fdeff4', grain: 'rgba(253,239,244,0.6)', ink: '#6a4bd0', pencil: 'rgba(74,53,32,0.6)',
+    doodle: (ctx, g) => {
+      const fx = 690
+      const fy = 360
+      crayonCircle(ctx, fx, fy, 90, 'rgba(224,85,143,0.45)', 4, 21)
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2
+        crayonLine(ctx, [[fx, fy], [fx + Math.cos(a) * 90, fy + Math.sin(a) * 90]], 'rgba(224,85,143,0.35)', 2.5, { passes: 1, grain: '' })
+        crayonCircle(ctx, fx + Math.cos(a) * 90, fy + Math.sin(a) * 90, 9, 'rgba(90,169,230,0.55)', 2.5, 22 + i)
+      }
+      crayonLine(ctx, [[fx - 40, 495], [fx, fy], [fx + 40, 495]], 'rgba(224,85,143,0.45)', 4, { passes: 2, grain: g })
+      for (const [x, y, c] of [[70, 110, 'rgba(232,85,62,0.6)'], [130, 80, 'rgba(246,201,14,0.7)'], [420, 70, 'rgba(90,169,230,0.6)']] as [number, number, string][]) {
+        hatch(ctx, () => { ctx.beginPath(); ctx.ellipse(x, y, 16, 20, 0, 0, Math.PI * 2) }, [x - 16, y - 20, x + 16, y + 20], c, { gap: 2.5 })
+        crayonLine(ctx, [[x, y + 20], [x - 4, y + 40], [x + 3, y + 60]], 'rgba(74,53,32,0.5)', 1.6, { passes: 1, grain: '' })
+      }
+    },
   },
   // 機械城
-  ctx => {
-    skyGradient(ctx, ['#7f91ab', '#b7c3d3', '#e4e9f0'])
-    ctx.fillStyle = 'rgba(70,85,110,0.15)'
-    const towers = [[40, 330], [120, 380], [210, 300], [300, 360], [380, 270], [470, 340], [560, 310], [650, 370], [730, 290]]
-    for (const [x, y] of towers) ctx.fillRect(x, y, 70, WORLD_H - y)
-    emojiDeco(ctx, [['⚙️', 90, 90, 70], ['⚙️', 150, 140, 40], ['⚙️', 700, 120, 60]], 0.16)
+  {
+    paper: '#eef0f2', grain: 'rgba(238,240,242,0.6)', ink: '#6a4bd0', pencil: 'rgba(74,53,32,0.6)',
+    doodle: (ctx, g) => {
+      const towers: [number, number][] = [[30, 340], [110, 390], [200, 310], [290, 370], [380, 290], [470, 350], [560, 320], [650, 380], [730, 300]]
+      for (const [x, y] of towers) {
+        crayonLine(ctx, [[x, 500], [x, y], [x + 60, y], [x + 60, 500]], 'rgba(110,125,150,0.45)', 3, { passes: 2, grain: g, seed: x })
+        for (let wy = y + 18; wy < 480; wy += 28) crayonLine(ctx, [[x + 14, wy], [x + 24, wy]], 'rgba(110,125,150,0.35)', 3, { passes: 1, grain: '' })
+      }
+      for (const [x, y, r] of [[90, 90, 34], [150, 140, 20], [700, 110, 30]]) {
+        crayonCircle(ctx, x, y, r, 'rgba(120,130,145,0.55)', 4, x)
+        crayonCircle(ctx, x, y, r * 0.35, 'rgba(120,130,145,0.55)', 3, x + 1)
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2
+          crayonLine(ctx, [[x + Math.cos(a) * r, y + Math.sin(a) * r], [x + Math.cos(a) * (r + 9), y + Math.sin(a) * (r + 9)]], 'rgba(120,130,145,0.55)', 5, { passes: 1, grain: '' })
+        }
+      }
+    },
   },
   // 彩虹
-  ctx => {
-    skyGradient(ctx, ['#a994f5', '#cfc2ff', '#f1edff'])
-    const colors = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa']
-    ctx.lineWidth = 12
-    colors.forEach((c, i) => {
-      ctx.strokeStyle = c
-      ctx.globalAlpha = 0.2
-      ctx.beginPath()
-      ctx.arc(400, 520, 380 - i * 12, Math.PI, 0)
-      ctx.stroke()
-    })
-    ctx.globalAlpha = 1
-    clouds(ctx, 'rgba(255,255,255,0.5)')
+  {
+    paper: '#f4f0ff', grain: 'rgba(244,240,255,0.6)', ink: '#6a4bd0', pencil: 'rgba(74,53,32,0.6)',
+    doodle: (ctx, g) => {
+      const colors = ['#ff8787', '#ffa94d', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc']
+      colors.forEach((c, i) => {
+        const pts: Pt[] = []
+        const r = 380 - i * 13
+        for (let a = Math.PI; a <= Math.PI * 2.001; a += 0.08) pts.push([400 + Math.cos(a) * r, 520 + Math.sin(a) * r])
+        ctx.globalAlpha = 0.55
+        crayonLine(ctx, pts, c, 11, { passes: 2, grain: g, seed: i })
+        ctx.globalAlpha = 1
+      })
+      cloud(ctx, 110, 470, 0.9, '#a9cff0', g)
+      cloud(ctx, 690, 470, 0.9, '#a9cff0', g)
+    },
   },
-  // 星空山頂
-  ctx => {
-    skyGradient(ctx, ['#11153f', '#262a6b', '#3d3a8a'])
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
-    for (let i = 0; i < 70; i++) {
-      // 固定公式打散星星位置，每次畫出來都一樣
-      const x = (i * 137) % WORLD_W
-      const y = (i * 71) % 380
-      ctx.beginPath()
-      ctx.arc(x, y, (i % 3) * 0.6 + 0.6, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.fillStyle = 'rgba(255,244,200,0.85)'
-    ctx.beginPath()
-    ctx.arc(700, 80, 34, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = '#262a6b'
-    ctx.beginPath()
-    ctx.arc(715, 70, 30, 0, Math.PI * 2)
-    ctx.fill()
-    hills(ctx, 'rgba(140,140,220,0.16)', 440, 50, 2)
+  // 星空山頂：深色圖畫紙，配亮色蠟筆
+  {
+    paper: '#262a55', grain: 'rgba(38,42,85,0.6)', ink: '#ffd43b', pencil: 'rgba(255,244,200,0.8)',
+    doodle: (ctx, g) => {
+      for (let i = 0; i < 40; i++) {
+        const x = hash(i, 1) * WORLD_W
+        const y = hash(i, 2) * 360
+        const s = 2 + hash(i, 3) * 4
+        crayonLine(ctx, [[x - s, y], [x + s, y]], 'rgba(255,244,200,0.8)', 2, { passes: 1, grain: '' })
+        crayonLine(ctx, [[x, y - s], [x, y + s]], 'rgba(255,244,200,0.8)', 2, { passes: 1, grain: '' })
+      }
+      hatch(ctx, () => { ctx.beginPath(); ctx.arc(700, 80, 34, 0, Math.PI * 2); ctx.arc(716, 70, 30, 0, Math.PI * 2, true) }, [660, 40, 740, 120], '#fff3bf', { gap: 2.5, alpha: 0.85 })
+      const pts: Pt[] = []
+      for (let x = 0; x <= WORLD_W; x += 40) pts.push([x, 440 - Math.abs(Math.sin(x / 160)) * 70])
+      crayonLine(ctx, pts, 'rgba(180,180,240,0.45)', 4, { passes: 2, grain: g })
+    },
   },
 ]
 
-/** 玩家畫線的顏色（外框、主色）：夜空背景改用亮黃色才看得清楚 */
-const INK_COLORS: [string, string][] = [
-  ['#3c1a8f', '#7b4dff'],
-  ['#3c1a8f', '#7b4dff'],
-  ['#3c1a8f', '#7b4dff'],
-  ['#3c1a8f', '#7b4dff'],
-  ['#3c1a8f', '#7b4dff'],
-  ['#8a5a00', '#ffd43b'],
-]
+const theme = (i: number) => THEMES[i % THEMES.length]
 
-/** 背景只畫一次，存在離屏畫布重複使用 */
-export function createBackground(dpr: number, theme: number): HTMLCanvasElement {
-  const bg = document.createElement('canvas')
-  bg.width = WORLD_W * dpr
-  bg.height = WORLD_H * dpr
-  const ctx = bg.getContext('2d')
-  if (!ctx) return bg
-  ctx.scale(dpr, dpr)
-  PAINTERS[theme % PAINTERS.length](ctx)
+/* ── 關卡固定物件（木板、尖刺、彈簧、杯子） ── */
 
-  // 淡淡的點陣，讓畫面有「畫紙」的感覺，也方便估算距離
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'
-  for (let x = 20; x < WORLD_W; x += 40) {
-    for (let y = 20; y < WORLD_H; y += 40) {
-      ctx.beginPath()
-      ctx.arc(x, y, 1.5, 0, Math.PI * 2)
-      ctx.fill()
+const segPts = (s: Segment): Pt[] => [[s.a.x, s.a.y], [s.b.x, s.b.y]]
+
+function drawPlank(ctx: CanvasRenderingContext2D, s: Segment, g: string) {
+  crayonLine(ctx, segPts(s), '#b0743a', 15, { passes: 4, grain: g, seed: s.a.x })
+  // 木紋：沿著木板方向的幾條細線
+  const len = segLength(s)
+  const ux = (s.b.x - s.a.x) / len
+  const uy = (s.b.y - s.a.y) / len
+  for (const off of [-3, 3]) {
+    for (let d = 8; d < len - 8; d += 34) {
+      const x = s.a.x + ux * d - uy * off
+      const y = s.a.y + uy * d + ux * off
+      crayonLine(ctx, [[x, y], [x + ux * 16, y + uy * 16]], '#6b3f1d', 1.6, { passes: 1, grain: '' })
     }
   }
-  return bg
-}
-
-function strokePath(ctx: CanvasRenderingContext2D, segs: Segment[], color: string, width: number) {
-  ctx.strokeStyle = color
-  ctx.lineWidth = width
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ctx.beginPath()
-  for (const s of segs) {
-    ctx.moveTo(s.a.x, s.a.y)
-    ctx.lineTo(s.b.x, s.b.y)
-  }
-  ctx.stroke()
-}
-
-/** 木板：深色外框 ＋ 木頭色 ＋ 高光 */
-function drawPlanks(ctx: CanvasRenderingContext2D, segs: Segment[]) {
-  if (segs.length === 0) return
-  ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.25)'
-  ctx.shadowOffsetY = 4
-  ctx.shadowBlur = 6
-  strokePath(ctx, segs, '#6b3f1d', 16)
-  ctx.restore()
-  strokePath(ctx, segs, '#c98a4b', 11)
-  ctx.save()
-  ctx.translate(0, -2)
-  strokePath(ctx, segs, 'rgba(255,230,190,0.55)', 3)
-  ctx.restore()
-}
-
-/** 玩家畫的線：像粗麥克筆 */
-function drawInk(ctx: CanvasRenderingContext2D, segs: Segment[], theme: number) {
-  if (segs.length === 0) return
-  const [outer, inner] = INK_COLORS[theme % INK_COLORS.length]
-  ctx.save()
-  ctx.shadowColor = 'rgba(30,20,80,0.3)'
-  ctx.shadowOffsetY = 3
-  ctx.shadowBlur = 4
-  strokePath(ctx, segs, outer, LINE_HALF * 2 + 4)
-  ctx.restore()
-  strokePath(ctx, segs, inner, LINE_HALF * 2)
-  strokePath(ctx, segs, 'rgba(255,255,255,0.35)', 1.5)
+  crayonLine(ctx, segPts(s), 'rgba(107,63,29,0.55)', 17, { passes: 1, grain: '', seed: s.a.y })
 }
 
 function drawSpikes(ctx: CanvasRenderingContext2D, s: Segment) {
@@ -264,38 +233,28 @@ function drawSpikes(ctx: CanvasRenderingContext2D, s: Segment) {
   const uy = (s.b.y - s.a.y) / len
   const size = 14
   const tip = 15
-  strokePath(ctx, [s], '#495057', 6)
+  crayonLine(ctx, segPts(s), '#5c636b', 5, { passes: 2, grain: '' })
   for (let d = 0; d < len - 2; d += size) {
     const w = Math.min(size, len - d)
     const x = s.a.x + ux * d
     const y = s.a.y + uy * d
     const mx = x + ux * (w / 2)
     const my = y + uy * (w / 2)
-    // 尖刺朝向線段兩側
     for (const side of [1, -1]) {
-      const tx = mx - uy * tip * side
-      const ty = my + ux * tip * side
-      const grad = ctx.createLinearGradient(mx, my, tx, ty)
-      grad.addColorStop(0, '#868e96')
-      grad.addColorStop(0.45, '#dee2e6')
-      grad.addColorStop(0.6, '#ff8787')
-      grad.addColorStop(1, '#e03131')
-      ctx.fillStyle = grad
-      ctx.beginPath()
-      ctx.moveTo(x, y)
-      ctx.lineTo(tx, ty)
-      ctx.lineTo(x + ux * w, y + uy * w)
-      ctx.closePath()
-      ctx.fill()
-      ctx.strokeStyle = '#495057'
-      ctx.lineWidth = 1.5
-      ctx.stroke()
+      const tri: Pt[] = [[x, y], [mx - uy * tip * side, my + ux * tip * side], [x + ux * w, y + uy * w]]
+      const xs = tri.map(p => p[0])
+      const ys = tri.map(p => p[1])
+      const path = () => { ctx.beginPath(); ctx.moveTo(...tri[0]); ctx.lineTo(...tri[1]); ctx.lineTo(...tri[2]); ctx.closePath() }
+      hatch(ctx, path, [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], '#9aa0a8', { gap: 2.4, seed: d })
+      crayonLine(ctx, [...tri, tri[0]], '#4d545c', 2, { passes: 1, grain: '' })
+      // 刀尖塗紅，提醒危險
+      const [tx, ty] = tri[1]
+      crayonLine(ctx, [[tx, ty], [tx + (mx - tx) * 0.35, ty + (my - ty) * 0.35]], '#e03131', 3, { passes: 1, grain: '' })
     }
   }
 }
 
-/** 彈簧：底座＋鋸齒彈簧＋粉紅色彈板 */
-function drawSpring(ctx: CanvasRenderingContext2D, s: Segment) {
+function drawSpring(ctx: CanvasRenderingContext2D, s: Segment, g: string) {
   const len = segLength(s)
   const ux = (s.b.x - s.a.x) / len
   const uy = (s.b.y - s.a.y) / len
@@ -306,41 +265,70 @@ function drawSpring(ctx: CanvasRenderingContext2D, s: Segment) {
     nx = -nx
     ny = -ny
   }
-  const coil = 10
-  ctx.strokeStyle = '#868e96'
-  ctx.lineWidth = 2.5
-  ctx.lineJoin = 'round'
-  ctx.beginPath()
-  const steps = Math.max(4, Math.floor(len / 14))
-  for (const side of [0.2, 0.8]) {
-    const bx = s.a.x + ux * len * side
-    const by = s.a.y + uy * len * side
-    ctx.moveTo(bx - nx * 2, by - ny * 2)
-    for (let i = 1; i <= 4; i++) {
-      const off = i % 2 ? 6 : -6
-      ctx.lineTo(bx - nx * (2 + (i * coil) / 4) + ux * off, by - ny * (2 + (i * coil) / 4) + uy * off)
-    }
+  const zz: Pt[] = []
+  const n = Math.max(6, Math.round(len / 14))
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    const off = 10 + (i % 2 ? -6 : 6)
+    zz.push([s.a.x + ux * len * t - nx * off, s.a.y + uy * len * t - ny * off])
   }
-  ctx.stroke()
-  strokePath(ctx, [s], '#a61e4d', 10)
-  strokePath(ctx, [s], '#f06595', 6)
-  ctx.fillStyle = '#fff'
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps
-    ctx.beginPath()
-    ctx.arc(s.a.x + ux * len * t, s.a.y + uy * len * t, 1.2, 0, Math.PI * 2)
-    ctx.fill()
-  }
+  crayonLine(ctx, zz, '#c2255c', 3.5, { passes: 2, grain: g })
+  crayonLine(ctx, segPts(s), '#f06595', 10, { passes: 4, grain: g, seed: s.a.x })
 }
 
-/** 移動機關：先畫虛線軌道與兩端箭頭，提示它會怎麼動 */
+function drawGoal(ctx: CanvasRenderingContext2D, gl: Goal, g: string) {
+  // 手繪竹籃：兩層交叉斜線做出編織感
+  const box = () => { ctx.beginPath(); ctx.rect(gl.x, gl.y, gl.w, gl.h) }
+  const bb: [number, number, number, number] = [gl.x, gl.y, gl.x + gl.w, gl.y + gl.h]
+  hatch(ctx, box, bb, '#d6a35a', { gap: 6, alpha: 0.7 })
+  ctx.save()
+  ctx.translate(gl.x + gl.w, 0)
+  ctx.scale(-1, 1)
+  hatch(ctx, () => { ctx.beginPath(); ctx.rect(0, gl.y, gl.w, gl.h) }, [0, gl.y, gl.w, gl.y + gl.h], '#b07d3a', { gap: 9, alpha: 0.6 })
+  ctx.restore()
+  for (const s of cupWalls(gl)) crayonLine(ctx, segPts(s), '#7a4b1c', 6, { passes: 3, grain: g, seed: s.a.x })
+  crayonLine(ctx, [[gl.x - 3, gl.y], [gl.x + gl.w + 3, gl.y]], '#7a4b1c', 3, { passes: 1, grain: '' })
+  const px = gl.x + gl.w - 4
+  crayonLine(ctx, [[px, gl.y], [px, gl.y - 50]], '#4a3520', 3, { passes: 2, grain: '' })
+  const flag: Pt[] = [[px, gl.y - 50], [px + 30, gl.y - 41], [px, gl.y - 32]]
+  hatch(ctx, () => { ctx.beginPath(); ctx.moveTo(...flag[0]); ctx.lineTo(...flag[1]); ctx.lineTo(...flag[2]); ctx.closePath() }, [px, gl.y - 50, px + 30, gl.y - 32], '#e8553e', { gap: 2 })
+  ctx.font = '20px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('⭐', gl.x + gl.w / 2, gl.y + gl.h / 2 + 4)
+}
+
+/**
+ * 紙張、背景塗鴉與關卡固定物件只畫一次，存成離屏畫布。
+ * scale 取高一點，放大鏡頭時蠟筆筆觸才不會糊掉。
+ */
+export function createLevelLayer(level: Level, themeIdx: number, scale: number): HTMLCanvasElement {
+  const layer = document.createElement('canvas')
+  layer.width = WORLD_W * scale
+  layer.height = WORLD_H * scale
+  const ctx = layer.getContext('2d')
+  if (!ctx) return layer
+  ctx.scale(scale, scale)
+  const th = theme(themeIdx)
+  paper(ctx, WORLD_W, WORLD_H, th.paper, themeIdx)
+  th.doodle(ctx, th.grain)
+  drawGoal(ctx, level.goal, th.grain)
+  level.walls.forEach(s => drawPlank(ctx, s, th.grain))
+  level.spikes.forEach(s => drawSpikes(ctx, s))
+  ;(level.springs ?? []).forEach(s => drawSpring(ctx, s, th.grain))
+  return layer
+}
+
+/* ── 每一幀會變的東西 ── */
+
 function drawMoverTrack(ctx: CanvasRenderingContext2D, m: Mover) {
   const cx = (m.seg.a.x + m.seg.b.x) / 2
   const cy = (m.seg.a.y + m.seg.b.y) / 2
   ctx.save()
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)'
-  ctx.lineWidth = 2
-  ctx.setLineDash([6, 6])
+  ctx.strokeStyle = 'rgba(120,100,80,0.55)'
+  ctx.lineWidth = 2.5
+  ctx.setLineDash([3, 8])
+  ctx.lineCap = 'round'
   ctx.beginPath()
   ctx.moveTo(cx - m.dx, cy - m.dy)
   ctx.lineTo(cx + m.dx, cy + m.dy)
@@ -349,158 +337,83 @@ function drawMoverTrack(ctx: CanvasRenderingContext2D, m: Mover) {
   const len = Math.hypot(m.dx, m.dy)
   const ux = m.dx / len
   const uy = m.dy / len
-  ctx.fillStyle = 'rgba(255,255,255,0.8)'
   for (const dir of [1, -1]) {
     const tx = cx + m.dx * dir
     const ty = cy + m.dy * dir
-    ctx.beginPath()
-    ctx.moveTo(tx + ux * 7 * dir, ty + uy * 7 * dir)
-    ctx.lineTo(tx - uy * 6, ty + ux * 6)
-    ctx.lineTo(tx + uy * 6, ty - ux * 6)
-    ctx.closePath()
-    ctx.fill()
+    crayonLine(ctx, [[tx - uy * 7 - ux * 7 * dir, ty + ux * 7 - uy * 7 * dir], [tx, ty], [tx + uy * 7 - ux * 7 * dir, ty - ux * 7 - uy * 7 * dir]], 'rgba(120,100,80,0.7)', 3, { passes: 1, grain: '' })
   }
 }
 
-function drawGoal(ctx: CanvasRenderingContext2D, g: Goal, t: number) {
-  const cx = g.x + g.w / 2
-  const pulse = 0.5 + 0.5 * Math.sin(t * 3)
-
-  const glow = ctx.createRadialGradient(cx, g.y + g.h / 2, 5, cx, g.y + g.h / 2, g.w)
-  glow.addColorStop(0, `rgba(255,236,120,${0.35 + 0.25 * pulse})`)
-  glow.addColorStop(1, 'rgba(255,236,120,0)')
-  ctx.fillStyle = glow
-  ctx.fillRect(g.x - g.w / 2, g.y - g.h, g.w * 2, g.h * 2.5)
-
-  const inside = ctx.createLinearGradient(0, g.y, 0, g.y + g.h)
-  inside.addColorStop(0, 'rgba(56,217,169,0.25)')
-  inside.addColorStop(1, 'rgba(18,184,134,0.6)')
-  ctx.fillStyle = inside
-  ctx.fillRect(g.x, g.y, g.w, g.h)
-  strokePath(ctx, cupWalls(g), '#087f5b', 10)
-  strokePath(ctx, cupWalls(g), '#20c997', 6)
-
-  ctx.font = 'bold 20px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('⭐', cx, g.y + g.h / 2 + 4)
-
-  // 旗子插在杯子右上角並隨時間飄動
-  const px = g.x + g.w
-  const top = g.y - 46
-  strokePath(ctx, [{ a: { x: px, y: g.y }, b: { x: px, y: top } }], '#495057', 3)
-  ctx.fillStyle = '#ff595e'
-  ctx.beginPath()
-  ctx.moveTo(px, top)
-  for (let i = 0; i <= 8; i++) {
-    const fx = px + i * 3.5
-    ctx.lineTo(fx, top + 9 + Math.sin(t * 6 + i * 0.7) * 2 - i * 0.3)
+/** 把相連的線段串成折線，蠟筆筆觸才連貫 */
+function toPolylines(segs: Segment[]): Pt[][] {
+  const out: Pt[][] = []
+  let cur: Pt[] = []
+  let last: Vec | null = null
+  for (const s of segs) {
+    if (!last || last.x !== s.a.x || last.y !== s.a.y) {
+      if (cur.length > 1) out.push(cur)
+      cur = [[s.a.x, s.a.y]]
+    }
+    cur.push([s.b.x, s.b.y])
+    last = s.b
   }
-  ctx.lineTo(px, top + 18)
-  ctx.closePath()
-  ctx.fill()
+  if (cur.length > 1) out.push(cur)
+  return out
 }
 
-const BALL_COLORS: [string, string, string][] = [
-  ['#ff8fa3', '#ef233c', '#a4161a'],
-  ['#8fd3ff', '#1c7ed6', '#0b4f8a'],
-]
-
-function drawBall(
-  ctx: CanvasRenderingContext2D,
-  ball: Ball,
-  idx: number,
-  fx: FxState,
-  phase: Phase,
-  t: number,
-) {
+function drawHero(ctx: CanvasRenderingContext2D, world: World, idx: number, levelIdx: number, fx: FxState, phase: Phase, t: number, ring: string) {
+  const ball = world.balls[idx]
+  const animal = animalFor(levelIdx, idx)
   const trail = fx.trails[idx]
-  const [light, mid, dark] = BALL_COLORS[idx % BALL_COLORS.length]
   trail.forEach((p, i) => {
     const a = (i + 1) / trail.length
-    ctx.globalAlpha = a * 0.25
-    ctx.fillStyle = mid
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, BALL_R * a, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.globalAlpha = a * 0.5
+    crayonCircle(ctx, p.x, p.y, BALL_R * a * 0.8, animal.color, 2, i)
     ctx.globalAlpha = 1
   })
-
   const { x, y } = ball.pos
   if (phase === 'ready') {
     ctx.save()
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+    ctx.strokeStyle = ring
     ctx.lineWidth = 2.5
-    ctx.setLineDash([6, 5])
+    ctx.setLineDash([5, 6])
     ctx.lineDashOffset = -t * 20
     ctx.beginPath()
-    ctx.arc(x, y, BALL_R + 7 + Math.sin(t * 4) * 2, 0, Math.PI * 2)
+    ctx.arc(x, y, BALL_R + 9 + Math.sin(t * 4) * 2, 0, Math.PI * 2)
     ctx.stroke()
     ctx.restore()
   }
-
-  ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.3)'
-  ctx.shadowOffsetY = 3
-  ctx.shadowBlur = 6
-  const body = ctx.createRadialGradient(x - 4, y - 5, 2, x, y, BALL_R)
-  body.addColorStop(0, light)
-  body.addColorStop(0.6, mid)
-  body.addColorStop(1, dark)
-  ctx.fillStyle = body
-  ctx.beginPath()
-  ctx.arc(x, y, BALL_R, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-
-  // 笑臉跟著滾動角度轉，看得出球在滾
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(fx.angles[idx])
-  ctx.fillStyle = '#2b0a0a'
-  ctx.beginPath()
-  ctx.arc(-4, -3, 1.8, 0, Math.PI * 2)
-  ctx.arc(4, -3, 1.8, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.strokeStyle = '#2b0a0a'
-  ctx.lineWidth = 1.8
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.arc(0, 1, 5, 0.2 * Math.PI, 0.8 * Math.PI)
-  ctx.stroke()
+  // 畫得比碰撞半徑稍大一點，蠟筆細節才看得清楚
+  animal.draw(ctx, BALL_R * 1.15)
   ctx.restore()
-
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'
-  ctx.beginPath()
-  ctx.ellipse(x - 5, y - 7, 3, 1.8, -0.5, 0, Math.PI * 2)
-  ctx.fill()
 }
 
 export function render(
   ctx: CanvasRenderingContext2D,
-  bg: HTMLCanvasElement,
+  layer: HTMLCanvasElement,
   level: Level,
+  levelIdx: number,
   strokes: Segment[],
   world: World,
   fx: FxState,
   phase: Phase,
   t: number,
-  theme: number,
+  themeIdx: number,
 ) {
-  ctx.drawImage(bg, 0, 0, WORLD_W, WORLD_H)
+  const th = theme(themeIdx)
+  ctx.drawImage(layer, 0, 0, WORLD_W, WORLD_H)
   const movers = level.movers ?? []
   movers.forEach(m => drawMoverTrack(ctx, m))
-  drawGoal(ctx, level.goal, t)
-  drawPlanks(ctx, level.walls)
-  level.spikes.forEach(s => drawSpikes(ctx, s))
-  ;(level.springs ?? []).forEach(s => drawSpring(ctx, s))
   for (const m of movers) {
     const seg = moverSeg(m, world.time)
-    if (m.kind === 'wall') drawPlanks(ctx, [seg])
+    if (m.kind === 'wall') drawPlank(ctx, seg, th.grain)
     else drawSpikes(ctx, seg)
   }
-  drawInk(ctx, strokes, theme)
-  world.balls.forEach((b, i) => drawBall(ctx, b, i, fx, phase, t))
+  for (const pl of toPolylines(strokes)) crayonLine(ctx, pl, th.ink, LINE_HALF * 2 + 4, { passes: 3, grain: th.grain })
+  world.balls.forEach((_, i) => drawHero(ctx, world, i, levelIdx, fx, phase, t, th.pencil))
 
   for (const p of fx.particles) {
     ctx.save()
@@ -514,7 +427,7 @@ export function render(
 }
 
 /**
- * 放大後球或杯子跑到畫面外時，在畫面邊緣畫箭頭指出方向。
+ * 放大後小動物或杯子跑到畫面外時，在畫面邊緣畫箭頭指出方向。
  * 呼叫前畫布座標須為「螢幕邏輯座標」（未套用鏡頭變換）。
  */
 export function drawOffscreenMarkers(
@@ -522,30 +435,34 @@ export function drawOffscreenMarkers(
   cam: { x: number; y: number; z: number },
   world: World,
   goal: Goal,
+  levelIdx: number,
 ) {
   if (cam.z <= 1) return
   const targets: { p: Vec; color: string; label: string }[] = [
-    { p: { x: goal.x + goal.w / 2, y: goal.y + goal.h / 2 }, color: '#12b886', label: '⭐' },
+    { p: { x: goal.x + goal.w / 2, y: goal.y + goal.h / 2 }, color: '#b07d3a', label: '⭐' },
   ]
   world.balls.forEach((b, i) => {
-    if (!b.done) targets.push({ p: b.pos, color: BALL_COLORS[i % BALL_COLORS.length][1], label: '' })
+    if (!b.done) targets.push({ p: b.pos, color: animalFor(levelIdx, i).color, label: '' })
   })
   const margin = 22
-  for (const t of targets) {
-    const sx = (t.p.x - cam.x) * cam.z
-    const sy = (t.p.y - cam.y) * cam.z
+  for (const tg of targets) {
+    const sx = (tg.p.x - cam.x) * cam.z
+    const sy = (tg.p.y - cam.y) * cam.z
     if (sx >= 0 && sx <= WORLD_W && sy >= 0 && sy <= WORLD_H) continue
     const cx = Math.min(WORLD_W - margin, Math.max(margin, sx))
     const cy = Math.min(WORLD_H - margin, Math.max(margin, sy))
     const ang = Math.atan2(sy - cy, sx - cx)
     ctx.save()
     ctx.translate(cx, cy)
-    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.fillStyle = 'rgba(253,248,236,0.95)'
     ctx.beginPath()
     ctx.arc(0, 0, 15, 0, Math.PI * 2)
     ctx.fill()
+    ctx.strokeStyle = '#4a3520'
+    ctx.lineWidth = 2
+    ctx.stroke()
     ctx.rotate(ang)
-    ctx.fillStyle = t.color
+    ctx.fillStyle = tg.color
     ctx.beginPath()
     ctx.moveTo(12, 0)
     ctx.lineTo(-6, -8)
@@ -553,11 +470,11 @@ export function drawOffscreenMarkers(
     ctx.closePath()
     ctx.fill()
     ctx.restore()
-    if (t.label) {
+    if (tg.label) {
       ctx.font = '12px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(t.label, cx, cy - 22)
+      ctx.fillText(tg.label, cx, Math.max(10, cy - 22))
     }
   }
 }

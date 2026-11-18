@@ -5,7 +5,9 @@ import { BALL_R, LINE_HALF, createWorld, distToSeg, segLength, step } from './ph
 import type { World } from './physics'
 import { DEFAULT_CAMERA, MAX_ZOOM, MIN_ZOOM, clampCamera, screenToWorld, stepZoom, zoomAt } from './camera'
 import type { Camera } from './camera'
-import { burstConfetti, createBackground, createFx, drawOffscreenMarkers, render, updateFx } from './render'
+import AnimalIcon from './AnimalIcon'
+import { animalFor } from './animals'
+import { burstConfetti, createFx, createLevelLayer, drawOffscreenMarkers, render, updateFx } from './render'
 import type { FxState } from './render'
 import LevelMap from './LevelMap'
 import { inkRules, starsFor, toDots } from './scoring'
@@ -21,11 +23,15 @@ const BALL_CLEARANCE = BALL_R + LINE_HALF + 4 // 線畫在球身上會把球卡�
 const LEVELS = CHAPTERS.flatMap(c => c.levels)
 const LEVEL_CHAPTER = CHAPTERS.flatMap((c, ci) => c.levels.map(() => ci))
 
-const FAIL_INFO: Record<FailReason, { emoji: string; text: string }> = {
-  spike: { emoji: '💥', text: '碰到尖刺了！' },
-  out: { emoji: '😵', text: '球掉出去了！' },
-  stuck: { emoji: '😴', text: '球停住不動了！' },
+const FAIL_INFO: Record<FailReason, { emoji: string; text: (who: string) => string }> = {
+  spike: { emoji: '💥', text: who => `${who}碰到尖刺了！` },
+  out: { emoji: '😵', text: who => `${who}掉出去了！` },
+  stuck: { emoji: '😴', text: who => `${who}停住不動了！` },
 }
+
+/** 關卡提示裡的 {A} 換成這一關主角的名字 */
+const hintFor = (hint: string, levelIdx: number) => hint.replaceAll('{A}', animalFor(levelIdx, 0).name)
+
 
 interface WinResult {
   stars: number
@@ -140,15 +146,12 @@ export default function DrawBall() {
     canvas.width = WORLD_W * dpr
     canvas.height = WORLD_H * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    // 各章背景第一次用到時才畫，之後重複使用
-    const backgrounds = new Map<number, HTMLCanvasElement>()
-    const backgroundFor = (theme: number) => {
-      let bg = backgrounds.get(theme)
-      if (!bg) {
-        bg = createBackground(dpr, theme)
-        backgrounds.set(theme, bg)
-      }
-      return bg
+    // 紙張與關卡固定物件只在換關時重畫一次；解析度取 2 倍，放大鏡頭時筆觸才清楚
+    const layerScale = Math.min(4, dpr * 2)
+    let layer: { idx: number; canvas: HTMLCanvasElement } | null = null
+    const layerFor = (idx: number) => {
+      if (!layer || layer.idx !== idx) layer = { idx, canvas: createLevelLayer(LEVELS[idx], LEVEL_CHAPTER[idx], layerScale) }
+      return layer.canvas
     }
 
     let raf = 0
@@ -186,9 +189,9 @@ export default function DrawBall() {
       const theme = LEVEL_CHAPTER[idx]
       const cam = cameraRef.current
       ctx.setTransform(dpr * cam.z, 0, 0, dpr * cam.z, -cam.x * dpr * cam.z, -cam.y * dpr * cam.z)
-      render(ctx, backgroundFor(theme), lv, strokes, world, fxRef.current, phaseRef.current, now / 1000, theme)
+      render(ctx, layerFor(idx), lv, idx, strokes, world, fxRef.current, phaseRef.current, now / 1000, theme)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      drawOffscreenMarkers(ctx, cam, world, lv.goal)
+      drawOffscreenMarkers(ctx, cam, world, lv.goal, idx)
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
@@ -285,6 +288,8 @@ export default function DrawBall() {
     resetView()
     clearLines()
     resetBall()
+    // 從地圖深處點進來時頁面還捲在下方，遊戲區會被推出畫面頂端
+    window.scrollTo(0, 0)
   }
 
   const openMap = () => {
@@ -474,13 +479,21 @@ export default function DrawBall() {
         <div className="db-info">
           <span className="db-level-badge">第 {levelIdx + 1} 關</span>
           <h2 className="db-level-name">{level.name}</h2>
+          <span className="db-cast" title="這一關的主角">
+            {level.starts.map((_, i) => (
+              <span key={i} className="db-cast-item">
+                <AnimalIcon animal={animalFor(levelIdx, i)} />
+                {animalFor(levelIdx, i).name}
+              </span>
+            ))}
+          </span>
           {progress.stars[levelIdx] > 0 && (
             <span className="db-best" title="這關的最佳紀錄">
               最佳 <StarRow n={progress.stars[levelIdx]} />
             </span>
           )}
         </div>
-        <p className="db-hint">💡 {level.hint}</p>
+        <p className="db-hint">💡 {hintFor(level.hint, levelIdx)}</p>
 
         <div className={`db-ink-row ${inkOut ? 'out' : ''}`}>
           <div className="db-ink-bar">
@@ -579,7 +592,7 @@ export default function DrawBall() {
             <div className="db-overlay">
               <div className="db-overlay-box fail">
                 <div className="db-overlay-emoji">{FAIL_INFO[failReason].emoji}</div>
-                <p className="db-overlay-title">{FAIL_INFO[failReason].text}</p>
+                <p className="db-overlay-title">{FAIL_INFO[failReason].text(level.starts.length > 1 ? '小動物' : animalFor(levelIdx, 0).name)}</p>
                 <p className="db-overlay-sub">畫好的線會保留，改一改再試試看！</p>
                 <div className="db-overlay-actions">
                   <button className="db-btn danger" onClick={() => { clearLines(); resetBall() }}>
@@ -598,11 +611,11 @@ export default function DrawBall() {
           <div className="db-controls">
             {phase === 'ready' ? (
               <button className="db-btn primary big" onClick={dropBall}>
-                ▶ 放球！
+                ▶ 出發！
               </button>
             ) : (
               <button className="db-btn secondary big" onClick={resetBall}>
-                ↺ 重新放球
+                ↺ 重新出發
               </button>
             )}
             <button className="db-btn secondary" onClick={undo} disabled={strokeCount === 0}>
@@ -648,7 +661,7 @@ export default function DrawBall() {
               <li>墨水只算<b>過關那一刻</b>畫面上的線。按「↶ 上一步」或「清除線條」，墨水會還給你。</li>
               <li>每一關會記住你拿過<b>最多</b>的星星，可以回去重玩刷新紀錄。</li>
               <li>選「♾️ 無限墨水」也一樣算星星，只是不會畫到一半沒墨水。</li>
-              <li>1 點墨水 = 一小段線（約一顆球的一半長）。</li>
+              <li>1 點墨水 = 一小段線（約小動物身體的一半長）。</li>
             </ul>
             <button className="db-btn primary" onClick={() => setShowRules(false)}>
               知道了！

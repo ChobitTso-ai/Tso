@@ -162,3 +162,80 @@
     font-size: 24px;
   }
 }
+
+/* ══ 蠟筆繪本主題 ══════════════════════════════════════ */
+
+.db-map {
+  border: 3px solid #4a3520;
+  border-radius: 8px 16px 10px 18px / 18px 8px 16px 10px;
+  box-shadow: 6px 7px 0 rgba(74, 53, 32, 0.25);
+}
+.db-map-band + .db-map-band {
+  box-shadow: none;
+  border-bottom: 2px dashed rgba(74, 53, 32, 0.35);
+}
+.db-map-deco {
+  opacity: 0.55;
+  filter: grayscale(0.2) drop-shadow(1px 2px 0 rgba(74, 53, 32, 0.25));
+}
+
+.db-map-sign {
+  color: #4a3520;
+  border: 2.5px solid #4a3520;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  box-shadow: 3px 4px 0 #4a3520;
+}
+
+.db-map-path path {
+  stroke: #b08a5a;
+  stroke-width: 6;
+  stroke-dasharray: 3 12;
+}
+.db-map-path path.done {
+  stroke: #f0a020;
+  stroke-width: 10;
+  stroke-dasharray: none;
+  opacity: 0.85;
+}
+
+/* 關卡按鈕：斜線塗色＋手畫外框 */
+.db-map-node,
+.db-map-node.current {
+  border: 3px solid #4a3520;
+  border-radius: 48% 52% 46% 54% / 54% 46% 52% 48%;
+  color: #4a3520;
+  background: repeating-linear-gradient(-55deg, #a58bff 0 3px, #c4b4ff 3px 6px);
+  box-shadow: 3px 4px 0 rgba(74, 53, 32, 0.55);
+}
+.db-map-node.cleared {
+  background: repeating-linear-gradient(-55deg, #ffcf3f 0 3px, #ffe08a 3px 6px);
+  color: #4a3520;
+  box-shadow: 3px 4px 0 rgba(74, 53, 32, 0.55);
+}
+.db-map-node.locked {
+  background: repeating-linear-gradient(-55deg, #cfc8b8 0 3px, #e4dfd2 3px 6px);
+  box-shadow: 2px 3px 0 rgba(74, 53, 32, 0.35);
+}
+.db-map-node.current {
+  animation: db-map-wiggle 1.6s ease-in-out infinite;
+}
+.db-map-num {
+  text-shadow: none;
+}
+.db-map-stars .on,
+.db-map-node.cleared .db-map-stars .on {
+  color: #e8553e;
+  text-shadow: none;
+}
+.db-map-stars .off {
+  color: rgba(74, 53, 32, 0.3);
+}
+.db-map-avatar {
+  top: -46px;
+  font-size: 0;
+}
+
+@keyframes db-map-wiggle {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.06); }
+}
