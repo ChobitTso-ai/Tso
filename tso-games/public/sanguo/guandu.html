@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>官渡奇謀大冒險</title>
+<!-- TSO：本檔併入 TSO Games 時的修改處，都以「TSO：」註記 -->
+<!-- TSO：未登入就退回 TSO 首頁（比照遊戲島，只擋一般使用者） -->
+<script>try { if (sessionStorage.getItem('tsoAuth') !== 'ok') location.replace('../'); } catch (e) { location.replace('../'); }</script>
+<style>
+  :root{
+    --ink:#2a2320; --paper:#fbf3e2; --paper2:#f3e7cd;
+    --gold:#f2b441; --gold-d:#d8951f; --red:#e2533b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC","Heiti TC",system-ui,sans-serif;
+    background:radial-gradient(120% 90% at 50% 0%, #f6efe0 0%, #ead9bb 60%, #d8c39c 100%);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100%; padding:10px;
+    user-select:none; -webkit-user-select:none;
+  }
+  #game{
+    position:relative; width:100%; max-width:860px;
+    /* TSO：寬度也受高度限制，手機橫拿時才不會裁掉上下（20px＝body 上下 padding） */
+    max-width:min(860px, calc((100vh - 20px) * 800 / 560));
+    max-width:min(860px, calc((100dvh - 20px) * 800 / 560));
+    aspect-ratio:800/560;
+    border-radius:22px; overflow:hidden;
+    box-shadow:0 14px 40px rgba(60,40,15,.35);
+    background:#d9cba6;
+  }
+  canvas{display:block; width:100%; height:100%; touch-action:none;}
+  #top{
+    position:absolute; left:0; top:0; right:0;
+    display:flex; gap:8px; align-items:center;
+    padding:10px; pointer-events:none; z-index:5;
+  }
+  #top .sp{flex:1;}
+  .iconbtn{
+    pointer-events:auto;
+    width:46px; height:46px; border:none; border-radius:14px;
+    background:rgba(255,255,255,.85); color:var(--ink);
+    font-size:22px; cursor:pointer; box-shadow:0 3px 0 rgba(120,90,40,.3);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .iconbtn:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(120,90,40,.3);}
+  .iconbtn.off{opacity:.45;}
+  #backbtn{margin-right:auto; padding:0 16px; width:auto; font-size:18px; font-weight:700;}
+  #card{
+    position:absolute; inset:0; z-index:8;
+    display:flex; align-items:center; justify-content:center;
+    padding:22px; background:rgba(30,22,14,.34);
+    opacity:0; visibility:hidden; transition:opacity .25s;
+  }
+  #card.show{opacity:1; visibility:visible;}
+  .panel{
+    width:min(92%,560px); background:linear-gradient(180deg,var(--paper),var(--paper2));
+    border-radius:22px; padding:26px 24px 24px;
+    box-shadow:0 16px 36px rgba(40,25,8,.4); border:3px solid #e7d4ac;
+    text-align:center; max-height:92%; overflow-y:auto;
+  }
+  .panel .emoji{font-size:46px; line-height:1;}
+  .panel h1{margin:.3em 0 .1em; font-size:clamp(22px,5.4vw,32px); color:#7a4b1c;}
+  .panel p{margin:.5em 0 0; font-size:clamp(15px,3.6vw,19px); line-height:1.6; color:#4a3a26; white-space:pre-line;}
+  .row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:20px;}
+  .bigbtn{
+    border:none; cursor:pointer;
+    font-size:clamp(17px,4.2vw,22px); font-weight:800; color:#5a3a12;
+    padding:14px 24px; border-radius:18px;
+    background:linear-gradient(180deg,#ffd576,var(--gold));
+    box-shadow:0 5px 0 var(--gold-d), 0 8px 18px rgba(180,120,20,.35);
+  }
+  .bigbtn:active{transform:translateY(3px); box-shadow:0 2px 0 var(--gold-d);}
+  .bigbtn.ghost{background:linear-gradient(180deg,#fff,#efe2c6); color:#7a4b1c; box-shadow:0 5px 0 #cbb482;}
+  .bigbtn.wide{width:100%;}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="cv"></canvas>
+  <div id="top">
+    <button id="backbtn" class="iconbtn">↩ 地圖</button>
+    <span class="sp"></span>
+    <button id="voicebtn" class="iconbtn" title="選聲音">🗣️</button>
+    <button id="readbtn" class="iconbtn" title="念故事">🔊</button>
+    <button id="soundbtn" class="iconbtn" title="聲音">🎵</button>
+  </div>
+  <div id="card"><div class="panel" id="panel"></div></div>
+</div>
+<script>
+(function(){
+"use strict";
+
+/* ===== 基本常數與畫布 ===== */
+const W=800, H=560;
+const FONT='"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif';
+const CAO='#3a6ab8', CAO_D='#2b4f8a', YUAN='#8a4a86', YUAN_D='#6a3566';
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const card=document.getElementById('card'), panel=document.getElementById('panel');
+const backbtn=document.getElementById('backbtn');
+const readbtn=document.getElementById('readbtn'), soundbtn=document.getElementById('soundbtn');
+const voicebtn=document.getElementById('voicebtn');
+const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+let DPR=Math.min(2, window.devicePixelRatio||1);
+let progress=0;          // 已完成關卡數 0..4
+/* TSO：記住已過幾關。只存一個整數，讀回時檢查範圍，不合法就清掉從頭開始 */
+const SAVE_KEY='sanguo_guandu_progress', MAX_PROGRESS=4;
+try{ const n=Number(localStorage.getItem(SAVE_KEY));
+  if(Number.isInteger(n) && n>=0 && n<=MAX_PROGRESS) progress=n; else localStorage.removeItem(SAVE_KEY); }catch(e){}
+let savedProgress=progress;
+
+const topbar=document.getElementById('top');
+function resize(){
+  DPR=Math.min(2, window.devicePixelRatio||1);
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  // 上排按鈕是 DOM、尺寸固定，canvas 卻會縮放；不同步縮放會蓋住畫面上的文字
+  const rw=cv.getBoundingClientRect().width;
+  if(rw>0 && topbar){ const k=rw/W;
+    topbar.style.transformOrigin='top left';
+    topbar.style.transform='scale('+k+')';
+    topbar.style.width=(100/k)+'%'; }
+}
+
+/* ===== 小工具 ===== */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function rand(a,b){ return a+Math.random()*(b-a); }
+function hexc(c){ return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]; }
+function mix(a,b,t){ t=clamp(t,0,1); const A=hexc(a),B=hexc(b);
+  return 'rgb('+Math.round(lerp(A[0],B[0],t))+','+Math.round(lerp(A[1],B[1],t))+','+Math.round(lerp(A[2],B[2],t))+')'; }
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function rrFill(x,y,w,h,r,col){ ctx.fillStyle=col; rr(x,y,w,h,r); ctx.fill(); }
+function ctext(str,x,y,size,col,weight){ ctx.fillStyle=col||'#fff';
+  ctx.font=(weight||700)+' '+size+'px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(str,x,y); }
+
+/* ===== 共用繪圖 ===== */
+function drawSky(c1,c2){ const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,c1); g.addColorStop(1,c2); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+function drawGround(top,c1,c2){ const g=ctx.createLinearGradient(0,top,0,H);
+  g.addColorStop(0,c1); g.addColorStop(1,c2); ctx.fillStyle=g; ctx.fillRect(0,top,W,H-top); }
+// 黃河（橫向水帶）
+function drawRiverBand(top,h,t){
+  const g=ctx.createLinearGradient(0,top,0,top+h);
+  g.addColorStop(0,'#b79a55'); g.addColorStop(1,'#8d7433');
+  ctx.fillStyle=g; ctx.fillRect(0,top,W,h);
+  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=2;
+  for(let i=0;i<3;i++){ const y=top+12+i*(h/3.4); ctx.beginPath();
+    for(let x=0;x<=W;x+=16) ctx.lineTo(x, y+Math.sin(x*0.035+t*1.4+i)*3); ctx.stroke(); }
+}
+// 小兵（正面 Q 版）
+function drawSoldier(x,y,col,s,flag){
+  s=s||1; ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  if(flag){ ctx.strokeStyle='#6a4a28'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(9,-6); ctx.lineTo(9,-44); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(9,-42); ctx.lineTo(28,-38);
+    ctx.lineTo(28,-26); ctx.lineTo(9,-30); ctx.closePath(); ctx.fill(); }
+  ctx.fillStyle=col; rr(-8,-20,16,20,5); ctx.fill();
+  ctx.fillStyle='#f0c89a'; ctx.beginPath(); ctx.arc(0,-26,7,0,7); ctx.fill();
+  ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(-9,-28); ctx.lineTo(9,-28); ctx.lineTo(0,-38); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(-8,-2,16,3);
+  ctx.restore();
+}
+// 騎兵（側面剪影，dir=1 面右）
+function drawRider(x,y,col,dir,s){
+  s=s||1; ctx.save(); ctx.translate(x,y); ctx.scale(dir*s,s);
+  ctx.fillStyle='#6b5136';
+  ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(16,0); ctx.quadraticCurveTo(20,-6,14,-10);
+  ctx.lineTo(-12,-10); ctx.quadraticCurveTo(-20,-8,-18,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#6b5136'; ctx.fillRect(-14,0,4,10); ctx.fillRect(8,0,4,10);
+  ctx.beginPath(); ctx.moveTo(14,-10); ctx.lineTo(22,-22); ctx.lineTo(16,-22); ctx.lineTo(10,-12); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=col; rr(-8,-24,13,15,4); ctx.fill();
+  ctx.fillStyle='#f0c89a'; ctx.beginPath(); ctx.arc(-2,-28,5,0,7); ctx.fill();
+  ctx.restore();
+}
+// 旗桿
+function drawFlag(x,y,col,t,h){
+  h=h||46; ctx.save(); ctx.translate(x,y);
+  ctx.strokeStyle='#6a4a28'; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-h); ctx.stroke();
+  const w=Math.sin(t*4)*3;
+  ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(0,-h);
+  ctx.lineTo(26,-h+5+w); ctx.lineTo(26,-h+19+w); ctx.lineTo(0,-h+15); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// 營柵
+function drawPalisade(x0,x1,y,col){
+  ctx.fillStyle=col||'#7a5a34';
+  for(let x=x0;x<x1;x+=18){ rr(x,y-26,12,26,3); ctx.fill(); }
+  ctx.fillStyle='rgba(0,0,0,.2)'; ctx.fillRect(x0,y-16,x1-x0,4);
+}
+// 糧草垛（捆紮的稻草＋綁繩＋糧袋）
+function drawGrain(x,y,burn,s){
+  s=s||1; const b=clamp(burn,0,1);
+  const c1=burn>0?mix('#e6c877','#4a3a2a',b):'#e6c877';
+  const c2=burn>0?mix('#c49a3c','#33261c',b):'#c49a3c';
+  const c3=burn>0?mix('#946f22','#241a12',b):'#946f22';
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,2,40,9,0,0,7); ctx.fill();
+  ctx.fillStyle=c2; ctx.beginPath();
+  ctx.moveTo(-34,0); ctx.lineTo(-26,-40); ctx.quadraticCurveTo(0,-52,26,-40); ctx.lineTo(34,0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=c3; ctx.lineWidth=1.6;
+  for(let i=-4;i<=4;i++){ ctx.beginPath(); ctx.moveTo(i*8.5,-2); ctx.lineTo(i*6.5,-40); ctx.stroke(); }
+  ctx.fillStyle=c1; ctx.beginPath();
+  ctx.moveTo(-22,-6); ctx.lineTo(-18,-38); ctx.quadraticCurveTo(-9,-45,-4,-37); ctx.lineTo(-8,-6); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=burn>0?mix('#7a5a2a','#2a1f16',b):'#7a5a2a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-31,-12); ctx.lineTo(31,-12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-28,-28); ctx.lineTo(28,-28); ctx.stroke();
+  ctx.strokeStyle=c1; ctx.lineWidth=2.4; ctx.lineCap='round';
+  for(let i=-3;i<=3;i++){ ctx.beginPath(); ctx.moveTo(i*5,-46); ctx.lineTo(i*8,-62+Math.abs(i)*3); ctx.stroke(); }
+  for(const sx of [-42,42]){
+    ctx.fillStyle=c3; ctx.beginPath(); ctx.ellipse(sx,-7,11,9,0,0,7); ctx.fill();
+    ctx.fillStyle=c2; ctx.beginPath(); ctx.ellipse(sx,-11,8,5,0,0,7); ctx.fill(); }
+  ctx.restore();
+  if(burn>0 && burn<1.6) emitFire(x,y-26,reduce?2:3);
+  if(burn>0.3 && burn<1.6 && Math.random()<0.4) emitSmoke(x,y-48,1);
+}
+// 箭樓（土山上的高櫓）
+function drawTower(x,y,hp,t){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#7a5f38';
+  ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(-14,-52); ctx.lineTo(14,-52); ctx.lineTo(22,0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(60,45,20,.55)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-19,-18); ctx.lineTo(19,-18); ctx.moveTo(-16,-36); ctx.lineTo(16,-36); ctx.stroke();
+  ctx.fillStyle=hp>1?YUAN:'#a97fa5';
+  ctx.beginPath(); ctx.moveTo(-26,-52); ctx.lineTo(26,-52); ctx.lineTo(18,-68); ctx.lineTo(-18,-68); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f0c89a'; ctx.beginPath(); ctx.arc(0,-60,5,0,7); ctx.fill();
+  if(hp<=1){ ctx.strokeStyle='rgba(50,30,10,.7)'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-10,-46); ctx.lineTo(4,-24); ctx.lineTo(-6,-10); ctx.stroke(); }
+  ctx.restore();
+}
+// 霹靂車（發石車）
+function drawCatapult(x,y,fire){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#6b4a26'; rr(-30,-16,60,14,4); ctx.fill();
+  ctx.fillStyle='#4a3320'; ctx.beginPath(); ctx.arc(-18,0,8,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(18,0,8,0,7); ctx.fill();
+  const a=fire>0? -1.15 + fire*1.1 : -1.15;
+  ctx.save(); ctx.translate(0,-16); ctx.rotate(a);
+  ctx.fillStyle='#8a6234'; rr(-4,-40,8,44,3); ctx.fill();
+  ctx.fillStyle='#7d7a72'; ctx.beginPath(); ctx.arc(0,-42,7,0,7); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle=CAO; rr(-34,-28,10,12,3); ctx.fill();
+  ctx.restore();
+}
+// 輜重車
+function drawCart(x,y,s){
+  s=s||1; ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='#a8782f'; rr(-20,-24,40,24,4); ctx.fill();
+  ctx.fillStyle='#c9973f'; rr(-16,-20,32,7,2); ctx.fill();
+  ctx.strokeStyle='#6d4c1c'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-20,-12); ctx.lineTo(20,-12); ctx.stroke();
+  ctx.fillStyle='#5a4020'; ctx.beginPath(); ctx.arc(-11,2,7,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(11,2,7,0,7); ctx.fill();
+  ctx.restore();
+}
+
+/* HUD */
+function hudCount(str){ rrFill(W/2-100,14,200,42,16,'rgba(43,35,32,.78)'); ctext(str,W/2,36,23,'#ffe7a8',800); }
+function hudLives(label,n,max,icon,y){ y=(y===undefined)?66:y;
+  rrFill(50,y,206,40,13,'rgba(43,35,32,.72)');
+  ctext(label,80,y+20,14,'#ffe7a8',800);
+  for(let i=0;i<max;i++){ ctx.globalAlpha=i<n?1:.28; ctext(icon,116+i*28,y+20,22,'#fff',700); }
+  ctx.globalAlpha=1;
+}
+function hudBar(x,y,w,h,v,col,label){
+  rrFill(x,y,w,h,h/2,'rgba(255,255,255,.5)');
+  rrFill(x,y,Math.max(0,w*clamp(v,0,1)),h,h/2,col);
+  if(label) ctext(label,x+w/2,y+h/2,14,'#2b3a20',800);
+}
+// canvas 大按鈕
+function drawBtn(b,on){
+  const g=ctx.createLinearGradient(0,b.y,0,b.y+b.h);
+  if(on){ g.addColorStop(0,'#a7e57c'); g.addColorStop(1,'#5fae3c'); }
+  else  { g.addColorStop(0,'#ffd576'); g.addColorStop(1,'#e0a52a'); }
+  ctx.fillStyle=g; rr(b.x,b.y,b.w,b.h,16); ctx.fill();
+  ctx.strokeStyle='rgba(90,58,18,.35)'; ctx.lineWidth=2; ctx.stroke();
+  ctext(b.label,b.x+b.w/2,b.y+b.h/2,21,'#4a2f0c',900);
+}
+function inBtn(b,x,y){ return x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h; }
+
+/* ===== 粒子 ===== */
+const P=[];
+function pPush(o){ if(P.length<500) P.push(o); }
+function emitFire(x,y,n){ n=reduce?Math.ceil(n/2):n; for(let i=0;i<n;i++)
+  pPush({k:'fire',x:x+rand(-8,8),y:y+rand(-6,6),vx:rand(-22,22),vy:rand(-72,-30),g:0,life:rand(.4,.9),max:.9,r:rand(6,12),col:'fire'}); }
+function emitSmoke(x,y,n){ n=reduce?Math.ceil(n/2):n; for(let i=0;i<n;i++)
+  pPush({k:'smoke',x:x+rand(-8,8),y:y,vx:rand(-12,12),vy:rand(-30,-12),g:0,life:rand(1,1.8),max:1.8,r:rand(8,16),col:'rgba(70,60,55,'}); }
+function emitDust(x,y,n){ for(let i=0;i<(reduce?3:n);i++)
+  pPush({k:'dust',x:x,y:y,vx:rand(-70,70),vy:rand(-90,-20),g:260,life:rand(.4,.9),max:.9,r:rand(4,9),col:'rgba(180,155,110,'}); }
+function emitSpark(x,y,n,c){ for(let i=0;i<n;i++)
+  pPush({k:'spark',x:x,y:y,vx:rand(-95,95),vy:rand(-165,-40),g:260,life:rand(.4,.9),max:.9,r:rand(2,4),col:c||'fire'}); }
+function winFanfare(){ for(let i=0;i<36;i++)
+  pPush({k:'spark',x:W/2+rand(-130,130),y:H/2+rand(-50,40),vx:rand(-150,150),vy:rand(-230,-70),g:260,life:rand(.8,1.5),max:1.5,r:rand(3,6),col:(i%3?'rgba(255,210,90,':'rgba(255,120,90,')}); }
+function updateP(dt){ for(let i=P.length-1;i>=0;i--){ const p=P[i];
+  p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.g||0)*dt; if(p.k==='fire')p.vy-=40*dt; p.life-=dt;
+  if(p.life<=0) P.splice(i,1); } }
+function drawP(){
+  ctx.globalCompositeOperation='lighter';
+  for(const p of P){ if(p.k!=='fire'&&p.k!=='spark')continue; const a=Math.max(0,p.life/p.max);
+    if(p.col==='fire'){ const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      g.addColorStop(0,'rgba(255,240,180,'+a+')'); g.addColorStop(.5,'rgba(255,150,40,'+(a*.8)+')');
+      g.addColorStop(1,'rgba(220,60,20,0)'); ctx.fillStyle=g; }
+    else ctx.fillStyle=p.col+a+')';
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+  ctx.globalCompositeOperation='source-over';
+  for(const p of P){ if(p.k==='fire'||p.k==='spark')continue; const a=Math.max(0,p.life/p.max);
+    ctx.fillStyle=p.col+(a*.7)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } }
+
+/* ===== 畫面震動 / 提示 ===== */
+let shakeT=0, shakeAmt=0;
+function shake(a){ if(reduce)return; shakeT=0.4; shakeAmt=a*10; }
+let toast=null, toastT=0;
+function flash(msg){ toast=msg; toastT=1.6; }
+
+/* ===== 音效（WebAudio 合成，零音檔） ===== */
+let actx=null, soundOn=true, readOn=true;
+function AC(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ actx=null; } }
+  if(actx&&actx.state==='suspended') actx.resume(); return actx; }
+function tone(f,dur,type,vol,when){ if(!soundOn)return; const a=AC(); if(!a)return;
+  const t0=a.currentTime+(when||0), o=a.createOscillator(), g=a.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol||.3,t0+.01);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+dur+.03); }
+function noise(dur,vol,ff,when){ if(!soundOn)return; const a=AC(); if(!a)return;
+  const t0=a.currentTime+(when||0), len=Math.floor(a.sampleRate*dur), buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const fl=a.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=ff||1200;
+  const g=a.createGain(); g.gain.value=vol||.3;
+  src.connect(fl).connect(g).connect(a.destination); src.start(t0); }
+const SFX={
+  tap:()=>tone(420,.06,'square',.12),
+  wave:()=>{ tone(300,.09,'triangle',.2); tone(400,.08,'triangle',.14,.06); },
+  drop:()=>{ tone(240,.08,'square',.2); noise(.16,.16,700,.04); },
+  charge:()=>{ tone(520,.1,'square',.22); tone(700,.12,'square',.18,.08); },
+  launch:()=>{ noise(.22,.3,900); tone(160,.3,'sawtooth',.18); },
+  crash:()=>{ noise(.5,.36,600); tone(90,.4,'sawtooth',.2); },
+  ignite:()=>{ noise(.5,.4,900); tone(110,.5,'sawtooth',.22); },
+  right:()=>[660,880].forEach((f,i)=>tone(f,.16,'triangle',.24,i*.1)),
+  win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.3,'triangle',.25,i*.12)),
+  fail:()=>{ tone(300,.2,'sine',.2); tone(220,.25,'sine',.18,.12); }
+};
+function tap(){ SFX.tap(); }
+
+/* ===== 語音念故事 =====
+   機器人感的主因：只設 lang 而不挑 voice，瀏覽器會用預設的舊式語音。
+   以下改為主動挑選裝置上最好的中文語音，並把長句切成短語、逐句加停頓與語調變化。 */
+const TTS = ('speechSynthesis' in window);
+let voiceList=[], curVoice=null, voicePicked=false, speakGen=0;
+
+function scoreVoice(v){
+  const n=((v.name||'')+' '+(v.voiceURI||''));
+  let s=0;
+  if(/^zh[-_]TW/i.test(v.lang)) s+=40;                 // 臺灣華語優先
+  else if(/^zh[-_](HK|Hant|MO)/i.test(v.lang)) s+=16;
+  else if(/^zh/i.test(v.lang)) s+=6;                   // zh-CN 退而求其次
+  if(/natural|neural|online|premium|enhanced/i.test(n)) s+=32;  // 神經語音，最自然
+  if(/meijia|美佳/i.test(n)) s+=26;                    // macOS / iOS
+  if(/siri/i.test(n)) s+=24;
+  if(/yating|雅婷|hsiaochen|曉臻|hsiaoyu|曉雨|hsiaoyan/i.test(n)) s+=20;
+  if(/google/i.test(n)) s+=16;
+  if(/hanhan|漢漢/i.test(n)) s-=16;                    // 舊式微軟語音，最機械
+  if(/compact|eloquence|espeak|festival/i.test(n)) s-=28;
+  if(v.localService===false) s+=8;                     // 雲端語音通常較自然
+  return s;
+}
+function loadVoices(){
+  if(!TTS)return;
+  try{
+    const all=speechSynthesis.getVoices()||[];
+    voiceList=all.filter(v=>/^zh/i.test(v.lang||'')).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
+    if(!voicePicked) curVoice=voiceList[0]||null;
+  }catch(e){}
+}
+if(TTS){ loadVoices();
+  try{ speechSynthesis.addEventListener('voiceschanged',loadVoices); }catch(e){ speechSynthesis.onvoiceschanged=loadVoices; }
+  setTimeout(loadVoices,300); setTimeout(loadVoices,1200);   // 部分瀏覽器載入較慢
+}
+
+// 依標點切成短語；太短的併回前一句，避免斷斷續續
+function splitPhrases(t){
+  const raw=[]; let cur='';
+  for(const ch of String(t)){ cur+=ch;
+    if('。！？!?；;，,、\n'.indexOf(ch)>=0){ if(cur.trim())raw.push(cur.trim()); cur=''; } }
+  if(cur.trim())raw.push(cur.trim());
+  const out=[];
+  for(const p of raw){
+    if(out.length && out[out.length-1].replace(/[^\u4e00-\u9fffA-Za-z0-9]/g,'').length<7) out[out.length-1]+=p;
+    else out.push(p);
+  }
+  return out.length?out:[String(t)];
+}
+
+function stopSpeak(){ speakGen++; if(TTS){ try{ speechSynthesis.cancel(); }catch(e){} } }
+
+function speak(text,opt){
+  if(!readOn||!TTS)return;
+  stopSpeak();
+  const gen=speakGen, parts=splitPhrases(text);
+  const baseRate=(opt&&opt.rate)||0.9, basePitch=(opt&&opt.pitch)||1.08;
+  let i=0;
+  const say=()=>{
+    if(gen!==speakGen||i>=parts.length)return;
+    const txt=parts[i], last=(i===parts.length-1);
+    const u=new SpeechSynthesisUtterance(txt.replace(/[，,、]$/,''));
+    u.lang=(curVoice&&curVoice.lang)||'zh-TW';
+    if(curVoice) u.voice=curVoice;
+    // 依句型與位置微調語調，避免整段一個平調
+    let r=baseRate, pt=basePitch;
+    if(/[？?]$/.test(txt)) pt+=0.10;                       // 問句尾音上揚
+    else if(/[！!]$/.test(txt)){ pt+=0.06; r+=0.05; }      // 驚嘆句稍快稍高
+    else if(last) pt-=0.05;                                // 結尾略降，像講完一段話
+    pt += (i%2? -0.03 : 0.03);                             // 交錯微幅起伏
+    r  += (i%3===0? 0.03 : -0.02);
+    u.rate=clamp(r,0.6,1.3); u.pitch=clamp(pt,0.7,1.5); u.volume=1;
+    // 句末停頓長短依標點而定
+    const gap = /[。！？!?]$/.test(txt)? 260 : (/[；;]$/.test(txt)? 200 : 110);
+    u.onend=()=>{ if(gen!==speakGen)return; i++; setTimeout(say,gap); };
+    u.onerror=()=>{ if(gen!==speakGen)return; i++; setTimeout(say,gap); };
+    try{ speechSynthesis.speak(u); }catch(e){}
+  };
+  say();
+}
+
+/* 語音挑選面板：不同裝置可用的語音差很多，讓使用者自己挑最順耳的 */
+function showVoicePicker(){
+  loadVoices();
+  if(!TTS){ showCard({emoji:'🔇', title:'這個瀏覽器不支援語音',
+    body:'可以改用 Chrome、Edge 或 Safari 開啟，就會有語音朗讀。',
+    buttons:[{label:'知道了',go:()=>{ hideCard(); paused=false; }}]}); return; }
+  paused=true;
+  if(!voiceList.length){ showCard({emoji:'🔇', title:'找不到中文語音',
+    body:'這台裝置沒有安裝中文語音。\n\nWindows：設定 →「時間與語言」→「語音」→ 新增「中文（繁體，台灣）」語音，建議選名稱有 Natural／Online 的。\nAndroid：安裝「Google 文字轉語音」並下載中文語音。',
+    buttons:[{label:'知道了',go:()=>{ hideCard(); paused=false; }}]}); return; }
+  const btns=voiceList.slice(0,6).map(v=>({
+    label:(v===curVoice?'✅ ':'🔈 ')+v.name.replace(/^Microsoft\s+/,'').slice(0,34),
+    cls:'wide',
+    go:()=>{ curVoice=v; voicePicked=true;
+      speak('你好，我是說故事的聲音。這場是官渡之戰，曹操要用聰明的計謀打贏袁紹。');
+      showVoicePicker(); }
+  }));
+  btns.push({label:'完成',cls:'ghost',go:()=>{ stopSpeak(); hideCard(); paused=false; }});
+  showCard({emoji:'🗣️', title:'選一個順耳的聲音',
+    body:'點聲音就會試聽一句話。\n名稱有 Natural／Online／Google 的通常最自然；\nHanHan 之類的舊語音會比較像機器人。\n\n目前：'+((curVoice&&curVoice.name)||'（預設）'),
+    buttons:btns});
+}
+
+/* ===== UI 卡片 ===== */
+function showCard(o){
+  let html='';
+  if(o.emoji) html+='<div class="emoji">'+o.emoji+'</div>';
+  if(o.title) html+='<h1>'+o.title+'</h1>';
+  if(o.body) html+='<p>'+o.body+'</p>';
+  html+='<div class="row">';
+  (o.buttons||[]).forEach((b,i)=>{ html+='<button class="bigbtn '+(b.cls||'')+'" data-i="'+i+'">'+b.label+'</button>'; });
+  html+='</div>';
+  panel.innerHTML=html; card.classList.add('show'); panel.scrollTop=0;
+  panel.querySelectorAll('.bigbtn').forEach(btn=>{ btn.onclick=()=>{ const b=(o.buttons||[])[+btn.dataset.i]; tap(); if(b&&b.go)b.go(); }; });
+  if(o.narrate) speak(o.narrate);
+}
+function hideCard(){ card.classList.remove('show'); }
+
+/* ===== 場景管理 ===== */
+let scene=null, paused=false;
+function setScene(s,name){ hideCard(); stopSpeak(); P.length=0; toastT=0; scene=s; paused=false;
+  backbtn.style.display=(name&&name.indexOf('level')===0)?'flex':'none';
+  if(s&&s.enter) s.enter(); }
+
+function levelClear(idx,title,body,narrate){ progress=Math.max(progress,idx+1);
+  showCard({emoji:'🎉', title:title, body:body,
+    buttons:[{label:'回地圖',go:()=>setScene(MAP,'map')}], narrate:narrate||title}); }
+
+function showEnding(){ for(let i=0;i<3;i++) winFanfare();
+  showCard({emoji:'🏆', title:'你贏了官渡之戰！',
+    body:'聲東擊西、丟輜重騙追兵、霹靂車打高樓、火燒烏巢——\n烏巢的糧草被燒光了，袁紹的大軍沒有飯吃，一下子就亂了，只好退回黃河北邊。\n\n曹操用比較少的兵，打贏了兵比較多的袁紹。\n這就是有名的「以少勝多」，也讓曹操後來統一了北方。',
+    buttons:[{label:'再玩一次',go:()=>setScene(MAP,'map')},{label:'從頭開始',cls:'ghost',go:()=>{ progress=0; setScene(MAP,'map'); }}],
+    narrate:'你贏了官渡之戰！烏巢的糧草被燒光，袁紹只好退回黃河北邊。曹操用比較少的兵打贏了袁紹，這就是有名的以少勝多。'}); }
+
+function showTitle(){ showCard({emoji:'🏯', title:'官渡奇謀大冒險',
+  body:'西元 200 年，袁紹帶著十萬大軍要打過黃河來。\n曹操的兵少很多，只能靠聰明的計謀。\n\n你要幫曹操闖過四關，打贏這場「以少勝多」的大戰！',
+  buttons:[{label:'開始冒險！',go:()=>hideCard()}],
+  narrate:'官渡奇謀大冒險。袁紹帶著十萬大軍打過來，曹操的兵少很多，你要幫曹操用四個聰明的計謀打贏他。'}); }
+
+/* ===== 輸入 ===== */
+function evToLogic(e){ const r=cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H }; }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); AC(); const p=evToLogic(e); if(scene&&scene.onDown)scene.onDown(p.x,p.y); });
+cv.addEventListener('pointermove',e=>{ const p=evToLogic(e); if(scene&&scene.onMove)scene.onMove(p.x,p.y); });
+window.addEventListener('pointerup',e=>{ if(scene&&scene.onUp)scene.onUp(); });
+window.addEventListener('keydown',e=>{ if(scene&&scene.onKey)scene.onKey(e); });
+
+readbtn.onclick=()=>{ readOn=!readOn; readbtn.classList.toggle('off',!readOn);
+  if(!readOn) stopSpeak(); tap(); };
+voicebtn.onclick=()=>{ tap(); showVoicePicker(); };
+soundbtn.onclick=()=>{ soundOn=!soundOn; soundbtn.classList.toggle('off',!soundOn); tap(); };
+backbtn.onclick=()=>{ tap(); setScene(MAP,'map'); };
+
+/* ============================================================
+   第一關：聲東擊西・引虎離山
+   拖著大旗往西跑，袁軍主力會跟過來（有反應延遲）；
+   等它離白馬夠遠，再掉頭衝回白馬。
+   ============================================================ */
+const BAIMA_X=730, SAFE_GAP=340;
+const L1={
+  enter(){ this.t=0; this.px=500; this.target=500; this.ax=660; this.lives=3; this.time=45;
+    this.hist=[{t:0,x:500}]; this.drag=false; this.done=false; this.running=false; this.inZone=false; this.moved=false;
+    showCard({emoji:'🚩', title:'第一計　聲東擊西',
+      body:'右邊的白馬城被袁軍圍住了，而袁紹的大軍就守在城旁邊。\n直接衝過去一定打不贏——那就把老虎騙走！\n\n① 手指按住畫面，往左邊拉\n　　藍色的大旗會跟著你走\n\n② 袁紹看到大旗，會以為曹操要從左邊過河，\n　　紫色的大軍就會慢慢跟過來\n\n③ 等上面的橫條變成綠色 ✅\n　　表示大軍已經離白馬夠遠了\n\n④ 這時候手指快速拉到最右邊，衝進白馬城！\n\n大軍還沒走遠就衝，會用掉一次機會（你有 3 次）。',
+      buttons:[{label:'出發！',go:()=>{ hideCard(); this.running=true;
+        speak('手指按住畫面往左邊拉，紫色的大軍會跟過來。等橫條變綠色，再快速拉到最右邊衝進白馬城。'); }}],
+      narrate:'第一計，聲東擊西，也就是調虎離山。手指按住畫面往左邊拉，把紫色的大軍引開，等橫條變綠色，再快速拉到最右邊衝進白馬城。'}); },
+  onDown(x,y){ if(!this.running||this.done)return; this.drag=true; this.moved=true; this.target=clamp(x,60,760); },
+  onMove(x,y){ if(this.drag&&this.running&&!this.done) this.target=clamp(x,60,760); },
+  onUp(){ this.drag=false; },
+  onKey(e){ if(!this.running||this.done)return;
+    if(e.key==='ArrowLeft') this.target=clamp(this.target-52,60,760);
+    if(e.key==='ArrowRight') this.target=clamp(this.target+52,60,760); },
+  update(dt){ this.t+=dt; if(!this.running||this.done)return;
+    this.px=lerp(this.px,this.target,0.13);
+    this.hist.push({t:this.t,x:this.px});
+    while(this.hist.length>2 && this.hist[1].t < this.t-0.55) this.hist.shift();
+    const seen=this.hist[0].x, step=118*dt;
+    this.ax += clamp(seen-this.ax,-step,step);
+    if(Math.random()<0.4) emitDust(this.px+rand(-16,16),404,1);
+    const gap=Math.abs(this.ax-BAIMA_X), zone=this.px>=690;
+    if(zone && !this.inZone){ this.inZone=true;
+      if(gap>=SAFE_GAP){ this.win(); return; }
+      this.lives--; SFX.fail(); shake(0.25);
+      flash(this.lives>0?('袁軍主力還在白馬旁邊！剩 '+this.lives+' 次機會'):'機會用完了！');
+      this.px=this.target=470; this.hist=[{t:this.t,x:470}];
+      if(this.lives<=0){ this.lose(); return; } }
+    if(!zone) this.inZone=false;
+    this.time-=dt; if(this.time<=0){ this.time=0; this.lose(true); } },
+  win(){ this.done=true; this.running=false; SFX.win(); winFanfare();
+    setTimeout(()=>levelClear(0,'白馬解圍成功！',
+      '袁紹以為曹操真的要從延津渡河，急忙把主力調去西邊。\n曹操立刻掉頭，帶著輕騎一路急行軍衝到白馬，張遼、關羽打頭陣，打敗了顏良，白馬得救了！\n\n📜 小知識：這是謀士荀攸出的主意——「我們兵少打不過，就先把敵人的力量分開」。',
+      '白馬解圍成功！袁紹把主力調去西邊，曹操立刻掉頭衝到白馬打敗顏良。'),700); },
+  lose(timeout){ this.done=true; this.running=false; SFX.fail();
+    showCard({emoji:'😰', title:timeout?'白馬撐不住了…':'撞上袁軍主力了…',
+      body:'訣竅：先往最左邊跑，等袁軍主力真的跟過來、距離條變綠，再一口氣衝到最右邊！',
+      buttons:[{label:'再試一次',go:()=>setScene(L1,'level1')}],
+      narrate:'再試一次。先往左邊跑把袁軍引開，距離條變綠再衝回白馬。'}); },
+  draw(){
+    drawSky('#a9c8dd','#e3ecdc');
+    drawGround(300,'#d9c98f','#c2ac72');
+    drawRiverBand(196,74,this.t);
+    ctext('黃　河',72,233,18,'rgba(255,255,255,.75)',800);
+    const gap=Math.abs(this.ax-BAIMA_X), safe=gap>=SAFE_GAP;
+    // 北岸：袁紹主力（追著大旗跑）
+    ctext('紫色＝袁紹大軍',clamp(this.ax,86,W-86),106,16,'#5b3358',800);
+    for(let i=0;i<7;i++){ const x=this.ax+((i%4)-1.5)*32, y=165+Math.floor(i/4)*24;
+      drawSoldier(x,y,YUAN,0.7,i===0); }
+    // 距離指示線
+    ctx.setLineDash([8,6]); ctx.lineWidth=3;
+    ctx.strokeStyle=safe?'rgba(80,160,60,.9)':'rgba(190,70,50,.9)';
+    ctx.beginPath(); ctx.moveTo(this.ax,132); ctx.lineTo(BAIMA_X,132); ctx.stroke(); ctx.setLineDash([]);
+    // 南岸左：延津
+    drawFlag(96,392,'#9a8f7a',this.t,34);
+    ctext('延津渡口',96,428,14,'#6a5a3a',800);
+    // 南岸右：白馬城（安全時發光提示）
+    if(safe){ ctx.strokeStyle='rgba(126,200,80,'+(0.55+0.35*Math.sin(this.t*6))+')'; ctx.lineWidth=6;
+      ctx.beginPath(); ctx.arc(730,350,86,0,7); ctx.stroke(); }
+    ctx.fillStyle='#b9a271'; rr(668,320,124,62,6); ctx.fill();
+    ctx.fillStyle='#9c855a'; for(let i=0;i<4;i++){ rr(670+i*30,308,20,14,3); ctx.fill(); }
+    ctext('白馬城',730,352,18,'#4a3a22',900);
+    for(let i=0;i<3;i++) drawSoldier(636-i*16,392+i*3,YUAN,0.62);
+    if(this.time<20 && Math.sin(this.t*8)>0) ctext('救命啊！',730,286,17,'#c0392b',900);
+    // 玩家：曹操大旗隊
+    for(let i=0;i<4;i++) drawSoldier(this.px-42+i*28,404,CAO,0.72,i===1);
+    ctext('藍色＝你（曹操大旗）',clamp(this.px,116,W-116),452,15,'#22406e',800);
+    // 動態指示箭頭
+    if(this.running && !this.done){
+      const pulse=6*Math.sin(this.t*7);
+      if(safe){ ctx.fillStyle='#3e8e2e';
+        ctext('➡',Math.min(this.px+96+pulse,776),400,44,'#3e8e2e',900);
+        ctext('衝進白馬城！',clamp(this.px,72,W-72),368,20,'#2e6b1e',900); }
+      else { ctext('⬅',Math.max(this.px-96-pulse,24),400,44,'#c0603a',900);
+        ctext('往左邊拉！',clamp(this.px,60,W-60),368,20,'#8a4520',900); }
+      if(!this.moved && this.t<7){
+        ctx.strokeStyle='rgba(255,255,255,'+(0.5+0.4*Math.sin(this.t*6))+')'; ctx.lineWidth=5;
+        ctx.beginPath(); ctx.arc(this.px,404,60+pulse,0,7); ctx.stroke();
+        ctext('👆 手指按住這裡，往左拉',clamp(this.px,148,W-148),494,19,'#3a2f1c',900); }
+    }
+    drawP();
+    hudCount('⏳ 白馬還能撐 '+Math.ceil(this.time)+' 秒');
+    hudLives('機會',this.lives,3,'🛡️',66);
+    // 距離條：紅→綠，綠色區塊代表「可以衝了」
+    const bx=300, bw=440, bh=22, by=66;
+    rrFill(bx,by,bw,bh,bh/2,'rgba(255,255,255,.55)');
+    rrFill(bx+bw*(SAFE_GAP/460),by,bw*(1-SAFE_GAP/460),bh,bh/2,'rgba(126,200,80,.45)');
+    rrFill(bx,by,Math.max(14,bw*clamp(gap/460,0,1)),bh,bh/2, safe?'#5fae3c':'#e08a3d');
+    ctext(safe?'✅ 大軍夠遠了，快衝！':'大軍還在白馬旁邊⋯',bx+bw/2,by+bh/2,15,safe?'#123a08':'#4a2f0c',900);
+    if(this.running) ctext(safe?'手指快速拉到最右邊！':'手指按住畫面，往左邊拉，把大軍引過來',
+      W/2,H-26,19,safe?'#2e6b1e':'#6a4a1c',800); }
+};
+
+/* ============================================================
+   第二關：餌敵・延津棄輜重
+   丟輜重讓追兵散開去搶 → 散開夠多才「上馬」
+   ============================================================ */
+const BASE_Y=470;
+const L2={
+  enter(){ this.t=0; this.lives=3; this.crates=5; this.done=false; this.running=false;
+    this.riders=[]; this.boxes=[]; this.spawnT=0.6; this.spawned=0; this.total=14;
+    this.bGo={x:250,y:H-64,w:300,h:50,label:'🐎 上馬！殺出去'};
+    showCard({emoji:'🎁', title:'第二計　丟輜重騙追兵',
+      body:'曹操身邊不到六百個騎兵，袁軍的追兵一直衝過來！\n曹操想了一招：把運東西的車子故意丟在路上。\n\n👉 點畫面丟下輜重（你有 5 車），旁邊的追兵就會停下來搶東西。\n等下面的「追兵散開」條變綠，再按「上馬！殺出去」。\n\n讓追兵衝到營前會用掉一次機會（你有 3 次）。',
+      buttons:[{label:'開始！',go:()=>{ hideCard(); this.running=true;
+        speak('點畫面丟下輜重，讓追兵停下來搶。等追兵散開條變綠，再按上馬殺出去。'); }}],
+      narrate:'第二計，丟輜重騙追兵。點畫面丟下輜重，等追兵散開條變綠，再按上馬殺出去。'}); },
+  onDown(x,y){ if(!this.running||this.done)return;
+    if(inBtn(this.bGo,x,y)){ this.charge(); return; }
+    if(y>110 && y<BASE_Y-40 && this.crates>0){
+      this.crates--; this.boxes.push({x:clamp(x,50,W-50),y:clamp(y,120,BASE_Y-50)});
+      SFX.drop(); emitDust(x,y+10,5);
+      for(const r of this.riders){ if(r.state!=='chase')continue;
+        if(Math.hypot(r.x-x,r.y-y)<200){ r.state='loot'; r.tx=x+rand(-26,26); r.ty=y+rand(-14,14); } }
+    } },
+  ratio(){ if(this.spawned===0)return 0;
+    let loot=0, live=0;
+    for(const r of this.riders){ live++; if(r.state==='loot'&&r.arrived)loot++; }
+    return live? loot/live : 0; },
+  charge(){
+    const ok=this.ratio()>=0.6 && this.riders.length>=5;
+    if(ok) this.win();
+    else { this.lives--; SFX.fail(); shake(0.25);
+      flash(this.lives>0?('追兵還沒散開！剩 '+this.lives+' 次機會'):'機會用完了！');
+      if(this.lives<=0) this.lose(); } },
+  update(dt){ this.t+=dt; if(!this.running||this.done)return;
+    this.spawnT-=dt;
+    if(this.spawnT<=0 && this.spawned<this.total){ this.spawnT=rand(.5,.9); this.spawned++;
+      this.riders.push({x:rand(70,W-70),y:-24,state:'chase',arrived:false,tx:0,ty:0,sp:rand(28,40)}); }
+    for(let i=this.riders.length-1;i>=0;i--){ const r=this.riders[i];
+      if(r.state==='chase'){ r.y+=r.sp*dt;
+        if(r.y>BASE_Y-46){ this.riders.splice(i,1); this.lives--; SFX.fail(); shake(0.3); emitDust(r.x,BASE_Y-30,6);
+          flash(this.lives>0?('袁軍衝到營前了！剩 '+this.lives+' 次機會'):'機會用完了！');
+          if(this.lives<=0){ this.lose(); return; } } }
+      else if(!r.arrived){ const dx=r.tx-r.x, dy=r.ty-r.y, d=Math.hypot(dx,dy);
+        if(d<6){ r.arrived=true; }
+        else { r.x+=dx/d*90*dt; r.y+=dy/d*90*dt; } }
+    }
+    if(this.spawned>=this.total && this.riders.length===0) this.win(); },
+  win(){ this.done=true; this.running=false; SFX.win(); winFanfare(); shake(0.3);
+    setTimeout(()=>levelClear(1,'餌敵成功！',
+      '追兵忙著搶東西，隊伍全亂了。曹操這時才下令上馬，不到六百騎一起衝出去，把袁軍打得大敗，大將文醜也在混戰中戰死。\n\n📜 小知識：荀攸說這些丟在路上的東西「就是拿來釣敵人的餌」。\n（《三國演義》說文醜是關羽殺的，但正史沒有寫是誰打敗他的喔。）',
+      '餌敵成功！追兵忙著搶東西，曹操趁機殺出去，把袁軍打得大敗。'),700); },
+  lose(){ this.done=true; this.running=false; SFX.fail();
+    showCard({emoji:'🐎', title:'被追兵追上了…',
+      body:'記得：先丟輜重讓追兵停下來搶，等「追兵散開」條變綠再上馬！',
+      buttons:[{label:'再試一次',go:()=>setScene(L2,'level2')}], narrate:'再試一次，先丟輜重讓追兵散開。'}); },
+  draw(){
+    drawSky('#cddbe6','#eae2cd'); drawGround(120,'#d7c68d','#bda76e');
+    // 路
+    ctx.fillStyle='#c8b177'; ctx.beginPath(); ctx.moveTo(300,120); ctx.lineTo(500,120);
+    ctx.lineTo(620,BASE_Y); ctx.lineTo(180,BASE_Y); ctx.closePath(); ctx.fill();
+    ctext('袁軍追兵從北邊來 ↓',W/2,104,17,'#5b3358',800);
+    // 我方營線
+    drawPalisade(120,W-120,BASE_Y+8,'#7a5a34');
+    for(let i=0;i<6;i++) drawSoldier(180+i*88,BASE_Y+4,CAO,0.72,i===2);
+    ctext('曹操的六百騎',168,BASE_Y+36,15,'#22406e',800);
+    // 輜重
+    for(const b of this.boxes) drawCart(b.x,b.y,0.9);
+    // 追兵
+    for(const b of this.boxes){ let n=0;
+      for(const r of this.riders) if(r.arrived && Math.hypot(r.x-b.x,r.y-b.y)<60) n++;
+      if(n>0){ ctx.strokeStyle='rgba(255,205,90,'+(0.45+0.35*Math.sin(this.t*6))+')'; ctx.lineWidth=4;
+        ctx.beginPath(); ctx.arc(b.x,b.y-10,34+Math.sin(this.t*6)*3,0,7); ctx.stroke(); } }
+    for(const r of this.riders){
+      drawRider(r.x,r.y,YUAN,1,0.9);
+      if(r.state==='loot'&&r.arrived){
+        ctx.fillStyle='rgba(255,210,90,'+(0.6+0.4*Math.sin(this.t*7+r.x))+')';
+        ctx.beginPath(); ctx.arc(r.x,r.y-34,6,0,7); ctx.fill(); } }
+    drawP();
+    const rt=this.ratio(), ready=rt>=0.6&&this.riders.length>=6;
+    hudCount('🎁 輜重還有 '+this.crates+' 車');
+    hudLives('機會',this.lives,3,'🛡️');
+    hudBar(240,H-104,320,20, rt, ready?'#7ec850':'#e8a33d', '追兵散開 '+Math.round(rt*100)+'%');
+    if(this.running){ drawBtn(this.bGo,ready);
+      ctext(ready?'就是現在！上馬殺出去！':'點空地丟輜重，讓追兵停下來搶',W/2,H-124,18,ready?'#2e6b1e':'#6a4a1c',800); } }
+};
+
+/* ============================================================
+   第三關：官渡相持・霹靂車
+   點土山上的箭樓發射投石；拖曳霹靂車閃箭雨
+   ============================================================ */
+const L3={
+  enter(){ this.t=0; this.lives=5; this.done=false; this.running=false;
+    this.cx=W/2; this.target=W/2; this.drag=false; this.cd=0; this.fire=0;
+    this.stones=[]; this.arrows=[]; this.spawnT=1.2;
+    this.towers=[]; for(let i=0;i<5;i++) this.towers.push({x:110+i*145,y:198,hp:2,dead:false,shakeT:0});
+    showCard({emoji:'🪨', title:'第三計　霹靂車',
+      body:'袁紹叫人堆了高高的土山，在上面蓋箭樓往下射箭，曹軍只能舉盾牌躲。\n曹操做了會丟大石頭的車來打箭樓——袁軍嚇得叫它「霹靂車」！\n\n👉 點箭樓 = 發射石頭（每座要打 2 下）\n👉 拖曳畫面 = 移動霹靂車，閃開射下來的箭\n\n打壞 5 座箭樓就贏；你有 5 台霹靂車，全被射壞才輸。',
+      buttons:[{label:'開始發射！',go:()=>{ hideCard(); this.running=true;
+        speak('點箭樓發射石頭，拖曳畫面移動霹靂車閃開箭。打壞五座箭樓就贏。'); }}],
+      narrate:'第三計，霹靂車。點箭樓發射石頭，拖曳移動霹靂車閃開箭雨，打壞五座箭樓就贏。'}); },
+  onDown(x,y){ if(!this.running||this.done)return;
+    if(y>300){ this.drag=true; this.target=clamp(x,60,W-60); return; }
+    if(this.cd>0){ flash('霹靂車在裝石頭…'); return; }
+    let hit=null,best=70;
+    for(const tw of this.towers){ if(tw.dead)continue; const d=Math.abs(tw.x-x);
+      if(d<best && y<260){ best=d; hit=tw; } }
+    if(hit){ this.cd=0.95; this.fire=0.001; SFX.launch();
+      this.stones.push({x0:this.cx,y0:H-118,tw:hit,t:0,dur:0.62}); } },
+  onMove(x,y){ if(this.drag&&this.running) this.target=clamp(x,60,W-60); },
+  onUp(){ this.drag=false; },
+  onKey(e){ if(!this.running||this.done)return;
+    if(e.key==='ArrowLeft') this.target=clamp(this.target-46,60,W-60);
+    if(e.key==='ArrowRight') this.target=clamp(this.target+46,60,W-60); },
+  update(dt){ this.t+=dt; if(this.cd>0)this.cd-=dt;
+    if(this.fire>0){ this.fire+=dt*4; if(this.fire>1)this.fire=0; }
+    for(const tw of this.towers) if(tw.shakeT>0) tw.shakeT-=dt;
+    if(!this.running||this.done)return;
+    this.cx=lerp(this.cx,this.target,0.18);
+    // 投石飛行
+    for(let i=this.stones.length-1;i>=0;i--){ const s=this.stones[i]; s.t+=dt;
+      if(s.t>=s.dur){ this.stones.splice(i,1); const tw=s.tw;
+        if(!tw.dead){ tw.hp--; tw.shakeT=0.3; SFX.crash(); shake(0.22);
+          emitDust(tw.x,tw.y-56,10); emitSpark(tw.x,tw.y-56,6,'rgba(210,190,140,');
+          if(tw.hp<=0){ tw.dead=true; emitSmoke(tw.x,tw.y-40,8); emitDust(tw.x,tw.y-20,14);
+            if(this.towers.every(a=>a.dead)) this.win(); } } } }
+    // 箭雨
+    const alive=this.towers.filter(a=>!a.dead).length;
+    if(alive>0){ this.spawnT-=dt;
+      if(this.spawnT<=0){ this.spawnT=lerp(0.40,1.05,(5-alive)/4)*rand(0.8,1.2);
+        const live=this.towers.filter(a=>!a.dead);
+        const volley=(alive>=4 && Math.random()<0.45)?2:1;
+        for(let k=0;k<volley;k++){ const src=live[Math.floor(rand(0,alive))%alive];
+          this.arrows.push({x:src.x+rand(-34,34),y:src.y-52,v:rand(145,195)}); } } }
+    for(let i=this.arrows.length-1;i>=0;i--){ const a=this.arrows[i]; a.y+=a.v*dt;
+      if(a.y>H-104 && a.y<H-84 && Math.abs(a.x-this.cx)<34){
+        this.arrows.splice(i,1); this.lives--; SFX.fail(); shake(0.3);
+        emitDust(a.x,H-104,8); flash(this.lives>0?('霹靂車被射壞了！剩 '+this.lives+' 台'):'霹靂車全壞了！');
+        if(this.lives<=0){ this.lose(); return; } continue; }
+      if(a.y>H-70){ this.arrows.splice(i,1); emitDust(a.x,H-66,2); } } },
+  win(){ this.done=true; this.running=false; SFX.win(); winFanfare();
+    setTimeout(()=>levelClear(2,'箭樓全打壞了！',
+      '大石頭飛上天，把袁軍的箭樓一座一座砸碎，袁軍再也不敢爬上去射箭了。\n袁軍還偷偷挖地道想鑽進曹營，曹操就在營前挖了一條長長的深溝擋住他們。\n\n📜 小知識：這種丟石頭的車，袁軍叫它「霹靂車」，因為聲音像打雷。',
+      '箭樓全打壞了！袁軍再也不敢爬上去射箭。'),700); },
+  lose(){ this.done=true; this.running=false; SFX.fail();
+    showCard({emoji:'🛡️', title:'霹靂車都壞了…',
+      body:'記得一邊拖曳移動閃箭，一邊點箭樓發射喔！\n先打掉幾座樓，箭就會變少。',
+      buttons:[{label:'再試一次',go:()=>setScene(L3,'level3')}], narrate:'再試一次，一邊閃箭一邊發射。'}); },
+  draw(){
+    drawSky('#b6c6d4','#e6dfc9'); drawGround(198,'#cbba7e','#b39a63');
+    // 土山
+    ctx.fillStyle='#b8a06a'; ctx.beginPath(); ctx.moveTo(0,268);
+    ctx.quadraticCurveTo(200,176,400,200); ctx.quadraticCurveTo(620,224,W,182);
+    ctx.lineTo(W,300); ctx.lineTo(0,300); ctx.closePath(); ctx.fill();
+    ctext('袁軍的土山與箭樓',W/2,96,18,'#5b3358',800);
+    for(const tw of this.towers){ if(tw.dead){
+        ctx.fillStyle='rgba(90,70,40,.5)'; rr(tw.x-20,tw.y-16,40,16,4); ctx.fill();
+        ctext('✔',tw.x,tw.y-32,24,'#4f9a3a',900); }
+      else { const sx=tw.shakeT>0?rand(-4,4):0; drawTower(tw.x+sx,tw.y,tw.hp,this.t); } }
+    // 曹營
+    drawGround(H-72,'#c3ae76','#a89258');
+    drawPalisade(0,W,H-64,'#7a5a34');
+    for(let i=0;i<5;i++) drawSoldier(70+i*170,H-40,CAO,0.66);
+    // 箭
+    for(const a of this.arrows){ ctx.strokeStyle='#5a4632'; ctx.lineWidth=4; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(a.x,a.y-16); ctx.lineTo(a.x,a.y); ctx.stroke();
+      ctx.fillStyle='#3c2e20'; ctx.beginPath(); ctx.moveTo(a.x,a.y+5); ctx.lineTo(a.x-4,a.y-3); ctx.lineTo(a.x+4,a.y-3); ctx.closePath(); ctx.fill(); }
+    // 投石拋物線
+    for(const s of this.stones){ const k=s.t/s.dur, tw=s.tw;
+      const x=lerp(s.x0,tw.x,k), y=lerp(s.y0,tw.y-56,k)-Math.sin(k*Math.PI)*160;
+      ctx.fillStyle='#7d7a72'; ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.arc(x-3,y+3,6,0,7); ctx.fill(); }
+    drawCatapult(this.cx,H-104,this.fire);
+    drawP();
+    const left=this.towers.filter(a=>!a.dead).length;
+    hudCount('🏯 箭樓 '+(5-left)+' / 5');
+    hudLives('霹靂車',this.lives,5,'🪨');
+    if(this.running){
+      if(this.cd>0){ hudBar(W/2-90,H-30,180,14, 1-this.cd/0.95, '#9ec6ea','裝石頭中…'); }
+      else ctext('點箭樓發射！拖曳移動閃箭',W/2,H-24,18,'#3a2f1c',800); } }
+};
+
+/* ============================================================
+   第四關：火燒烏巢（潛行問答 → 放火）
+   ============================================================ */
+const QUIZ=[
+  { q:'路上會遇到袁軍。要舉哪一邊的旗子才不會被發現？',
+    opts:[{t:'舉曹操的旗子',ok:false},{t:'舉袁軍的旗子',ok:true},{t:'什麼旗都不舉',ok:false}],
+    yes:'對！曹操讓大家全部舉袁軍的旗子，遠遠看就像自己人。' },
+  { q:'要怎麼讓五千人和馬走夜路都不出聲音？',
+    opts:[{t:'士兵咬木棍、馬嘴綁起來',ok:true},{t:'大家小聲聊天',ok:false},{t:'騎快一點趕快通過',ok:false}],
+    yes:'對！士兵嘴裡咬著小木棍（叫「銜枚」），馬嘴也綁起來，安安靜靜地走小路。' },
+  { q:'袁軍的哨兵問：「你們是哪一隊的？」要怎麼回答？',
+    opts:[{t:'我們是曹操派來的',ok:false},{t:'不理他，直接衝過去',ok:false},{t:'袁大人怕後面糧車被偷襲，派我們去加強守衛',ok:true}],
+    yes:'對！他們就是這樣回答的，哨兵真的相信了，一路放他們過去。' }
+];
+const L4={
+  enter(){ this.t=0; this.phase='march'; this.prog=0; this.qi=0; this.lives=2;
+    this.done=false; this.running=false; this.asking=false;
+    this.torch={x:W/2,y:H-90}; this.burnT=46; this.piles=[]; this.decided=false;
+    for(let i=0;i<8;i++) this.piles.push({x:115+(i%4)*185, y:215+Math.floor(i/4)*150, burn:0, lit:false});
+    showCard({emoji:'🌙', title:'第四計　火燒烏巢',
+      body:'袁紹把糧食全堆在「烏巢」，離大營四十里。\n曹操親自帶五千人，趁半夜偷偷摸過去。\n\n先走夜路：路上會有三個問題，答對才不會被發現（答錯 2 次就會被抓到）。\n到了烏巢，再拖著火把把 8 堆糧草全部點燃！',
+      buttons:[{label:'出發！悄悄走',go:()=>{ hideCard(); this.running=true;
+        speak('曹操帶五千人趁半夜偷偷去烏巢。路上會有三個問題，答對才不會被發現。'); }}],
+      narrate:'第四計，火燒烏巢。曹操帶五千人趁半夜偷偷去烏巢，路上會有三個問題，答對才不會被發現。'}); },
+  ask(){ this.asking=true; const q=QUIZ[this.qi], self=this;
+    showCard({emoji:'🤫', title:'哨兵來了！', body:q.q,
+      buttons:q.opts.map(o=>({label:o.t, cls:'wide', go:()=>{
+        if(o.ok){ SFX.right();
+          showCard({emoji:'✅', title:'答對了！', body:q.yes,
+            buttons:[{label:'繼續前進',go:()=>{ hideCard(); self.qi++; self.asking=false;
+              if(self.qi>=QUIZ.length){ self.startFire(); } }}], narrate:q.yes}); }
+        else { self.lives--; SFX.fail();
+          if(self.lives<=0){ self.lose('被袁軍發現了…','這樣會被認出來喔！\n再試一次，想想曹操怎麼騙過哨兵的。'); }
+          else showCard({emoji:'😬', title:'差一點被發現！', body:'這樣會露餡喔，再想一次。\n（還剩 '+self.lives+' 次機會）',
+            buttons:[{label:'再想一次',go:()=>{ hideCard(); self.ask(); }}], narrate:'這樣會露餡喔，再想一次。'}); }
+      }})), narrate:q.q }); },
+  startFire(){ hideCard(); this.phase='fire'; this.asking=false; SFX.ignite(); shake(0.3);
+    showCard({emoji:'🔥', title:'到烏巢了！',
+      body:'拖曳火把，碰到糧堆就會燒起來，把 8 堆全部點燃！\n\n袁紹的援兵正在趕過來——要在時間內燒完！',
+      buttons:[{label:'放火！',go:()=>{ hideCard(); speak('拖曳火把碰到糧堆點火，把八堆糧草全部燒起來。'); }}],
+      narrate:'到烏巢了！拖曳火把碰到糧堆點火，把六堆糧草全部燒起來。'}); },
+  askSplit(){ this.asking=true; const self=this;
+    showCard({emoji:'⚔️', title:'部下來報告！',
+      body:'「敵人的騎兵越來越近了，要不要分一半的人回頭去擋？」\n\n火還沒燒完喔，你怎麼決定？',
+      buttons:[
+        {label:'分一半人回頭去擋', cls:'wide', go:()=>{ hideCard(); self.asking=false;
+          self.burnT=Math.max(3,self.burnT-9); SFX.fail(); shake(0.2);
+          flash('分兵之後，放火變慢了！'); }},
+        {label:'不分兵！大家繼續往前放火', cls:'wide', go:()=>{ SFX.right();
+          showCard({emoji:'🔥', title:'跟曹操一樣的決定！',
+            body:'曹操也遇到一樣的情況。部下說「敵人騎兵靠近了，請分兵去擋」，\n曹操生氣地說：「等敵人到了背後，再來報告！」\n\n大家只好拚命向前，反而一口氣把烏巢打了下來。\n\n📜 這句話記在《三國志》裡，是正史，不是小說喔。',
+            buttons:[{label:'繼續放火！',go:()=>{ hideCard(); self.asking=false; self.burnT+=4; }}],
+            narrate:'曹操說，等敵人到了背後再來報告。大家拚命向前，一口氣打下了烏巢。'}); }}
+      ], narrate:'部下說敵人騎兵越來越近，要不要分一半的人回頭去擋？'}); },
+  onDown(x,y){ if(!this.running||this.done||this.asking)return;
+    if(this.phase==='fire'){ this.drag=true; this.torch.x=x; this.torch.y=y; } },
+  onMove(x,y){ if(this.drag&&this.phase==='fire'&&!this.asking){ this.torch.x=clamp(x,20,W-20); this.torch.y=clamp(y,90,H-20); } },
+  onUp(){ this.drag=false; },
+  update(dt){ this.t+=dt; if(!this.running||this.done||this.asking)return;
+    if(this.phase==='march'){
+      this.prog+=dt*0.075;
+      if(Math.random()<0.6) emitSmoke(rand(0,W),H-30,1);
+      const gate=(this.qi+1)/(QUIZ.length+1);
+      if(this.prog>=gate && this.qi<QUIZ.length) this.ask();
+      return; }
+    // 放火階段
+    this.burnT-=dt;
+    if(this.burnT<=0){ this.lose('袁紹的援兵到了…','要快一點把糧堆全燒起來！\n先燒近的，再繞去遠的。'); return; }
+    if(!this.decided && this.piles.filter(p=>p.lit).length>=4){ this.decided=true; this.askSplit(); return; }
+    let all=true;
+    for(const p of this.piles){
+      if(!p.lit && Math.hypot(p.x-this.torch.x,p.y-this.torch.y)<44){
+        p.lit=true; SFX.ignite(); shake(0.2); emitFire(p.x,p.y-16,12); emitSpark(p.x,p.y-20,8,'fire'); }
+      if(p.lit) p.burn=Math.min(1.6,p.burn+dt*0.55);
+      if(!p.lit) all=false; }
+    if(all && this.piles.every(p=>p.burn>=1)) this.win(); },
+  win(){ this.done=true; this.running=false; progress=4; SFX.win(); winFanfare();
+    setTimeout(()=>showEnding(),900); },
+  lose(title,body){ this.done=true; this.running=false; SFX.fail();
+    showCard({emoji:'🌙', title:title, body:body,
+      buttons:[{label:'再試一次',go:()=>setScene(L4,'level4')}], narrate:title}); },
+  draw(){
+    const glow=this.phase==='fire'? this.piles.filter(p=>p.lit).length/6 : 0;
+    drawSky(mix('#131c30','#3d1c14',glow), mix('#22304a','#5c2a18',glow));
+    // 月亮
+    ctx.fillStyle='rgba(245,240,210,.85)'; ctx.beginPath(); ctx.arc(W*0.86,72,22,0,7); ctx.fill();
+    ctx.fillStyle=mix('#131c30','#3d1c14',glow); ctx.beginPath(); ctx.arc(W*0.86-9,66,20,0,7); ctx.fill();
+    drawGround(H-150, mix('#2a3320','#4a2a18',glow), mix('#1a2216','#331a10',glow));
+    if(this.phase==='march'){
+      // 夜路
+      ctx.fillStyle='rgba(120,105,70,.35)'; ctx.beginPath();
+      ctx.moveTo(330,120); ctx.lineTo(470,120); ctx.lineTo(640,H); ctx.lineTo(160,H); ctx.closePath(); ctx.fill();
+      const y=lerp(H-90,215,clamp(this.prog,0,1));
+      for(let i=0;i<5;i++) drawSoldier(W/2-90+i*45, y+((i%2)*14), CAO, 0.7, i===2);
+      ctext('噓⋯⋯ 悄悄前進中',W/2,y+42,18,'#cfe0ff',800);
+      ctext('烏巢（袁軍的糧倉）',W/2,80,20,'#e8c98a',900);
+      for(let i=0;i<4;i++) drawGrain(190+i*140,178,0,0.55);
+      hudCount('🌙 夜路 '+Math.round(clamp(this.prog,0,1)*100)+'%');
+      hudLives('機會',this.lives,2,'🕯️',66);
+      hudBar(240,106,320,18, clamp(this.prog,0,1), '#8fb3e0', '快到烏巢了');
+    } else {
+      drawCart(52,300,0.85); drawCart(748,300,0.85);
+      for(const p of this.piles) drawGrain(p.x,p.y,p.burn,1);
+      // 火把
+      ctx.save(); ctx.translate(this.torch.x,this.torch.y);
+      ctx.strokeStyle='#6a4a28'; ctx.lineWidth=5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(0,-8); ctx.stroke(); ctx.restore();
+      emitFire(this.torch.x,this.torch.y-14,2);
+      const lit=this.piles.filter(p=>p.lit).length;
+      hudCount('🔥 燒了 '+lit+' / 8 堆');
+      hudBar(240,64,320,20, clamp(this.burnT/46,0,1), this.burnT<10?'#e2533b':'#7ec850', '援兵還有 '+Math.ceil(this.burnT)+' 秒到');
+    }
+    drawP();
+    if(this.running && !this.asking)
+      ctext(this.phase==='march'?'安靜地跟著隊伍走⋯':'拖曳火把去點燃糧堆！',W/2,H-24,18,'#ffd089',800); }
+};
+
+/* ============================================================
+   主畫面：官渡戰場地圖
+   ============================================================ */
+const STOPS=[
+  {name:'白馬解圍',  icon:'🚩', x:630, y:250, go:()=>setScene(L1,'level1')},
+  {name:'延津餌敵',  icon:'🎁', x:250, y:322, go:()=>setScene(L2,'level2')},
+  {name:'官渡霹靂車',icon:'🪨', x:400, y:436, go:()=>setScene(L3,'level3')},
+  {name:'火燒烏巢',  icon:'🔥', x:690, y:392, go:()=>setScene(L4,'level4')}
+];
+function drawMapRoad(){
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(150,120,70,.5)'; ctx.lineWidth=16;
+  ctx.beginPath(); ctx.moveTo(STOPS[0].x,STOPS[0].y);
+  for(let i=1;i<STOPS.length;i++){ const a=STOPS[i-1],b=STOPS[i];
+    ctx.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2+26,b.x,b.y); }
+  ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=4; ctx.stroke();
+}
+const MAP={
+  enter(){ this.t=0; },
+  onDown(x,y){ for(let i=0;i<STOPS.length;i++){ if(i>progress)continue;
+    if(Math.hypot(x-STOPS[i].x,y-STOPS[i].y)<46){ tap(); STOPS[i].go(); return; } } },
+  onKey(e){ const n=parseInt(e.key,10); if(n>=1&&n<=4&&(n-1)<=progress){ tap(); STOPS[n-1].go(); } },
+  update(dt){ this.t+=dt; },
+  draw(){
+    drawSky('#c3d6e2','#eee6cf'); drawGround(150,'#ddcd97','#c6b076');
+    drawRiverBand(150,52,this.t);
+    ctext('黃　河',80,176,17,'rgba(255,255,255,.8)',800);
+    ctext('北岸：袁紹（十萬大軍）',W/2,132,16,'#5b3358',800);
+    drawMapRoad();
+    ctext('官渡奇謀大冒險',W/2,52,36,'#7a4b1c',900);
+    ctext('幫曹操用四個計謀，打贏兵比較多的袁紹！',W/2,90,17,'#8a6a3a',700);
+    for(let i=0;i<STOPS.length;i++){ const s=STOPS[i], unlocked=i<=progress, done=i<progress;
+      const r=36+(unlocked?Math.sin(this.t*3+i)*2:0);
+      ctx.fillStyle=unlocked?'#fff':'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,7); ctx.fill();
+      ctx.lineWidth=5; ctx.strokeStyle=done?'#7ec850':(unlocked?'#f2b441':'#b0a584'); ctx.stroke();
+      ctext(unlocked?s.icon:'🔒',s.x,s.y-1,28,'#000');
+      rrFill(s.x-62,s.y+r,124,26,12,unlocked?'rgba(122,75,28,.92)':'rgba(120,110,90,.85)');
+      ctext((i+1)+'. '+s.name,s.x,s.y+r+13,15,'#fff',800);
+      if(done) ctext('✓',s.x+29,s.y-27,25,'#2faa3a',900); }
+    const cur=STOPS[Math.min(progress,3)];
+    drawFlag(cur.x-54,cur.y+12,CAO,this.t,34);
+    if(progress<4) ctext('點亮著的站開始玩 ▶',W/2,H-26,18,'#8a6a3a',800);
+    else ctext('全部完成！可以重玩任何一關 🎉',W/2,H-26,18,'#7a4b1c',800);
+    drawP(); }
+};
+
+/* ============================================================
+   主迴圈與啟動
+   ============================================================ */
+let last=0;
+function loop(ts){ const dt=Math.min(.05, last?(ts-last)/1000:0); last=ts;
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(shakeT>0){ shakeT-=dt; const k=Math.max(0,shakeT/0.4)*shakeAmt; ctx.translate(rand(-k,k),rand(-k,k)); }
+  if(scene){ if(scene.update && !paused)scene.update(dt); if(scene.draw)scene.draw(); }
+  ctx.restore();
+  updateP(dt);
+  if(toastT>0){ toastT-=dt; ctx.globalAlpha=Math.min(1,toastT*1.5);
+    rrFill(W/2-190,H/2-26,380,52,16,'rgba(43,35,32,.92)'); ctext(toast,W/2,H/2,21,'#ffd089',800); ctx.globalAlpha=1; }
+  // TSO：進度一有變動（過關或「從頭開始」）就存檔
+  if(progress!==savedProgress){ savedProgress=progress; try{ localStorage.setItem(SAVE_KEY,String(progress)); }catch(e){} }
+  requestAnimationFrame(loop); }
+
+resize(); window.addEventListener('resize',resize);
+setScene(MAP,'map'); showTitle();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SANGUO_GAMES } from '../components/sanguo/games'
 import './ThreeKingdomsPage.css'
 
 interface MiniGame {
@@ -11,7 +12,14 @@ interface MiniGame {
   tag?: string
 }
 
-const MINI_GAMES: MiniGame[] = []
+const MINI_GAMES: MiniGame[] = SANGUO_GAMES.map(g => ({
+  id: g.id,
+  title: g.title,
+  description: g.description,
+  icon: g.icon,
+  path: g.path,
+  available: true,
+}))
 
 export default function ThreeKingdomsPage() {
   document.title = '三國演義 | TSO'
