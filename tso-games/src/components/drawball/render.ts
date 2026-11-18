@@ -512,3 +512,52 @@ export function render(
     ctx.restore()
   }
 }
+
+/**
+ * 放大後球或杯子跑到畫面外時，在畫面邊緣畫箭頭指出方向。
+ * 呼叫前畫布座標須為「螢幕邏輯座標」（未套用鏡頭變換）。
+ */
+export function drawOffscreenMarkers(
+  ctx: CanvasRenderingContext2D,
+  cam: { x: number; y: number; z: number },
+  world: World,
+  goal: Goal,
+) {
+  if (cam.z <= 1) return
+  const targets: { p: Vec; color: string; label: string }[] = [
+    { p: { x: goal.x + goal.w / 2, y: goal.y + goal.h / 2 }, color: '#12b886', label: '⭐' },
+  ]
+  world.balls.forEach((b, i) => {
+    if (!b.done) targets.push({ p: b.pos, color: BALL_COLORS[i % BALL_COLORS.length][1], label: '' })
+  })
+  const margin = 22
+  for (const t of targets) {
+    const sx = (t.p.x - cam.x) * cam.z
+    const sy = (t.p.y - cam.y) * cam.z
+    if (sx >= 0 && sx <= WORLD_W && sy >= 0 && sy <= WORLD_H) continue
+    const cx = Math.min(WORLD_W - margin, Math.max(margin, sx))
+    const cy = Math.min(WORLD_H - margin, Math.max(margin, sy))
+    const ang = Math.atan2(sy - cy, sx - cx)
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.beginPath()
+    ctx.arc(0, 0, 15, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.rotate(ang)
+    ctx.fillStyle = t.color
+    ctx.beginPath()
+    ctx.moveTo(12, 0)
+    ctx.lineTo(-6, -8)
+    ctx.lineTo(-6, 8)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+    if (t.label) {
+      ctx.font = '12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(t.label, cx, cy - 22)
+    }
+  }
+}

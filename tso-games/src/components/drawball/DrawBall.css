@@ -280,6 +280,105 @@
   cursor: default;
 }
 
+/* 畫面右上角的縮放／全螢幕按鈕 */
+.db-view-ctrls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.db-view-ctrls button {
+  width: 38px;
+  height: 38px;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  background: rgba(30, 42, 68, 0.75);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+  transition: all 0.15s;
+}
+.db-view-ctrls button:hover:not(:disabled) {
+  background: rgba(30, 42, 68, 0.95);
+  transform: translateY(-1px);
+}
+.db-view-ctrls button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.db-view-ctrls button.active {
+  background: var(--db-yellow);
+  color: #5a3d00;
+}
+.db-zoom-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(30, 42, 68, 0.75);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+/* 全螢幕：遊戲區撐滿整個畫面，畫布依可用空間等比放到最大 */
+.db-card.fs {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.db-card.fs .db-hint,
+.db-card.fs .db-best {
+  display: none;
+}
+.db-card.fs .db-info {
+  margin-bottom: 4px;
+}
+.db-card.fs .db-ink-row {
+  margin-bottom: 6px;
+}
+.db-card.fs .db-stage {
+  flex: 1;
+  min-height: 0;
+  /* 以舞台的實際寬高當基準，畫布取「寬度放滿」與「高度放滿」中較小者 */
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+}
+.db-card.fs .db-canvas {
+  width: min(100cqw, 160cqh);
+  border: 4px solid #fff;
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px #e0c98f;
+}
+.db-card.fs .db-controls {
+  margin-top: 8px;
+}
+
 .db-overlay {
   position: absolute;
   inset: 0;
@@ -687,5 +786,27 @@
   .db-btn.big {
     padding: 8px 12px;
     font-size: 14px;
+  }
+  /* 全螢幕＋橫放：按鈕放畫布右側，高度全部留給畫布 */
+  .db-card.fs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+  .db-card.fs .db-info {
+    display: none;
+  }
+  /* 畫布靠左，右側空位放縮放按鈕，不擋住畫面 */
+  .db-card.fs .db-stage {
+    grid-column: 1;
+    grid-row: 4;
+    justify-content: flex-start;
+    justify-self: stretch;
+    max-width: none;
+  }
+  .db-card.fs .db-controls {
+    grid-column: 2;
+    grid-row: 4;
+    margin-top: 0;
   }
 }

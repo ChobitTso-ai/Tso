@@ -3,7 +3,9 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { CHAPTERS } from './levels'
 import { BALL_R, LINE_HALF, createWorld, distToSeg, segLength, step } from './physics'
 import type { World } from './physics'
-import { burstConfetti, createBackground, createFx, render, updateFx } from './render'
+import { DEFAULT_CAMERA, MAX_ZOOM, MIN_ZOOM, clampCamera, screenToWorld, stepZoom, zoomAt } from './camera'
+import type { Camera } from './camera'
+import { burstConfetti, createBackground, createFx, drawOffscreenMarkers, render, updateFx } from './render'
 import type { FxState } from './render'
 import LevelMap from './LevelMap'
 import { inkRules, starsFor, toDots } from './scoring'
@@ -103,6 +105,19 @@ export default function DrawBall() {
   const inkModeRef = useRef<InkMode>(progress.inkMode)
   const fxRef = useRef<FxState>(createFx(LEVELS[levelIdx]))
   const bestRef = useRef(progress.stars)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const cameraRef = useRef<Camera>(DEFAULT_CAMERA)
+  // 觸控／滑鼠手勢：記錄每個按下中的指標位置，用來判斷是畫線、拖曳還是雙指縮放
+  const pointersRef = useRef(new Map<number, Vec>())
+  const gestureRef = useRef<
+    | { kind: 'draw'; strokesBefore: number }
+    | { kind: 'pan'; last: Vec }
+    | { kind: 'pinch'; dist0: number; z0: number; anchor: Vec }
+    | { kind: 'idle' }
+  >({ kind: 'idle' })
+  const [zoom, setZoom] = useState(1)
+  const [panMode, setPanMode] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
 
   const level = LEVELS[levelIdx]
   const rules = inkRules(level)
@@ -169,12 +184,67 @@ export default function DrawBall() {
       }
       updateFx(fxRef.current, world, phaseRef.current, Math.min(dt, 1 / 30))
       const theme = LEVEL_CHAPTER[idx]
+      const cam = cameraRef.current
+      ctx.setTransform(dpr * cam.z, 0, 0, dpr * cam.z, -cam.x * dpr * cam.z, -cam.y * dpr * cam.z)
       render(ctx, backgroundFor(theme), lv, strokes, world, fxRef.current, phaseRef.current, now / 1000, theme)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      drawOffscreenMarkers(ctx, cam, world, lv.goal)
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
   }, [])
+
+  const setCamera = (c: Camera) => {
+    cameraRef.current = clampCamera(c)
+    setZoom(cameraRef.current.z)
+  }
+
+  const resetView = () => {
+    setCamera(DEFAULT_CAMERA)
+    setPanMode(false)
+  }
+
+  // 滑鼠滾輪以游標為中心縮放；React 的 wheel 事件無法 preventDefault，改用原生監聽
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const sx = ((e.clientX - rect.left) / rect.width) * WORLD_W
+      const sy = ((e.clientY - rect.top) / rect.height) * WORLD_H
+      const c = cameraRef.current
+      cameraRef.current = zoomAt(c, c.z * Math.exp(-e.deltaY * 0.0015), sx, sy)
+      setZoom(cameraRef.current.z)
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // 使用者按 Esc 離開瀏覽器全螢幕時，同步收起全螢幕版面
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    setFullscreen(false)
+  }
+
+  // iPhone Safari 不支援讓一般元素全螢幕，這時只靠 CSS 把遊戲區撐滿畫面
+  const toggleFullscreen = () => {
+    if (fullscreen) {
+      exitFullscreen()
+      return
+    }
+    cardRef.current?.requestFullscreen?.().catch(() => {})
+    setFullscreen(true)
+  }
 
   const changePhase = (p: Phase) => {
     phaseRef.current = p
@@ -212,11 +282,13 @@ export default function DrawBall() {
     setLevelIdx(i)
     setView('play')
     setWinResult(null)
+    resetView()
     clearLines()
     resetBall()
   }
 
   const openMap = () => {
+    exitFullscreen()
     resetBall()
     setView('map')
   }
@@ -226,7 +298,8 @@ export default function DrawBall() {
     changePhase('rolling')
   }
 
-  const toWorld = (e: ReactPointerEvent<HTMLCanvasElement>): Vec => {
+  /** 指標位置轉成畫布邏輯座標（尚未套用鏡頭） */
+  const toScreen = (e: ReactPointerEvent<HTMLCanvasElement>): Vec => {
     const rect = e.currentTarget.getBoundingClientRect()
     return {
       x: ((e.clientX - rect.left) / rect.width) * WORLD_W,
@@ -234,24 +307,78 @@ export default function DrawBall() {
     }
   }
 
+  const startPinch = () => {
+    const [p1, p2] = [...pointersRef.current.values()]
+    const c = cameraRef.current
+    const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+    gestureRef.current = {
+      kind: 'pinch',
+      dist0: Math.max(1, Math.hypot(p1.x - p2.x, p1.y - p2.y)),
+      z0: c.z,
+      anchor: screenToWorld(c, mid.x, mid.y),
+    }
+  }
+
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (phaseRef.current !== 'ready' && phaseRef.current !== 'rolling') return
     e.currentTarget.setPointerCapture(e.pointerId)
-    lastPointRef.current = toWorld(e)
+    const sp = toScreen(e)
+    pointersRef.current.set(e.pointerId, sp)
+    const g = gestureRef.current
+    if (pointersRef.current.size === 2) {
+      // 第二根手指放下：改為雙指縮放，並撤回第一根手指剛畫出的線
+      if (g.kind === 'draw' && strokesRef.current.length > g.strokesBefore) {
+        strokesRef.current = strokesRef.current.slice(0, g.strokesBefore)
+        syncInk()
+      }
+      endStroke()
+      startPinch()
+      return
+    }
+    if (pointersRef.current.size > 2) return
+    // 右鍵、中鍵或「✋ 移動」模式：拖曳畫面
+    if (e.button === 1 || e.button === 2 || panMode) {
+      gestureRef.current = { kind: 'pan', last: sp }
+      return
+    }
+    if (phaseRef.current !== 'ready' && phaseRef.current !== 'rolling') return
+    gestureRef.current = { kind: 'draw', strokesBefore: strokesRef.current.length }
+    lastPointRef.current = screenToWorld(cameraRef.current, sp.x, sp.y)
     drawingRef.current = null
   }
 
   const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!pointersRef.current.has(e.pointerId)) return
+    const sp = toScreen(e)
+    pointersRef.current.set(e.pointerId, sp)
+    const g = gestureRef.current
+    if (g.kind === 'pinch' && pointersRef.current.size >= 2) {
+      const [p1, p2] = [...pointersRef.current.values()]
+      const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+      const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, g.z0 * (Math.hypot(p1.x - p2.x, p1.y - p2.y) / g.dist0)))
+      // 讓一開始兩指中間的那個世界位置一直跟著兩指中點走，同時完成縮放與平移
+      setCamera({ z, x: g.anchor.x - mid.x / z, y: g.anchor.y - mid.y / z })
+      return
+    }
+    if (g.kind === 'pan') {
+      const c = cameraRef.current
+      setCamera({ z: c.z, x: c.x - (sp.x - g.last.x) / c.z, y: c.y - (sp.y - g.last.y) / c.z })
+      gestureRef.current = { kind: 'pan', last: sp }
+      return
+    }
+    if (g.kind === 'draw') drawTo(screenToWorld(cameraRef.current, sp.x, sp.y))
+  }
+
+  const drawTo = (p: Vec) => {
     const last = lastPointRef.current
     if (!last) return
     if (phaseRef.current !== 'ready' && phaseRef.current !== 'rolling') {
       lastPointRef.current = null
       return
     }
-    const p = toWorld(e)
     const seg = { a: last, b: p }
     const len = segLength(seg)
-    if (len < MIN_POINT_GAP) return
+    // 取樣間距以螢幕上的距離為準，放大時線才不會變得一段一段
+    if (len < MIN_POINT_GAP / cameraRef.current.z) return
     lastPointRef.current = p
     const onBall = worldRef.current.balls.some(b => !b.done && distToSeg(b.pos, seg) < BALL_CLEARANCE)
     if (onBall) {
@@ -278,6 +405,17 @@ export default function DrawBall() {
   const endStroke = () => {
     lastPointRef.current = null
     drawingRef.current = null
+  }
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    pointersRef.current.delete(e.pointerId)
+    endStroke()
+    // 雙指縮放放開一根手指時不接著畫線，等全部放開才回到待命
+    if (pointersRef.current.size === 0) gestureRef.current = { kind: 'idle' }
+    else if (gestureRef.current.kind === 'pinch' && pointersRef.current.size === 1) {
+      const [rest] = [...pointersRef.current.values()]
+      gestureRef.current = { kind: 'pan', last: rest }
+    }
   }
 
   const setInkMode = (inkMode: InkMode) => setProgress(p => ({ ...p, inkMode }))
@@ -332,7 +470,7 @@ export default function DrawBall() {
       )}
 
       {/* 畫布常駐以維持繪圖迴圈，地圖模式時只是隱藏 */}
-      <div className="db-card" hidden={view !== 'play'}>
+      <div ref={cardRef} className={`db-card ${fullscreen ? 'fs' : ''}`} hidden={view !== 'play'}>
         <div className="db-info">
           <span className="db-level-badge">第 {levelIdx + 1} 關</span>
           <h2 className="db-level-name">{level.name}</h2>
@@ -367,9 +505,37 @@ export default function DrawBall() {
             className={`db-canvas ${canDraw ? '' : 'locked'}`}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
-            onPointerUp={endStroke}
-            onPointerCancel={endStroke}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onContextMenu={e => e.preventDefault()}
           />
+          <div className="db-view-ctrls">
+            <button onClick={() => setCamera(stepZoom(cameraRef.current, 1))} disabled={zoom >= MAX_ZOOM} title="放大" aria-label="放大">
+              ＋
+            </button>
+            <button onClick={() => setCamera(stepZoom(cameraRef.current, -1))} disabled={zoom <= MIN_ZOOM} title="縮小" aria-label="縮小">
+              －
+            </button>
+            {zoom > MIN_ZOOM && (
+              <>
+                <button onClick={resetView} title="看整關" aria-label="看整關">
+                  ⟲
+                </button>
+                <button
+                  className={panMode ? 'active' : ''}
+                  onClick={() => setPanMode(m => !m)}
+                  title={panMode ? '切回畫線' : '拖曳移動畫面'}
+                  aria-label="移動畫面"
+                >
+                  {panMode ? '✏️' : '✋'}
+                </button>
+              </>
+            )}
+            <button onClick={toggleFullscreen} title={fullscreen ? '離開全螢幕' : '全螢幕'} aria-label="全螢幕">
+              {fullscreen ? '🗗' : '⛶'}
+            </button>
+          </div>
+          {zoom > MIN_ZOOM && <span className="db-zoom-badge">🔍 {Math.round(zoom * 100)}%{panMode && '・移動中'}</span>}
           {phase === 'won' && winResult && (
             <div className="db-overlay">
               <div className="db-overlay-box win">

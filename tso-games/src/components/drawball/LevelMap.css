@@ -2,6 +2,9 @@
 
 .db-map {
   position: relative;
+  /* 內容全是絕對定位，沒有明確寬度時在橫放的 grid 版面會縮成一條線 */
+  width: 100%;
+  box-sizing: border-box;
   max-width: 560px;
   margin: 0 auto;
   border-radius: 22px;
