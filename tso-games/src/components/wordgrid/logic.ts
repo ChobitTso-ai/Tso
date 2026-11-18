@@ -111,12 +111,12 @@ export function solveWords(tiles: string[], size: number, dict: Dictionary): Map
   return found
 }
 
-// 依英文字母常見程度抽字母；Q 一律帶 U，否則幾乎拼不出字
+// 依英文字母常見程度抽字母；不放 Q（它幾乎都要接 U，單獨出現很難拼出字）
 const LETTER_WEIGHTS: [string, number][] = [
   ['E', 120], ['T', 90], ['A', 82], ['O', 75], ['I', 70], ['N', 67], ['S', 63], ['R', 60],
   ['H', 50], ['D', 43], ['L', 40], ['C', 28], ['U', 28], ['M', 24], ['W', 20], ['F', 22],
   ['G', 20], ['Y', 18], ['P', 19], ['B', 15], ['V', 10], ['K', 8], ['J', 2], ['X', 2],
-  ['QU', 2], ['Z', 2],
+  ['Z', 2],
 ]
 const LETTER_TOTAL = LETTER_WEIGHTS.reduce((s, [, w]) => s + w, 0)
 const VOWELS = new Set(['A', 'E', 'I', 'O', 'U'])

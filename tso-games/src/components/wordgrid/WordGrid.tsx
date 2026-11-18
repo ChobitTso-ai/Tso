@@ -84,7 +84,7 @@ function restoreGame(): Game | null {
     if (!raw) return null
     const g = JSON.parse(raw) as Game
     const s = g?.settings
-    const tilePattern = s?.mode === 'math' ? /^[1-9]$/ : /^(?:[A-Z]|QU)$/
+    const tilePattern = s?.mode === 'math' ? /^[1-9]$/ : /^[A-PR-Z]$/
     const valid =
       !!s &&
       MODES.includes(s.mode) &&
@@ -125,8 +125,6 @@ function formatTime(sec: number): string {
   const s = sec % 60
   return `${m}:${s.toString().padStart(2, '0')}`
 }
-
-const tileLabel = (t: string) => (t === 'QU' ? 'Qu' : t)
 
 function groupLabel(mode: Mode, group: number): string {
   if (mode === 'math') return `${group} 個數字`
@@ -397,7 +395,7 @@ export default function WordGrid() {
   else if (builder) status = { text: '選好運算符號，再按「送出」', kind: 'info' }
   else if (path.length > 0) {
     status = {
-      text: isMath ? path.map(i => current.tiles[i]).join(' · ') : path.map(i => tileLabel(current.tiles[i])).join(''),
+      text: path.map(i => current.tiles[i]).join(isMath ? ' · ' : ''),
       kind: 'typing',
     }
   } else if (current.revealed) status = { text: '點右邊的答案，可以在盤面上看到位置', kind: 'info' }
@@ -480,7 +478,7 @@ export default function WordGrid() {
               ]
               return (
                 <div key={i} className="wg-cell">
-                  <div className={cls.filter(Boolean).join(' ')}>{tileLabel(t)}</div>
+                  <div className={cls.filter(Boolean).join(' ')}>{t}</div>
                 </div>
               )
             })}
@@ -620,7 +618,7 @@ export default function WordGrid() {
         <ul>
           <li>用手指或滑鼠在格子上拖曳，把相鄰的格子連起來（上下左右、斜角都可以），同一格在一次連線裡只能用一次。往回拖可以取消上一格。</li>
           <li>
-            <b>英文單字</b>：連出 {MIN_WORD_LETTERS} 個字母以上的英文單字，放開就送出。字越長分數越高：3–4 個字母 1 分、5 個 2 分、6 個 3 分、7 個 5 分、8 個以上 11 分。「Qu」這格算 2 個字母。
+            <b>英文單字</b>：連出 {MIN_WORD_LETTERS} 個字母以上的英文單字，放開就送出。字越長分數越高：3–4 個字母 1 分、5 個 2 分、6 個 3 分、7 個 5 分、8 個以上 11 分。盤面上不會出現 Q。
           </li>
           <li>
             <b>數學算式</b>：連 2–{MAX_MATH_NUMBERS} 個數字，放開後在數字之間選運算符號，算出來要等於目標數。先乘除後加減，除法要整除。2 個數字 1 分、3 個 2 分、4 個 4 分；3+4 和 4+3 算兩條。
