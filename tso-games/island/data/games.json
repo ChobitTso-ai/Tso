@@ -101,6 +101,34 @@
       "views": [],
       "sources": [],
       "updated": "2026-10-10"
+    },
+    {
+      "id": "wordgrid",
+      "name": "方陣找找看",
+      "en": "Grid Hunt",
+      "model": "dice",
+      "status": "new",
+      "heat": 3,
+      "path": "/wordgrid",
+      "what": "在字母方陣上連起相鄰的格子拼出英文單字；也能切換成數學模式，連數字湊出目標數。有 3×3 到 5×5 三種盤面、三種難度。",
+      "why": "練英文單字和四則運算，也練眼力：同一個盤面藏著比你想像更多的答案。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
+    },
+    {
+      "id": "slitherlink",
+      "name": "數迴",
+      "en": "Loop Puzzle",
+      "model": "loop",
+      "status": "new",
+      "heat": 3,
+      "path": "/slitherlink",
+      "what": "在點和點之間畫線，連成一條不交叉、不分岔的迴路，格子裡的數字是周圍有幾條線。三種盤面、兩種難度，題目由電腦即時產生。",
+      "why": "練邏輯推理：從 0 和 3 開始推，一步步排除不可能，不用猜也解得開。",
+      "views": [],
+      "sources": [],
+      "updated": "2026-11-18"
     }
   ],
   "kingdom": [
