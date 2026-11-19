@@ -6,10 +6,11 @@ const G: TileType = 'go'
 const H: TileType = 'home'
 const M: TileType = 'monster'
 const FR: TileType = 'fire'
+const TR: TileType = 'trap'
 const HT: TileType = 'heart'
 const ST: TileType = 'star'
 
-// All paths verified by hand-tracing before inclusion.
+// L1–L15 verified by hand-tracing; L16–L25 verified by brute-force solver (every level has a 3-star solution).
 // path_turn_dr: enter-left→exit-down, enter-up→exit-right
 // path_turn_dl: enter-right→exit-down, enter-up→exit-left
 // path_turn_ur: enter-left→exit-up, enter-down→exit-right
@@ -162,7 +163,7 @@ export const LEVELS: Level[] = [
   //       →D→[4,4]=ST(down,U→D,collect star)→D→HOME[5,4]
   // NOTE: [3,3] entered from UP (not left), needs turn_dr (U→R), NOT path_right
   {
-    id: 10, name: '第十關：終極挑戰', size: 7, startDir: 'right',
+    id: 10, name: '第十關：雙重收集', size: 7, startDir: 'right',
     grid: [
       [E,  E,  E,  E,  E,  E,  E],
       [E,  G,  F,  HT, E,  E,  E],
@@ -255,7 +256,7 @@ export const LEVELS: Level[] = [
   //       →R→[4,5](turn_dr,L→D)→D→[5,5](down)→D→HOME[6,5]
   // Monsters at [2,2],[4,3]; fire at [3,3] — all off the critical path
   {
-    id: 15, name: '第十五關：最終大冒險', size: 7, startDir: 'right',
+    id: 15, name: '第十五關：全方位冒險', size: 7, startDir: 'right',
     grid: [
       [E,  E,  E,  E,  E,  E,  E],
       [E,  G,  F,  F,  F,  E,  E],
@@ -267,5 +268,176 @@ export const LEVELS: Level[] = [
     ],
     hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_down', 'path_turn_dr', 'path_turn_dr', 'path_down'],
     hint: '全方位冒險：收集愛心和星星，繞過怪獸與火焰，英雄回家！',
+  },
+
+
+  // ── L16: two hearts on a loop ──────
+  // Path: GO RRRDDLLLD → HOME   needs: path_right, path_right, path_turn_dr, path_down, path_turn_dl, path_left, path_left, path_turn_dl
+  {
+    id: 16, name: '第十六關：雙愛心環', size: 6, startDir: 'right',
+    grid: [
+      [E , E , E , E , E , E ],
+      [E , G , F , HT, F , E ],
+      [E , M , FR, M , F , E ],
+      [E , F , F , HT, F , E ],
+      [E , H , E , E , E , E ],
+      [E , E , E , E , E , E ],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_turn_dl', 'path_left', 'path_left', 'path_turn_dl', 'path_up', 'path_turn_ur'],
+    hint: '上排往右、右側往下、下排往左，兩個愛心都要收集！',
+  },
+
+  // ── L17: staircase, heart + star ──────
+  // Path: GO DRRDDRRD → HOME   needs: path_turn_dr, path_right, path_turn_dr, path_down, path_turn_dr, path_right, path_turn_dr
+  {
+    id: 17, name: '第十七關：階梯雙收集', size: 7, startDir: 'down',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , G , E , E , E , E , E ],
+      [E , F , HT, F , E , E , E ],
+      [E , M , F , F , M , E , E ],
+      [E , E , M , F , ST, F , E ],
+      [E , E , E , E , E , H , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_turn_dr', 'path_right', 'path_turn_dr', 'path_down', 'path_turn_dr', 'path_right', 'path_turn_dr', 'path_turn_ur', 'path_up'],
+    hint: '機器人先往下！注意每個轉角要用哪一種轉彎片。',
+  },
+
+  // ── L18: heading up and left ──────
+  // Path: GO RRRUUULLUL → HOME   needs: path_right, path_right, path_turn_ur, path_up, path_up, path_turn_ul, path_left, path_turn_ul, path_turn_ul
+  {
+    id: 18, name: '第十八關：逆流而上', size: 7, startDir: 'right',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , H , F , E , E , E , E ],
+      [E , M , F , ST, F , E , E ],
+      [E , FR, M , E , HT, E , E ],
+      [E , M , E , E , F , E , E ],
+      [E , G , F , F , F , E , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_ur', 'path_up', 'path_up', 'path_turn_ul', 'path_left', 'path_turn_ul', 'path_turn_ul', 'path_down', 'path_turn_dr'],
+    hint: '先往右，再一路向上，最後向左回家。小心選對左右轉！',
+  },
+
+  // ── L19: three collectibles, down-right-up-right-down ──────
+  // Path: GO DDRRUURRDD → HOME   needs: path_down, path_turn_dr, path_right, path_turn_ur, path_up, path_turn_ur, path_right, path_turn_dr, path_down
+  {
+    id: 19, name: '第十九關：三連收集', size: 7, startDir: 'down',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , G , M , F , HT, F , E ],
+      [E , HT, M , F , M , F , E ],
+      [E , F , F , ST, FR, H , E ],
+      [E , FR, M , E , E , E , E ],
+      [E , E , E , E , E , E , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_down', 'path_turn_dr', 'path_right', 'path_turn_ur', 'path_up', 'path_turn_ur', 'path_right', 'path_turn_dr', 'path_down', 'path_left', 'path_turn_ul'],
+    hint: '先下、右、上，再右、下回家，三個道具都要收集！',
+  },
+
+  // ── L20: spiral inward ──────
+  // Path: GO RRRDDDLLUR → HOME   needs: path_right, path_right, path_turn_dr, path_down, path_down, path_turn_dl, path_left, path_turn_ul, path_turn_ur
+  {
+    id: 20, name: '第二十關：螺旋迷宮', size: 6, startDir: 'right',
+    grid: [
+      [E , E , E , E , E , E ],
+      [E , G , F , F , F , E ],
+      [E , M , FR, M , HT, E ],
+      [E , E , F , H , ST, E ],
+      [E , E , F , HT, F , E ],
+      [E , E , E , E , E , E ],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_down', 'path_turn_dl', 'path_left', 'path_turn_ul', 'path_turn_ur', 'path_right', 'path_down'],
+    hint: '沿著外圈繞下去，再往內轉進中心的家！',
+  },
+
+  // ── L21: serpentine, heart + two stars ──────
+  // Path: GO RRDDLLDDRRR → HOME   needs: path_right, path_turn_dr, path_down, path_turn_dl, path_left, path_turn_dl, path_down, path_turn_dr, path_right, path_right
+  {
+    id: 21, name: '第二十一關：蛇行迷宮', size: 7, startDir: 'right',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , G , F , ST, F , E , E ],
+      [E , M , M , F , M , E , E ],
+      [E , F , F , HT, FR, E , E ],
+      [E , F , M , E , E , E , E ],
+      [E , F , F , ST, H , E , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_right', 'path_turn_dr', 'path_down', 'path_turn_dl', 'path_left', 'path_turn_dl', 'path_down', 'path_turn_dr', 'path_right', 'path_right', 'path_up', 'path_turn_ul'],
+    hint: '像蛇一樣蜿蜒前進，每個轉角都要選對轉彎片！',
+  },
+
+  // ── L22: starts upward ──────
+  // Path: GO UUURRDRRUUR → HOME   needs: path_up, path_up, path_turn_ur, path_right, path_turn_dr, path_turn_dr, path_right, path_turn_ur, path_up, path_turn_ur
+  {
+    id: 22, name: '第二十二關：向上攀登', size: 8, startDir: 'up',
+    grid: [
+      [E , E , E , E , E , E , E , E ],
+      [E , E , E , E , E , F , H , E ],
+      [E , F , F , F , M , HT, E , E ],
+      [E , F , M , F , ST, F , E , E ],
+      [E , HT, FR, M , E , M , E , E ],
+      [E , G , E , E , E , E , E , E ],
+      [E , E , E , E , E , E , E , E ],
+      [E , E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_up', 'path_up', 'path_turn_ur', 'path_right', 'path_turn_dr', 'path_turn_dr', 'path_right', 'path_turn_ur', 'path_up', 'path_turn_ur', 'path_left', 'path_down'],
+    hint: '機器人一開始往上走！先上、右、下、右，最後再往上繞回家。',
+  },
+
+  // ── L23: starts leftward ──────
+  // Path: GO LLDDLLDDRRR → HOME   needs: path_left, path_turn_dl, path_down, path_turn_dl, path_left, path_turn_dl, path_down, path_turn_dr, path_right, path_right
+  {
+    id: 23, name: '第二十三關：向左出發', size: 7, startDir: 'left',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , E , E , F , HT, G , E ],
+      [E , E , M , F , M , E , E ],
+      [E , F , ST, F , FR, E , E ],
+      [E , F , M , E , E , E , E ],
+      [E , F , F , HT, H , E , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_left', 'path_turn_dl', 'path_down', 'path_turn_dl', 'path_left', 'path_turn_dl', 'path_down', 'path_turn_dr', 'path_right', 'path_right', 'path_up', 'path_turn_ur'],
+    hint: '機器人一開始就往左！留意轉彎片的左右方向。',
+  },
+
+  // ── L24: trap maze ──────
+  // Path: GO DDDRRUURRDD → HOME   needs: path_down, path_down, path_turn_dr, path_right, path_turn_ur, path_up, path_turn_ur, path_right, path_turn_dr, path_down
+  {
+    id: 24, name: '第二十四關：陷阱迷陣', size: 7, startDir: 'down',
+    grid: [
+      [E , E , E , E , E , E , E ],
+      [E , G , E , E , E , E , E ],
+      [E , F , TR, F , HT, F , E ],
+      [E , HT, M , F , FR, F , E ],
+      [E , F , F , ST, TR, H , E ],
+      [E , FR, M , TR, E , E , E ],
+      [E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_down', 'path_down', 'path_turn_dr', 'path_right', 'path_turn_ur', 'path_up', 'path_turn_ur', 'path_right', 'path_turn_dr', 'path_down', 'path_left', 'path_turn_ul'],
+    hint: '陷阱環伺！找出能收集全部道具的安全路線。',
+  },
+
+  // ── L25: grand finale, four collectibles ──────
+  // Path: GO RRRDDLLDDRRRD → HOME   needs: path_right, path_right, path_turn_dr, path_down, path_turn_dl, path_left, path_turn_dl, path_down, path_turn_dr, path_right, path_right, path_turn_dr
+  {
+    id: 25, name: '第二十五關：傳說中的回家路', size: 8, startDir: 'right',
+    grid: [
+      [E , E , E , E , E , E , E , E ],
+      [E , G , F , ST, F , E , E , E ],
+      [E , M , M , FR, HT, M , E , E ],
+      [E , E , F , ST, F , FR, E , E ],
+      [E , M , F , M , TR, M , E , E ],
+      [E , E , F , F , HT, F , M , E ],
+      [E , FR, TR, E , TR, H , E , E ],
+      [E , E , E , E , E , E , E , E ],
+    ],
+    hand: ['path_right', 'path_right', 'path_turn_dr', 'path_down', 'path_turn_dl', 'path_left', 'path_turn_dl', 'path_down', 'path_turn_dr', 'path_right', 'path_right', 'path_turn_dr', 'path_up', 'path_turn_ul', 'path_turn_ur'],
+    hint: '四個道具、十二片磁力片，最後的挑戰！',
   },
 ]

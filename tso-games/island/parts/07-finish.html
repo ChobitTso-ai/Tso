@@ -1,0 +1,61 @@
+
+<style>
+/* ===== 操作說明 ===== */
+#help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(33, 29, 29, .28);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#help .box { background: var(--cream); border-radius: 22px; padding: 24px; width: min(440px, 100%); box-sizing: border-box; box-shadow: var(--shadow); display: grid; gap: 16px; }
+#help h2 { margin: 0; font-size: 22px; font-weight: 900; }
+#help ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+#help li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; font-size: 14px; line-height: 1.6; }
+#help li b { display: block; font-size: 15px; }
+#help li .num { font-size: 28px; }
+#help .go { justify-self: end; background: var(--ink); color: #fff; padding: 0 20px; flex-direction: row; font-size: 14px; }
+#help .go:hover { background: var(--coral); }
+#brand { padding-right: 64px; }
+#langBtn { position: absolute; top: 10px; right: 10px; min-height: 32px; min-width: 0; padding: 2px 10px; font: 700 11px var(--mono); letter-spacing: 1px; background: #fff; box-shadow: var(--chip-shadow); flex-direction: row; }
+#bTime, .handle { display: none; }
+
+/* ===== 手機版（≤ 800px） ===== */
+@media (max-width: 800px) {
+  #brand { padding: 9px 14px 10px; border-radius: 16px; }
+  #brand h1 { font-size: 18px; }
+  #brand { padding-right: 58px; }
+  #langBtn { top: 8px; right: 8px; }
+  #tools { flex-direction: column; top: calc(16px + env(safe-area-inset-top, 0px)); left: auto; right: max(16px, env(safe-area-inset-right, 0px)); }
+  #side, #card {
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px); transition: height .25s ease;
+  }
+  #side { height: 52%; z-index: 21; }
+  #card { height: 34%; z-index: 22; }
+  #side.full, #card.full { height: calc(100% - env(safe-area-inset-top, 0px)); }
+  #side.dragging, #card.dragging { transition: none; }
+  #card .scroll { padding-top: 4px; }
+  #card .close { top: 14px; }
+  .handle { display: block; flex: none; height: 26px; cursor: grab; touch-action: none; position: relative; }
+  .handle::after { content: ''; position: absolute; left: 50%; top: 10px; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: var(--stone); }
+  #hud { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); gap: 0; padding: 4px; }
+  #hud .btn { padding: 4px 6px; font-size: 11px; min-width: 44px; }
+  #bTime { display: inline-flex; }
+  #timeGroup { display: none !important; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    background: var(--cream); border-radius: 18px; padding: 6px; box-shadow: var(--shadow); }
+  #timeGroup.open { display: flex !important; }
+  #timeGroup .sep { display: none; }
+  #log { right: max(16px, env(safe-area-inset-right, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); width: auto; top: calc(84px + env(safe-area-inset-top, 0px)); max-height: 34vh; }
+  #log.noside { right: max(16px, env(safe-area-inset-right, 0px)); }
+  #legend { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); gap: 10px; font-size: 11px; }
+  #legend i { width: 18px; }
+}
+</style>
+<div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="box">
+    <div class="eyebrow" data-en="HOW TO EXPLORE">怎麼逛</div>
+    <h2 id="helpTitle" data-en="How to play">三步驟開始玩</h2>
+    <ol>
+      <li><span class="num">1</span><span><b data-en="Pick an island">先挑一座島</b><span data-en="Each island is a kind of game. Drag to turn the view, pinch or scroll to zoom.">每座島是一類遊戲。拖曳可以轉動視角，雙指或滾輪可以縮放。</span></span></li>
+      <li><span class="num">2</span><span><b data-en="Tap a building">點一棟建物</b><span data-en="Every building is a game. Flags mark the newest ones. The card tells you how to play.">每棟建物就是一個遊戲，插旗的是最新的。卡片會告訴你怎麼玩、會練到什麼。</span></span></li>
+      <li><span class="num">3</span><span><b data-en="Press Play">按「開始遊戲」</b><span data-en="Press Play to jump into the game. Prefer a plain list? Use the Cards button.">按下去就開始玩。想看單純的清單，可以按左上的「卡片版」。</span></span></li>
+    </ol>
+    <button class="btn go" id="helpGo" type="button" data-en="Let's go">開始逛</button>
+  </div>
+</div>

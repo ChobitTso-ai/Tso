@@ -70,6 +70,32 @@
   animation: mq-fade-in 0.4s ease-out;
 }
 
+/* ── 繼續上次 / 重新選角 ─────────────────────────────────────────────── */
+.mq-resume-box {
+  background: #16213e;
+  border: 3px solid #4A90D9;
+  border-radius: 16px;
+  padding: 24px 28px;
+  text-align: center;
+  animation: mq-pop 0.2s ease-out;
+}
+.mq-resume-title { color: #eee; font-size: 1rem; margin: 0 0 8px; }
+.mq-resume-info  { color: #FFD700; font-size: 0.9rem; margin: 0 0 18px; }
+.mq-resume-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.mq-resume-btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.mq-resume-btn:hover { opacity: 0.85; }
+.mq-resume-continue { background: #4A90D9; }
+.mq-resume-new      { background: none; border: 1px solid #555; color: #aaa; font-weight: normal; }
+
 .mq-chars {
   display: flex;
   gap: 24px;

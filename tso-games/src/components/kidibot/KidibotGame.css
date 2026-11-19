@@ -155,10 +155,20 @@
 
 .kb-tile-label {
   font-size: 10px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.8);
   margin-top: 1px;
   font-weight: 600;
 }
+
+.kb-arrow {
+  width: 34px;
+  height: 34px;
+  color: #7ec8ff;
+  display: block;
+}
+
+.kb-hand-emoji .kb-arrow { width: 28px; height: 28px; }
+.kb-overlay-path .kb-arrow { width: 20px; height: 20px; }
 
 .kb-overlay-path {
   position: absolute;
@@ -300,6 +310,7 @@
 /* Responsive */
 @media (max-width: 600px) {
   .kb-tile-emoji { font-size: 18px; }
+  .kb-arrow { width: 24px; height: 24px; }
   .kb-robot { font-size: 20px; }
   .kb-panel { max-width: 100%; }
 }

@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>趙雲七進七出・長坂坡</title>
+<!-- TSO：本檔併入 TSO Games 時的修改處，都以「TSO：」註記 -->
+<!-- TSO：未登入就退回 TSO 首頁（比照遊戲島，只擋一般使用者） -->
+<script>try { if (sessionStorage.getItem('tsoAuth') !== 'ok') location.replace('../'); } catch (e) { location.replace('../'); }</script>
+<style>
+  :root{
+    --ink:#1d1814; --paper:#efe6d2; --paper2:#ddccab;
+    --steel:#46586a; --steel-d:#2c3a48; --red:#b23a2a; --red-d:#86291c; --gold:#c79a4a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC","Heiti TC",system-ui,sans-serif;
+    background:radial-gradient(120% 95% at 50% 8%, #2c2620 0%, #1c1813 60%, #100d0a 100%);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100%; padding:10px; user-select:none; -webkit-user-select:none;
+  }
+  #game{
+    position:relative; width:100%; max-width:880px; aspect-ratio:800/560;
+    /* TSO：寬度也受高度限制，手機橫拿時才不會裁掉上下（20px＝body 上下 padding） */
+    max-width:min(880px, calc((100vh - 20px) * 800 / 560));
+    max-width:min(880px, calc((100dvh - 20px) * 800 / 560));
+    border-radius:18px; overflow:hidden;
+    box-shadow:0 16px 44px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.4);
+    background:#b59a6c;
+  }
+  canvas{display:block; width:100%; height:100%; touch-action:none;}
+  #top{
+    position:absolute; left:0; top:0; right:0;
+    display:flex; gap:8px; align-items:center; padding:10px; pointer-events:none; z-index:5;
+  }
+  #top .sp{flex:1;}
+  .iconbtn{
+    pointer-events:auto; width:44px; height:44px; border:none; border-radius:12px;
+    background:rgba(28,34,42,.82); color:#e7ddc8; font-size:20px; cursor:pointer;
+    box-shadow:0 3px 0 rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center;
+  }
+  .iconbtn:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.4);}
+  .iconbtn.off{opacity:.42;}
+  #backbtn{margin-right:auto; padding:0 14px; width:auto; font-size:16px; font-weight:700;}
+  #card{
+    position:absolute; inset:0; z-index:8; display:flex; align-items:center; justify-content:center;
+    padding:22px; background:rgba(8,6,4,.5); opacity:0; visibility:hidden; transition:opacity .25s;
+  }
+  #card.show{opacity:1; visibility:visible;}
+  .panel{
+    width:min(92%,560px); background:linear-gradient(180deg,var(--paper),var(--paper2));
+    border-radius:16px; padding:26px 24px 22px; text-align:center;
+    box-shadow:0 18px 40px rgba(0,0,0,.5); border:2px solid #c9b487;
+  }
+  .panel .tag{font-size:14px; letter-spacing:3px; color:#9a6a32; font-weight:800;}
+  .panel h1{margin:.2em 0 .15em; font-size:clamp(22px,5.4vw,32px); color:#5a2f18;}
+  .panel p{margin:.5em 0 0; font-size:clamp(15px,3.7vw,19px); line-height:1.7; color:#433523; white-space:pre-line;}
+  .row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:20px;}
+  .bigbtn{
+    border:none; cursor:pointer; font-size:clamp(18px,4.4vw,22px); font-weight:800; color:#fff;
+    padding:13px 28px; border-radius:14px;
+    background:linear-gradient(180deg,#c44a38,var(--red)); box-shadow:0 5px 0 var(--red-d), 0 8px 18px rgba(120,30,15,.4);
+  }
+  .bigbtn:active{transform:translateY(3px); box-shadow:0 2px 0 var(--red-d);}
+  .bigbtn.ghost{background:linear-gradient(180deg,#5a6b7c,var(--steel)); color:#eef3f8; box-shadow:0 5px 0 var(--steel-d);}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="cv"></canvas>
+  <div id="top">
+    <button id="backbtn" class="iconbtn">↩ 地圖</button>
+    <span class="sp"></span>
+    <button id="readbtn" class="iconbtn" title="旁白">🔊</button>
+    <button id="soundbtn" class="iconbtn" title="聲音">🎵</button>
+  </div>
+  <div id="card"><div class="panel" id="panel"></div></div>
+</div>
+<script>
+(function(){
+"use strict";
+
+/* ===== 基本常數與畫布 ===== */
+const W=800, H=560;                       // 邏輯視窗（攝影機視野）
+const FONT='"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif';
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const card=document.getElementById('card'), panel=document.getElementById('panel');
+const backbtn=document.getElementById('backbtn');
+const readbtn=document.getElementById('readbtn'), soundbtn=document.getElementById('soundbtn');
+const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+let DPR=Math.min(2, window.devicePixelRatio||1);
+let progress=0;                            // 已完成關數（目前只開放第一關）
+/* TSO：記住已過幾關。只存一個整數，讀回時檢查範圍，不合法就清掉從頭開始。
+   青釭劍、懷阿斗都是進關時依 progress 算出來的，存這個整數就能完整還原 */
+const SAVE_KEY='sanguo_changban_progress', MAX_PROGRESS=7;
+try{ const n=Number(localStorage.getItem(SAVE_KEY));
+  if(Number.isInteger(n) && n>=0 && n<=MAX_PROGRESS) progress=n; else localStorage.removeItem(SAVE_KEY); }catch(e){}
+let savedProgress=progress;
+
+function resize(){
+  DPR=Math.min(2, window.devicePixelRatio||1);
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+/* ===== 小工具 ===== */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function rand(a,b){ return a+Math.random()*(b-a); }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function rrFill(x,y,w,h,r,col){ ctx.fillStyle=col; rr(x,y,w,h,r); ctx.fill(); }
+function rrStroke(x,y,w,h,r,col,lw){ ctx.strokeStyle=col; ctx.lineWidth=lw||1; rr(x,y,w,h,r); ctx.stroke(); }
+function collideTrees(o, trees, pad){ if(!trees)return; for(const tr of trees){ const ex=o.x-tr.x, ey=o.y-tr.y, ed=Math.hypot(ex,ey)||1; const m=tr.r+pad; if(ed<m){ o.x=tr.x+ex/ed*m; o.y=tr.y+ey/ed*m; } } }
+function drawThicket(t){ ctx.save(); ctx.translate(t.x,t.y);
+  ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(5,t.r*0.55,t.r*1.05,t.r*0.5,0,0,7); ctx.fill();
+  ctx.fillStyle='#33502a'; for(let i=0;i<5;i++){ const a=i/5*7; ctx.beginPath(); ctx.arc(Math.cos(a)*t.r*0.5,Math.sin(a)*t.r*0.42,t.r*0.58,0,7); ctx.fill(); }
+  ctx.fillStyle='#46683a'; ctx.beginPath(); ctx.arc(0,-2,t.r*0.72,0,7); ctx.fill();
+  ctx.fillStyle='#577f44'; for(let i=0;i<6;i++){ const a=i/6*7+0.4; ctx.beginPath(); ctx.arc(Math.cos(a)*t.r*0.42,Math.sin(a)*t.r*0.32-4,t.r*0.3,0,7); ctx.fill(); }
+  ctx.fillStyle='rgba(255,255,255,.06)'; ctx.beginPath(); ctx.arc(-t.r*0.2,-t.r*0.3,t.r*0.3,0,7); ctx.fill();
+  ctx.restore(); }
+function drawMount(x,y,ang,col,opts){ opts=opts||{}; ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,7,19,8,0,0,7); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round';                                  // 腿
+  ctx.beginPath(); ctx.moveTo(-7,5); ctx.lineTo(-9,11); ctx.moveTo(7,5); ctx.lineTo(9,11); ctx.moveTo(-2,6); ctx.lineTo(-3,11); ctx.moveTo(11,4); ctx.lineTo(12,10); ctx.stroke();
+  ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(0,0,17,7.5,0,0,7); ctx.fill();               // 身
+  ctx.beginPath(); ctx.ellipse(15,-3,7,4.5,0.3,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(21,-5,4,3,0.3,0,7); ctx.fill(); // 頸＋頭（前方+x）
+  ctx.fillStyle=opts.mane||'#1c1c20'; ctx.beginPath(); ctx.ellipse(8,-4,4.5,3,0,0,7); ctx.fill(); ctx.fillRect(-21,-2,6,4); // 鬃＋尾
+  ctx.restore(); }
+function ctext(str,x,y,size,col,weight,align){ ctx.fillStyle=col||'#fff';
+  ctx.font=(weight||700)+' '+size+'px '+FONT; ctx.textAlign=align||'center'; ctx.textBaseline='middle';
+  ctx.fillText(str,x,y); }
+
+/* ===== 粒子（物件池，零圖檔） ===== */
+const P=[];
+function pPush(o){ if(P.length<560) P.push(o); }
+function emitDust(x,y,n){ n=reduce?Math.ceil(n/2):n; for(let i=0;i<n;i++)
+  pPush({k:'dust',x:x+rand(-6,6),y:y+rand(-6,6),vx:rand(-40,40),vy:rand(-46,-8),g:30,life:rand(.5,1.1),max:1.1,r:rand(5,11),col:'rgba(150,130,98,'}); }
+function emitBlood(x,y,n){ n=reduce?Math.ceil(n/2):n; for(let i=0;i<n;i++)
+  pPush({k:'blood',x:x,y:y,vx:rand(-110,110),vy:rand(-150,-30),g:340,life:rand(.4,.8),max:.8,r:rand(2,4),col:'rgba(168,42,30,'}); }
+function emitSteel(x,y,n){ for(let i=0;i<n;i++)
+  pPush({k:'spark',x:x,y:y,vx:rand(-120,120),vy:rand(-150,-40),g:300,life:rand(.25,.55),max:.55,r:rand(2,3.5),col:'rgba(224,228,238,'}); }
+function winFanfare(){ for(let i=0;i<34;i++)
+  pPush({k:'spark',x:W/2+rand(-130,130),y:H/2+rand(-50,40),vx:rand(-150,150),vy:rand(-230,-70),g:260,life:rand(.8,1.5),max:1.5,r:rand(3,6),col:(i%3?'rgba(231,196,120,':'rgba(224,228,238,')}); }
+function updateP(dt){ for(let i=P.length-1;i>=0;i--){ const p=P[i];
+  p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.g||0)*dt; p.life-=dt; if(p.life<=0) P.splice(i,1); } }
+function drawP(){
+  ctx.globalCompositeOperation='lighter';
+  for(const p of P){ if(p.k!=='spark')continue; const a=Math.max(0,p.life/p.max);
+    ctx.fillStyle=p.col+a+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+  ctx.globalCompositeOperation='source-over';
+  for(const p of P){ if(p.k==='spark')continue; const a=Math.max(0,p.life/p.max);
+    ctx.fillStyle=p.col+(a*.8)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } }
+
+/* ===== 畫面震動 / 浮字 ===== */
+let shakeT=0, shakeAmt=0;
+function shake(a){ if(reduce)return; shakeT=Math.max(shakeT,0.32); shakeAmt=Math.max(shakeAmt,a*10); }
+let toast=null, toastT=0;
+function flash(msg){ toast=msg; toastT=1.4; }
+
+/* ===== 音效（WebAudio 合成，零音檔） ===== */
+let actx=null, soundOn=true, readOn=true;
+function AC(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ actx=null; } }
+  if(actx&&actx.state==='suspended') actx.resume(); return actx; }
+function tone(f,dur,type,vol,when){ if(!soundOn)return; const a=AC(); if(!a)return;
+  const t0=a.currentTime+(when||0), o=a.createOscillator(), g=a.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol||.3,t0+.01);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+dur+.03); }
+function noise(dur,vol,ff,when){ if(!soundOn)return; const a=AC(); if(!a)return;
+  const t0=a.currentTime+(when||0), len=Math.floor(a.sampleRate*dur), buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const fl=a.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=ff||1200;
+  const g=a.createGain(); g.gain.value=vol||.3;
+  src.connect(fl).connect(g).connect(a.destination); src.start(t0); }
+const SFX={
+  tap:()=>tone(420,.05,'square',.1),
+  swing:()=>{ noise(.1,.16,2200); tone(900,.05,'triangle',.06); },
+  hit:()=>{ tone(200,.06,'square',.16); noise(.05,.13,2600); },
+  kill:()=>{ tone(150,.1,'square',.16); noise(.09,.15,1600); },
+  dash:()=>{ noise(.22,.2,1300); tone(520,.16,'sine',.1); },
+  hurt:()=>{ tone(150,.2,'sawtooth',.22); noise(.1,.18,820); },
+  win:()=>[440,587,740,988].forEach((f,i)=>tone(f,.28,'triangle',.22,i*.1)),
+  lose:()=>{ tone(300,.25,'sine',.2); tone(200,.32,'sine',.18,.14); }
+};
+function tap(){ SFX.tap(); }
+
+/* ===== 語音旁白 ===== */
+function speak(text){ if(!readOn||!('speechSynthesis'in window))return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text);
+    u.lang='zh-TW'; u.rate=.98; u.pitch=1.0; speechSynthesis.speak(u); }catch(e){} }
+
+/* ===== UI 卡片 ===== */
+function showCard(o){
+  let html='';
+  if(o.tag) html+='<div class="tag">'+o.tag+'</div>';
+  if(o.title) html+='<h1>'+o.title+'</h1>';
+  if(o.body) html+='<p>'+o.body+'</p>';
+  html+='<div class="row">';
+  (o.buttons||[]).forEach((b,i)=>{ html+='<button class="bigbtn '+(b.cls||'')+'" data-i="'+i+'">'+b.label+'</button>'; });
+  html+='</div>';
+  panel.innerHTML=html; card.classList.add('show');
+  panel.querySelectorAll('.bigbtn').forEach(btn=>{ btn.onclick=()=>{ const b=(o.buttons||[])[+btn.dataset.i]; tap(); if(b&&b.go)b.go(); }; });
+  if(o.narrate) speak(o.narrate);
+}
+function hideCard(){ card.classList.remove('show'); }
+
+/* ===== 場景管理 ===== */
+let scene=null;
+function setScene(s,name){ hideCard(); P.length=0; toastT=0; shakeT=0; resetInput(); scene=s;
+  backbtn.style.display=(name&&name.indexOf('level')===0)?'flex':'none';
+  if(s&&s.enter) s.enter(); }
+
+/* ===== 輸入 ===== */
+let cam={x:0,y:0};                          // 攝影機中心（世界座標）
+let ptr={down:false,moved:false,downAt:0,sx:0,sy:0,wx:0,wy:0};
+let keys={};
+function resetInput(){ ptr.down=false; ptr.moved=false; keys={}; }
+function evToScreen(e){ const r=cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H }; }
+function screenToWorld(sx,sy){ return { x: sx - W/2 + cam.x, y: sy - H/2 + cam.y }; }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); AC();
+  const s=evToScreen(e); ptr.down=true; ptr.moved=false; ptr.downAt=nowt; ptr.sx=s.x; ptr.sy=s.y;
+  const w=screenToWorld(s.x,s.y); ptr.wx=w.x; ptr.wy=w.y;
+  if(scene&&scene.onDown)scene.onDown(s.x,s.y); });
+cv.addEventListener('pointermove',e=>{ const s=evToScreen(e);
+  if(ptr.down){ if(dist(s.x,s.y,ptr.sx,ptr.sy)>14) ptr.moved=true;
+    const w=screenToWorld(s.x,s.y); ptr.wx=w.x; ptr.wy=w.y; }
+  if(scene&&scene.onMove)scene.onMove(s.x,s.y); });
+function ptrEnd(){ if(ptr.down){ const quick=(nowt-ptr.downAt)<0.25;
+    if(!ptr.moved && quick && scene && scene.onTap) scene.onTap(); }
+  ptr.down=false; if(scene&&scene.onUp)scene.onUp(); }
+window.addEventListener('pointerup',ptrEnd);
+window.addEventListener('pointercancel',ptrEnd);
+window.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true;
+  if(e.key===' '||e.code==='Space'){ e.preventDefault(); if(scene&&scene.onTap)scene.onTap(); }
+  if(scene&&scene.onKey)scene.onKey(e); });
+window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+
+readbtn.onclick=()=>{ readOn=!readOn; readbtn.classList.toggle('off',!readOn);
+  if(!readOn&&'speechSynthesis'in window)speechSynthesis.cancel(); tap(); };
+soundbtn.onclick=()=>{ soundOn=!soundOn; soundbtn.classList.toggle('off',!soundOn); tap(); };
+backbtn.onclick=()=>{ tap(); setScene(MAP,'map'); };
+
+/* ===========================================================
+   角色繪製（俯視，零圖檔，全程式生成）
+   =========================================================== */
+function drawZhaoyun(x,y,ang,p){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,5,24,12,0,0,7); ctx.fill();
+  // 受傷紅閃
+  if(p.hurtFlash>0){ ctx.fillStyle='rgba(220,60,40,'+(p.hurtFlash*0.5)+')'; ctx.beginPath(); ctx.arc(0,0,30,0,7); ctx.fill(); }
+  ctx.rotate(ang);
+  // 白馬（體沿 +x 為前）
+  ctx.fillStyle='#ece7da'; ctx.beginPath(); ctx.ellipse(0,0,22,11,0,0,7); ctx.fill();
+  ctx.fillStyle='#d9d2c2'; ctx.beginPath(); ctx.ellipse(19,0,8,6,0,0,7); ctx.fill();   // 馬頭
+  ctx.strokeStyle='#8a7c63'; ctx.lineWidth=3; ctx.lineCap='round';                      // 鬃
+  ctx.beginPath(); ctx.moveTo(8,-6); ctx.lineTo(14,-2); ctx.moveTo(8,6); ctx.lineTo(14,2); ctx.stroke();
+  ctx.strokeStyle='#bdb4a0'; ctx.lineWidth=4;                                            // 腿
+  ctx.beginPath(); ctx.moveTo(-10,-9); ctx.lineTo(-14,-13); ctx.moveTo(-10,9); ctx.lineTo(-14,13);
+  ctx.moveTo(10,-9); ctx.lineTo(13,-13); ctx.moveTo(10,9); ctx.lineTo(13,13); ctx.stroke();
+  // 白袍（騎士身後展開）
+  ctx.fillStyle='rgba(245,243,236,.92)'; ctx.beginPath();
+  ctx.moveTo(-2,0); ctx.lineTo(-24,-12); ctx.lineTo(-28,0); ctx.lineTo(-24,12); ctx.closePath(); ctx.fill();
+  // 騎士（銀甲）
+  ctx.fillStyle='#c7cdd6'; ctx.beginPath(); ctx.arc(-1,0,8,0,7); ctx.fill();
+  ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(2,0,4.5,0,7); ctx.fill();           // 頭/盔
+  if(p.adou){ ctx.fillStyle='#caa46a'; ctx.beginPath(); ctx.ellipse(-3,-7,5,3.5,-0.4,0,7); ctx.fill();
+    ctx.fillStyle='#f3ddb6'; ctx.beginPath(); ctx.arc(-1,-9,2,0,7); ctx.fill(); }            // 懷中阿斗
+  // 槍（揮砍時掃動）
+  let sp=0; if(p.swingT>0){ const a=(p.swingDur-p.swingT)/p.swingDur; sp=lerp(-1.05,1.05,a); }
+  ctx.save(); ctx.rotate(sp);
+  ctx.strokeStyle='#8a6a3a'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(2,0); ctx.lineTo(42,0); ctx.stroke();
+  if(p.qinggang){ ctx.shadowColor='#7fe9ff'; ctx.shadowBlur=10; ctx.strokeStyle='#dffaff'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(34,0); ctx.lineTo(56,0); ctx.stroke();
+    ctx.fillStyle='#bff2ff'; ctx.beginPath(); ctx.moveTo(54,-4); ctx.lineTo(67,0); ctx.lineTo(54,4); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0; }
+  else { ctx.fillStyle='#d7dbe3'; ctx.beginPath(); ctx.moveTo(42,-3); ctx.lineTo(52,0); ctx.lineTo(42,3); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  ctx.restore();
+  // 揮砍弧光（畫於世界、未旋轉之圖層外，放這裡疊在角色上）
+  if(p.swingT>0){ const a=p.swingT/p.swingDur;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+    ctx.strokeStyle=(p.qinggang?'rgba(150,240,255,':'rgba(232,236,245,')+(a*0.7)+')'; ctx.lineWidth=6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(0,0,ATK_RANGE*0.86,-ATK_ARC,ATK_ARC); ctx.stroke();
+    ctx.restore(); }
+}
+function drawSoldier(e){
+  ctx.save(); ctx.translate(e.x,e.y);
+  const sz=e.general?1.7:1;
+  ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(0,4*sz,9*sz,5*sz,0,0,7); ctx.fill();
+  if(e.dead){ ctx.globalAlpha=Math.max(0,e.deadT/0.5); ctx.rotate(0.9); }
+  const body = e.flash>0 ? '#e7eef7' : (e.general?'#7a2f2f':'#3a6ab8');
+  ctx.rotate(e.ang);
+  ctx.strokeStyle='#6b5a3a'; ctx.lineWidth=2.4*sz; ctx.lineCap='round';                     // 矛
+  ctx.beginPath(); ctx.moveTo(2*sz,0); ctx.lineTo(20*sz,0); ctx.stroke();
+  ctx.fillStyle=body; ctx.beginPath(); ctx.arc(0,0,7*sz,0,7); ctx.fill();                    // 身
+  ctx.fillStyle=e.flash>0?'#cdd':(e.general?'#5a1f1f':'#294e88'); ctx.beginPath(); ctx.arc(0,0,4*sz,0,7); ctx.fill(); // 盔
+  ctx.globalAlpha=1; ctx.restore();
+}
+function drawGeneral(e){
+  const S=e.champion?1.42:1;
+  ctx.save(); ctx.translate(e.x,e.y); ctx.scale(S,S);
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,8,17,8,0,0,7); ctx.fill();
+  if(e.dead){ ctx.globalAlpha=Math.max(0,e.deadT/0.6); ctx.rotate(1.0); }
+  ctx.rotate(e.ang);
+  ctx.save(); ctx.rotate(2.5);                                                            // 背旗
+  ctx.strokeStyle='#4a2a12'; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-30); ctx.stroke();
+  ctx.fillStyle=e.flash>0?'#fff':(e.champion?'#caa03a':'#b5302b'); ctx.beginPath(); ctx.moveTo(0,-30); ctx.lineTo(18,-25); ctx.lineTo(0,-18); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle=e.champion?'#5a3a7a':'#7a1f2b'; ctx.beginPath(); ctx.moveTo(-3,-10); ctx.quadraticCurveTo(-24,0,-3,10); ctx.quadraticCurveTo(-9,0,-3,-10); ctx.closePath(); ctx.fill(); // 披風
+  ctx.strokeStyle='#5a4a30'; ctx.lineWidth=3.4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(2,0); ctx.lineTo(32,0); ctx.stroke(); // 戟桿
+  ctx.fillStyle='#dfe4ea'; ctx.beginPath(); ctx.moveTo(32,-4); ctx.lineTo(43,0); ctx.lineTo(32,4); ctx.closePath(); ctx.fill();        // 戟尖
+  ctx.fillStyle='#b9c0c8'; ctx.beginPath(); ctx.moveTo(27,-3); ctx.lineTo(30,-13); ctx.lineTo(35,-2); ctx.closePath(); ctx.fill();     // 月牙刃
+  const body=e.flash>0?'#f3dede':(e.champion?'#4a3160':'#6e2630'); ctx.fillStyle=body; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.fill(); // 身
+  ctx.strokeStyle=e.champion?'#ffd700':'#d4af37'; ctx.lineWidth=e.champion?2.8:2.2; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.stroke();  // 金邊
+  ctx.fillStyle=e.flash>0?'#eee':'#33171b'; ctx.beginPath(); ctx.arc(2,0,6,0,7); ctx.fill();                                           // 盔
+  ctx.fillStyle=e.champion?'#ffcf3a':'#e23b3b'; ctx.beginPath(); ctx.moveTo(2,-6); ctx.lineTo(-3,e.champion?-18:-15); ctx.lineTo(6,e.champion?-18:-15); ctx.closePath(); ctx.fill(); // 纓
+  ctx.restore();
+  if(!e.dead){                                                                            // 名牌＋血條（世界座標）
+    if(e.champion){ rrFill(e.x-46, e.y-44, 92, 17, 6, 'rgba(60,40,12,.9)'); rrStroke(e.x-46, e.y-44, 92, 17, 6, '#ffd700', 1.4);
+      ctext('五子良將・張郃', e.x, e.y-35, 12, '#ffe27a', 800); }
+    else { rrFill(e.x-28, e.y-32, 56, 15, 5, 'rgba(44,12,12,.82)'); ctext(e.name||'名將', e.x, e.y-24, 11.5, '#ffd9a0', 800); }
+    const bw=e.champion?66:46, by=e.champion?-26:-15, hpf=clamp((e.hp||0)/(e.max||6),0,1);
+    rrFill(e.x-bw/2, e.y+by, bw, e.champion?5:4, 2, 'rgba(0,0,0,.55)'); rrFill(e.x-bw/2, e.y+by, bw*hpf, e.champion?5:4, 2, e.champion?'#ffb43a':'#e0584f');
+  }
+}
+function drawJianyong(j,t){
+  ctx.save(); ctx.translate(j.x,j.y);
+  ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0,5,12,6,0,0,7); ctx.fill();
+  if(!j.up){ // 裝死草中
+    ctx.fillStyle='#5d6b42'; ctx.beginPath(); ctx.ellipse(0,0,14,8,0,0,7); ctx.fill();
+    ctx.fillStyle='#7d8a52'; for(let i=0;i<5;i++){ const a=i/5*7; ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*8,Math.sin(a)*5); ctx.lineTo(Math.cos(a)*16,Math.sin(a)*9-4); ctx.lineTo(Math.cos(a)*11,Math.sin(a)*6); ctx.closePath(); ctx.fill(); }
+  } else {   // 已救起・跟隨
+    ctx.fillStyle='#6b7a45'; ctx.beginPath(); ctx.arc(0,2,8,0,7); ctx.fill();
+    ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(0,-6,4.5,0,7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ===========================================================
+   俯視動作核心參數
+   =========================================================== */
+const SPD=232, DASH_SPD=720, ENE_SPD=96, LADY_SPD=170;
+const BOSS_SPD=112, WIND=0.78, SLAM=0.26, REC=1.15, SLAM_DMG=30, BOSS_TOUCH=6, RUN_SPD=118;
+const ATK_INT=0.5, ATK_RANGE=80, ATK_ARC=1.92;   // 揮槍：間隔/半徑/半弧（約 ±110°）
+const DASH_DUR=0.22, DASH_CD=1.35, IFRAME=0.30;
+
+let adouHp=100, adouMax=100;            // 懷阿斗・安危（自己挨打就掉）
+function makePlayer(x,y){ return { x:x,y:y, ang:Math.PI/2, vx:0,vy:0,
+  hp:100, max:100, atkT:0, swingT:0, swingDur:0.2, dashT:0, dashCD:0, iframe:0, hitCD:0, hurtFlash:0,
+  qinggang:false, adou:false, pitT:0 }; }
+function tryDash(p){ if(p.dashCD>0||p.dashT>0)return; p.dashT=DASH_DUR; p.dashCD=DASH_CD; p.iframe=Math.max(p.iframe,IFRAME);
+  SFX.dash(); shake(0.25); emitDust(p.x,p.y,10); }
+
+function keyVec(){ let dx=0,dy=0;
+  if(keys['w']||keys['arrowup'])dy-=1; if(keys['s']||keys['arrowdown'])dy+=1;
+  if(keys['a']||keys['arrowleft'])dx-=1; if(keys['d']||keys['arrowright'])dx+=1;
+  return {dx:dx,dy:dy}; }
+
+function updatePlayer(p,dt,world){
+  // 計時器
+  p.dashCD=Math.max(0,p.dashCD-dt); p.dashT=Math.max(0,p.dashT-dt);
+  p.iframe=Math.max(0,p.iframe-dt); p.hitCD=Math.max(0,p.hitCD-dt);
+  p.swingT=Math.max(0,p.swingT-dt); p.hurtFlash=Math.max(0,p.hurtFlash-dt*2.2);
+  // 期望速度
+  let vx=0,vy=0; const kv=keyVec();
+  const held=nowt-ptr.downAt;
+  if(ptr.down && (ptr.moved || held>=0.16)){
+    const dx=ptr.wx-p.x, dy=ptr.wy-p.y, d=Math.hypot(dx,dy);
+    if(d>6){ vx=dx/d*SPD; vy=dy/d*SPD; p.ang=Math.atan2(dy,dx); }
+  } else if(kv.dx||kv.dy){
+    const d=Math.hypot(kv.dx,kv.dy); vx=kv.dx/d*SPD; vy=kv.dy/d*SPD; p.ang=Math.atan2(kv.dy,kv.dx);
+  }
+  if(p.dashT>0){ vx=Math.cos(p.ang)*DASH_SPD; vy=Math.sin(p.ang)*DASH_SPD; emitDust(p.x,p.y,1); }
+  p.x=clamp(p.x+vx*dt, 40, world.w-40); p.y=clamp(p.y+vy*dt, 40, world.h-40);
+}
+
+/* ===========================================================
+   第一關：一進・尋主
+   =========================================================== */
+let player=null, enemies=[], jianyong=null, gan=null, boss=null, mizhu=null, runner=null;
+
+/* ===== 共用場景繪圖 ===== */
+function drawGround(L){
+  ctx.fillStyle='#b59a6c'; ctx.fillRect(0,0,L.world.w,L.world.h);
+  for(const q of L.patches){ ctx.fillStyle='rgba(120,98,64,.28)'; ctx.beginPath(); ctx.arc(q.x,q.y,q.r,0,7); ctx.fill(); }
+  for(const g of L.tufts){ ctx.fillStyle='rgba(110,124,70,.55)'; ctx.beginPath();
+    ctx.moveTo(g.x,g.y); ctx.lineTo(g.x-g.r*.4,g.y-g.r); ctx.lineTo(g.x,g.y-g.r*.7); ctx.lineTo(g.x+g.r*.4,g.y-g.r); ctx.closePath(); ctx.fill(); }
+}
+function drawExit(ex){
+  const grd=ctx.createLinearGradient(0,ex.y-40,0,ex.y+30); grd.addColorStop(0,'rgba(110,200,120,0)'); grd.addColorStop(1,'rgba(110,200,120,.35)');
+  ctx.fillStyle=grd; ctx.fillRect(ex.x-ex.w/2,ex.y-40,ex.w,70);
+  ctx.strokeStyle='rgba(150,225,150,.9)'; ctx.lineWidth=4; ctx.setLineDash([14,10]);
+  ctx.beginPath(); ctx.moveTo(ex.x-ex.w/2,ex.y); ctx.lineTo(ex.x+ex.w/2,ex.y); ctx.stroke(); ctx.setLineDash([]);
+  ctext('友軍方向 · 殺出！',ex.x,ex.y-22,18,'#dff5d8',800);
+}
+function drawRefugee(x,y,t){ ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(0,4,7,4,0,0,7); ctx.fill();
+  ctx.fillStyle='#7a6a52'; ctx.beginPath(); ctx.arc(0,1,6,0,7); ctx.fill();
+  ctx.fillStyle='#d9c2a0'; ctx.beginPath(); ctx.arc(0,-5,3.5,0,7); ctx.fill(); ctx.restore(); }
+function drawGan(g,t){ ctx.save(); ctx.translate(g.x,g.y);
+  ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(0,5,11,6,0,0,7); ctx.fill();
+  if(g.found){ // 護送光暈
+    ctx.strokeStyle='rgba(120,200,140,'+(0.35+0.2*Math.sin(t*4))+')'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,16,0,7); ctx.stroke(); }
+  ctx.fillStyle='#c64f6e'; ctx.beginPath(); ctx.moveTo(-8,8); ctx.lineTo(8,8); ctx.lineTo(5,-4); ctx.lineTo(-5,-4); ctx.closePath(); ctx.fill(); // 衣裙
+  ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(0,-8,5,0,7); ctx.fill();                 // 頭
+  ctx.strokeStyle='#3a2e26'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-5,-9); ctx.lineTo(-7,-3); ctx.moveTo(5,-9); ctx.lineTo(7,-3); ctx.stroke(); // 披髮
+  ctx.restore(); }
+function drawCaptive(c,t){ ctx.save(); ctx.translate(c.x,c.y);
+  ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(0,5,10,5,0,0,7); ctx.fill();
+  if(c.freed){ ctx.strokeStyle='rgba(120,200,140,'+(0.3+0.2*Math.sin(t*4))+')'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,15,0,7); ctx.stroke(); }
+  ctx.fillStyle='#5b6e8c'; ctx.beginPath(); ctx.moveTo(-7,7); ctx.lineTo(7,7); ctx.lineTo(4,-5); ctx.lineTo(-4,-5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(0,-8,4.5,0,7); ctx.fill();
+  if(!c.freed){ ctx.strokeStyle='#7a5a36'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(0,0,9,0.3,2.84); ctx.stroke(); }
+  ctx.restore(); }
+function drawBoss(b,t){ ctx.save(); ctx.translate(b.x,b.y);
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,7,16,8,0,0,7); ctx.fill();
+  if(b.st==='windup'){ const k=clamp(b.t/WIND,0,1); ctx.save(); ctx.rotate(b.aim);
+    ctx.fillStyle='rgba(220,60,40,'+(0.16+0.24*k)+')'; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,160*(0.45+0.55*k),-0.5,0.5); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(255,90,60,'+(0.4+0.4*k)+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,160*(0.45+0.55*k),-0.5,0.5); ctx.stroke(); ctx.restore(); }
+  const stagger=b.st==='recover'; ctx.rotate(b.ang); if(stagger) ctx.rotate(Math.sin(t*22)*0.12);
+  ctx.fillStyle=b.flash>0?'#fff':(stagger?'#6a4f4a':'#3a3340'); ctx.beginPath(); ctx.arc(0,0,14,0,7); ctx.fill();
+  ctx.strokeStyle='#1c1820'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#a83232'; ctx.beginPath(); ctx.arc(0,-2,5,0,7); ctx.fill();
+  ctx.strokeStyle=stagger?'#888':'#cdd3da'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(26,0); ctx.stroke();
+  if(b.st==='slam'){ ctx.fillStyle='rgba(255,220,160,.9)'; ctx.beginPath(); ctx.moveTo(20,-7); ctx.lineTo(42,0); ctx.lineTo(20,7); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  if(stagger){ ctx.save(); ctx.translate(b.x,b.y-24); ctx.fillStyle='rgba(255,231,168,'+(0.6+0.4*Math.sin(t*16))+')';
+    for(let i=0;i<3;i++){ const a=t*6+i*2.1; ctx.beginPath(); ctx.arc(Math.cos(a)*11,Math.sin(a)*4,2,0,7); ctx.fill(); } ctx.restore(); }
+}
+
+/* ===== 共用戰鬥步進（七關共用） ===== */
+function drawRunner(r,t){ ctx.save(); ctx.translate(r.x,r.y);
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0,5,12,6,0,0,7); ctx.fill();
+  ctx.rotate(r.ang);
+  ctx.fillStyle=r.flash>0?'#fff':'#2f6b5e'; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.fill();
+  ctx.strokeStyle='#15302a'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(5,0,4.5,0,7); ctx.fill();
+  ctx.shadowColor='#7fe9ff'; ctx.shadowBlur=8; ctx.strokeStyle='#dffaff'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-7,-6); ctx.lineTo(-18,-13); ctx.stroke(); ctx.shadowBlur=0;
+  ctx.restore(); }
+function drawGate(g){ ctx.save();
+  ctx.fillStyle='rgba(60,30,20,.45)'; ctx.fillRect(g.x-g.w/2,g.y-24,g.w,28);
+  ctx.fillStyle='#3a2a1c'; for(let i=0;i<=6;i++){ const x=g.x-g.w/2+i*(g.w/6); ctx.fillRect(x-4,g.y-42,8,42); }
+  ctx.fillStyle='#7a1f14'; ctx.fillRect(g.x-42,g.y-54,84,15); ctext('曹　營',g.x,g.y-46,13,'#f0d2b0',800);
+  ctx.restore(); }
+function drawWell(w){ ctx.save(); ctx.translate(w.x,w.y);
+  const rx=w.r, ry=w.r*0.58, wallH=18;
+  ctx.fillStyle='rgba(0,0,0,.20)'; ctx.beginPath(); ctx.ellipse(7,wallH+6,rx+7,ry+4,0,0,7); ctx.fill();   // 地面陰影
+  // 井壁（圓柱側面）
+  ctx.fillStyle='#6f5c40'; ctx.beginPath();
+  ctx.moveTo(-rx,0); ctx.lineTo(-rx,wallH); ctx.ellipse(0,wallH,rx,ry,0,Math.PI,0,true); ctx.lineTo(rx,0); ctx.ellipse(0,0,rx,ry,0,0,Math.PI,false); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(50,40,26,.5)'; ctx.lineWidth=2;                                                   // 石塊縫
+  for(let i=-2;i<=2;i++){ const px=i*(rx/2.4); ctx.beginPath(); ctx.moveTo(px,ry*0.2); ctx.lineTo(px,wallH); ctx.stroke(); }
+  // 井口深處
+  if(w.covered<1){ const g=ctx.createRadialGradient(0,0,2,0,0,rx); g.addColorStop(0,'#000'); g.addColorStop(0.6,'#16110a'); g.addColorStop(1,'#3a2e1e');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,rx-3,ry-2,0,0,7); ctx.fill();
+    ctx.globalAlpha=0.5*(1-w.covered); ctx.fillStyle='#10243a'; ctx.beginPath(); ctx.ellipse(0,ry*0.25,rx*0.5,ry*0.4,0,0,7); ctx.fill(); ctx.globalAlpha=1; } // 井水微光
+  // 石砌井圈
+  ctx.strokeStyle='#8a7355'; ctx.lineWidth=6; ctx.beginPath(); ctx.ellipse(0,0,rx,ry,0,0,7); ctx.stroke();
+  ctx.strokeStyle='#a8916b'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(0,-1,rx,ry,0,0,7); ctx.stroke();
+  // 覆土（掩井）
+  if(w.covered>0){ ctx.fillStyle='#7a5e3a'; ctx.globalAlpha=clamp(w.covered,0,1);
+    ctx.beginPath(); ctx.ellipse(0,-2,rx*0.96,ry*1.0,0,0,7); ctx.fill();
+    ctx.fillStyle='#8c6e44'; for(let i=0;i<7;i++){ const a=i/7*7; ctx.beginPath(); ctx.ellipse(Math.cos(a)*rx*0.4,Math.sin(a)*ry*0.4-2,5,3.5,0,0,7); ctx.fill(); }
+    ctx.globalAlpha=1; }
+  // 吊架（立柱＋橫樑＋桶）— 半3D
+  ctx.strokeStyle='#5a4a30'; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-rx*0.82,-2); ctx.lineTo(-rx*0.7,-rx*1.15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rx*0.82,-2); ctx.lineTo(rx*0.7,-rx*1.15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-rx*0.78,-rx*1.12); ctx.lineTo(rx*0.78,-rx*1.12); ctx.stroke();
+  ctx.strokeStyle='#7d6a4e'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-rx*1.1); ctx.lineTo(0,-rx*0.5); ctx.stroke(); // 繩
+  ctx.fillStyle='#6b4a2c'; ctx.fillRect(-5,-rx*0.5,10,8);                                                  // 桶
+  ctx.restore(); }
+function drawWall(wl){ ctx.save(); ctx.translate(wl.x,wl.y);
+  ctx.fillStyle='#9a7d52'; ctx.fillRect(-wl.w/2,-wl.h/2,wl.w,wl.h);
+  ctx.strokeStyle='#6b5536'; ctx.lineWidth=3; ctx.strokeRect(-wl.w/2,-wl.h/2,wl.w,wl.h);
+  ctx.fillStyle='rgba(60,46,28,.35)'; for(let i=-1;i<2;i++) ctx.fillRect(-wl.w/2, i*7-2, wl.w, 2);
+  ctx.restore(); }
+function drawPit(p){ ctx.save(); ctx.translate(p.x,p.y);
+  ctx.fillStyle='#1c1610'; ctx.beginPath(); ctx.ellipse(0,2,p.r,p.r*0.7,0,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(90,60,35,.8)'; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(0,0,p.r,p.r*0.7,0,0,7); ctx.stroke();
+  ctx.restore(); }
+function spawnEnemy(x,y){ enemies.push({x:x,y:y,ang:0,hp:2,flash:0,atkCD:rand(.3,1),dead:false,deadT:0}); }
+function stepAttack(L,dt){
+  player.atkT+=dt; if(player.atkT<ATK_INT) return; player.atkT=0;
+  const arc = ATK_ARC * (player.adou?0.78:1) * (player.qinggang?1.22:1);
+  const rng = ATK_RANGE + (player.qinggang?14:0);
+  let hitAny=false;
+  for(const e of enemies){ if(e.dead)continue; const dx=e.x-player.x, dy=e.y-player.y, d=Math.hypot(dx,dy);
+    if(d<=rng){ let da=Math.atan2(dy,dx)-player.ang; da=Math.atan2(Math.sin(da),Math.cos(da));
+      if(Math.abs(da)<=arc){ hitAny=true; const dmg=player.qinggang?(e.general?4:99):1; e.hp-=dmg; e.flash=0.12;
+        const k=42; e.x+=dx/d*k; e.y+=dy/d*k; emitSteel((player.x+e.x)/2,(player.y+e.y)/2,player.qinggang?5:3);
+        if(e.hp<=0){ e.dead=true; e.deadT=0.6; L.kills++; emitBlood(e.x,e.y,e.champion?0:6); SFX.kill(); } } } }
+  if(hitAny){ player.swingT=player.swingDur; SFX.hit(); }
+  else if(enemyNear(player,rng)){ player.swingT=player.swingDur; SFX.swing(); }
+}
+function stepEnemies(L,dt){
+  for(const e of enemies){
+    if(e.dead){ e.deadT-=dt; continue; }
+    e.flash=Math.max(0,e.flash-dt);
+    const dx=player.x-e.x, dy=player.y-e.y, d=Math.hypot(dx,dy)||1; e.ang=Math.atan2(dy,dx);
+    const spd = e.champion ? ENE_SPD*0.72 : (e.general ? ENE_SPD*0.5 : ENE_SPD);
+    if(d>30){ e.x+=dx/d*spd*dt; e.y+=dy/d*spd*dt; }
+    if(player.dashT>0 && d<32){ e.hp-=1; e.flash=0.12; e.x-=dx/d*70; e.y-=dy/d*70; emitSteel(e.x,e.y,2);
+      if(e.hp<=0){ e.dead=true; e.deadT=0.6; L.kills++; emitBlood(e.x,e.y,e.champion?0:5); SFX.kill(); } }
+    e.atkCD-=dt;
+    if(d<34 && e.atkCD<=0){ e.atkCD=1.0;
+      if(player.iframe<=0 && player.hitCD<=0 && player.dashT<=0){
+        player.hp-=9; player.hitCD=0.6; player.hurtFlash=1; player.x-=dx/d*16; player.y-=dy/d*16;
+        emitBlood(player.x,player.y,5); SFX.hurt(); shake(0.3);
+        if(player.adou) adouHp=Math.max(0,adouHp-11); } }
+  }
+  for(let i=enemies.length-1;i>=0;i--) if(enemies[i].dead && enemies[i].deadT<=0) enemies.splice(i,1);
+}
+function stepSpawn(L,dt,cap,rate){
+  L.spawnT-=dt;
+  if(L.spawnT<=0 && enemies.length<cap){ L.spawnT=rate;
+    const a=rand(0,7), r=560, sx=clamp(player.x+Math.cos(a)*r,30,L.world.w-30), sy=clamp(player.y+Math.sin(a)*r,30,L.world.h-30);
+    spawnEnemy(sx,sy); }
+}
+
+const L1={
+  world:{w:1500,h:1100},
+  enter(){
+    this.t=0; this.phase='find'; this.done=false; this.hintT=7; this.kills=0; this.spawnT=0;
+    this.tufts=[]; for(let i=0;i<140;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<46;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    player=makePlayer(this.world.w/2, 150);
+    enemies=[]; for(let i=0;i<12;i++) spawnEnemy(rand(0,this.world.w),rand(360,this.world.h-120));
+    jianyong={x:this.world.w*0.5+rand(-160,160), y:this.world.h-150, up:false};
+    this.exit={x:this.world.w/2, y:70, w:260};     // 殺出：北側出口（救起後出現）
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 一 進', title:'尋　主',
+      body:'長坂坡上，亂軍衝散了主公一行。\n趙雲撥馬殺回曹軍重圍——先找出落難的簡雍，再護他殺出去。\n\n操作：拖曳移動　·　輕點＝衝刺（無敵穿陣）　·　靠近敵兵自動揮槍\n（電腦：WASD 移動、空白鍵衝刺）',
+      buttons:[{label:'殺　入',go:()=>{ hideCard(); speak('找出簡雍，護他殺出重圍。拖曳移動，輕點衝刺。'); }}],
+      narrate:'第一進，尋主。趙雲殺回重圍，先找出簡雍，再護他殺出去。'});
+  },
+  onTap(){ if(!this.done) tryDash(player); },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,1);
+    for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 一 進 · 過 關', title:'殺　出　重　圍',
+      body:'趙雲護著簡雍殺透曹陣，奔回友軍方向。\n（簡雍裝死草中得脫，見《三國演義》第四十一回。）\n\n下一進「救甘夫人」已開啟——回地圖即可挑戰。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L2,'level2')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L1,'level1')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'殺出重圍！趙雲護著簡雍奔回友軍。'});
+  },
+  lose(){ this.done=true; SFX.lose();
+    showCard({tag:'第 一 進', title:'力　竭　陷　陣',
+      body:'趙雲身被數十創，坐騎力竭——\n重整旗鼓，再殺一陣。',
+      buttons:[{label:'再試一次',go:()=>setScene(L1,'level1')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'力竭陷陣。重整旗鼓，再殺一陣。'});
+  },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    updatePlayer(player,dt,this.world);
+    stepAttack(this,dt);
+    stepEnemies(this,dt);
+    if(player.hp<=0){ player.hp=0; this.lose(); return; }
+    stepSpawn(this,dt,14,0.7);
+    // 目標流程
+    if(this.phase==='find'){
+      if(dist(player.x,player.y,jianyong.x,jianyong.y)<55){ this.phase='out'; jianyong.up=true;
+        flash('找到簡雍了！護他殺出北側出口'); speak('找到簡雍了！護他殺出重圍，往北邊出口。'); SFX.win(); }
+    } else if(this.phase==='out'){
+      // 簡雍跟隨（停在趙雲身後）
+      const bx=player.x-Math.cos(player.ang)*46, by=player.y-Math.sin(player.ang)*46;
+      jianyong.x=lerp(jianyong.x,bx,Math.min(1,dt*3)); jianyong.y=lerp(jianyong.y,by,Math.min(1,dt*3));
+      if(Math.abs(player.x-this.exit.x)<this.exit.w/2 && player.y<this.exit.y+44) this.win();
+    }
+    // 攝影機跟隨（夾在世界內）
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this);
+    if(this.phase==='out') drawExit(this.exit);
+    // 簡雍
+    if(jianyong) drawJianyong(jianyong,this.t);
+    // 敵兵
+    for(const e of enemies) drawSoldier(e);
+    // 趙雲
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    // 粒子（世界層）
+    drawP();
+    ctx.restore();
+
+    // ===== HUD（螢幕層）=====
+    drawHUD(this, this.phase==='find'?'尋找簡雍':'護簡雍殺出北側出口');
+    // 目標羅盤
+    const tgt = this.phase==='find' ? jianyong : (this.phase==='out'? this.exit : null);
+    if(tgt && !this.done) drawCompass(tgt.x,tgt.y, this.phase==='find'?'簡雍':'出口');
+    // 開場提示
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext('拖曳移動　·　輕點＝衝刺　·　自動揮槍',W/2,H-70,18,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-200,86,400,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第二關：二進・救甘夫人
+   =========================================================== */
+const L2={
+  world:{w:1600,h:1150},
+  enter(){
+    this.t=0; this.phase='find'; this.done=false; this.hintT=6.5; this.kills=0; this.spawnT=0;
+    this.tufts=[]; for(let i=0;i<150;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<48;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    player=makePlayer(this.world.w/2, 150);
+    enemies=[]; for(let i=0;i<13;i++) spawnEnemy(rand(0,this.world.w),rand(400,this.world.h-120));
+    gan={x:this.world.w*0.5+rand(-120,120), y:this.world.h-160, hp:100, max:100, found:false, drain:0};
+    this.crowd=[]; for(let i=0;i<8;i++) this.crowd.push({x:gan.x+rand(-90,90),y:gan.y+rand(-60,60),ph:rand(0,7),sp:rand(.6,1.2)});
+    this.exit={x:this.world.w/2, y:70, w:280};
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 二 進', title:'救　甘　夫　人',
+      body:'甘夫人披髮跣足，雜在逃難百姓之中。\n找到她，護著她殺出重圍——她跑得慢、又無寸鐵，曹兵一逼近就危險。\n別只顧自己往前衝。',
+      buttons:[{label:'殺　入',go:()=>{ hideCard(); speak('找到甘夫人，護著她殺出重圍。她跑得慢，別讓曹兵逼近她。'); }}],
+      narrate:'第二進，救甘夫人。她雜在難民中，跑得慢又無寸鐵，護著她殺出重圍。'});
+  },
+  onTap(){ if(!this.done) tryDash(player); },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,2); for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 二 進 · 過 關', title:'護　主　母　出　圍',
+      body:'趙雲拚死殺開血路，護甘夫人脫出曹陣。\n（阿斗其時尚在糜夫人處，乃是後話。見《三國演義》第四十一回。）\n\n下一進「救糜竺」已開啟——回地圖即可挑戰。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L3,'level3')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L2,'level2')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'護主母出圍！甘夫人脫出曹陣。'});
+  },
+  lose(reason){ this.done=true; SFX.lose();
+    const t=reason==='gan'?'甘　夫　人　陷　沒':'力　竭　陷　陣';
+    const b=reason==='gan'?'曹兵蜂擁而上，甘夫人沒於亂軍——\n再殺一陣，這次護緊她。':'趙雲身被數十創、坐騎力竭——\n重整旗鼓，再殺一陣。';
+    showCard({tag:'第 二 進', title:t, body:b,
+      buttons:[{label:'再試一次',go:()=>setScene(L2,'level2')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:reason==='gan'?'甘夫人陷沒。再殺一陣，這次護緊她。':'力竭陷陣，再殺一陣。'});
+  },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    updatePlayer(player,dt,this.world);
+    stepAttack(this,dt);
+    stepEnemies(this,dt);
+    if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+    stepSpawn(this,dt,16,0.55);
+    for(const c of this.crowd) c.ph+=dt;
+    if(this.phase==='find'){
+      if(dist(player.x,player.y,gan.x,gan.y)<58){ this.phase='escort'; gan.found=true;
+        flash('找到甘夫人！護她殺出北側出口'); speak('找到甘夫人了！護她殺出重圍，往北邊出口。'); SFX.win(); }
+    } else if(this.phase==='escort'){
+      // 甘夫人跟隨（慢速；趙雲衝刺時她會落後而暴露）
+      const bx=player.x-Math.cos(player.ang)*52, by=player.y-Math.sin(player.ang)*52;
+      const gdx=bx-gan.x, gdy=by-gan.y, gd=Math.hypot(gdx,gdy);
+      if(gd>4){ const step=Math.min(gd, LADY_SPD*dt); gan.x+=gdx/gd*step; gan.y+=gdy/gd*step; }
+      // 安危：附近曹兵越多掉越快；清空則緩回
+      let near=0; for(const e of enemies){ if(!e.dead && dist(e.x,e.y,gan.x,gan.y)<56) near++; }
+      gan.drain=near;
+      if(near>0){ gan.hp-=near*13*dt; if(gan.hp<=0){ gan.hp=0; this.lose('gan'); return; } if(Math.random()<near*dt*1.5) emitBlood(gan.x,gan.y,2); }
+      else gan.hp=Math.min(gan.max, gan.hp+6*dt);
+      if(Math.abs(player.x-this.exit.x)<this.exit.w/2 && player.y<this.exit.y+44) this.win();
+    }
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this);
+    if(this.phase==='escort') drawExit(this.exit);
+    for(const c of this.crowd) drawRefugee(c.x+Math.sin(c.ph*c.sp)*4, c.y, this.t);
+    drawGan(gan, this.t);
+    for(const e of enemies) drawSoldier(e);
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    drawP();
+    ctx.restore();
+    drawHUD(this, this.phase==='find'?'尋找甘夫人':'護甘夫人殺出北側出口');
+    if(gan.found) drawEscortGauge('甘夫人 安危', gan.hp, gan.max, gan.drain>0);
+    const tgt = this.phase==='find'? gan : (this.phase==='escort'? this.exit : null);
+    if(tgt && !this.done) drawCompass(tgt.x,tgt.y, this.phase==='find'?'甘夫人':'出口');
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext('護送：別讓曹兵逼近甘夫人　·　猛衝她會跟不上',W/2,H-70,17,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-210,86,420,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第三關：三進・救糜竺（單挑淳于導）
+   =========================================================== */
+const L3={
+  world:{w:1400,h:1100},
+  enter(){
+    this.t=0; this.phase='duel'; this.done=false; this.hintT=7.5; this.kills=0; this.spawnT=0;
+    this.tufts=[]; for(let i=0;i<120;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<42;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    const cx=this.world.w/2, cy=this.world.h/2;
+    player=makePlayer(cx, cy+250);
+    enemies=[];
+    this.ring=[]; for(let i=0;i<26;i++){ const a=i/26*7, r=rand(330,382); this.ring.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r*0.78, ang:a+Math.PI}); }
+    boss={x:cx, y:cy-40, ang:Math.PI/2, hp:18, max:18, st:'approach', t:0, winCD:1.7, flash:0, aim:Math.PI/2, slamHit:false};
+    mizhu={x:cx, y:cy-110, hp:100, max:100, freed:false, drain:0};
+    this.exit=null;
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 三 進', title:'救　糜　竺',
+      body:'曹將淳于導擒住糜竺，正欲解去獻功。\n趙雲挺槍直取——這是硬碰硬的單挑：\n見他舉械蓄力（地上紅光扇形）就輕點衝刺閃過，趁他露出破綻時狠狠反打。',
+      buttons:[{label:'挑　戰',go:()=>{ hideCard(); speak('淳于導擒了糜竺。看他蓄力就衝刺閃避，趁破綻反打。'); }}],
+      narrate:'第三進，救糜竺。曹將淳于導擒住糜竺。看他蓄力就衝刺閃避，趁破綻反打。'});
+  },
+  onTap(){ if(!this.done) tryDash(player); },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,3); for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 三 進 · 過 關', title:'斬　將　救　糜',
+      body:'趙雲一槍刺淳于導於馬下，救出糜竺，殺開血路。\n（糜竺為曹將淳于導所擒，見《三國演義》第四十一回。）\n\n下一進「奪青釭」已開啟——截殺逃將、奪曹操佩劍。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L4,'level4')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L3,'level3')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'斬將救糜！趙雲刺淳于導於馬下，救出糜竺。'});
+  },
+  lose(reason){ this.done=true; SFX.lose();
+    const t=reason==='mizhu'?'糜　竺　被　害':'力　竭　陷　陣';
+    const b=reason==='mizhu'?'護救不及，糜竺沒於亂軍——\n再戰一場，這次護緊他。':'淳于導勢大，趙雲力竭——\n重整旗鼓，再戰一場。';
+    showCard({tag:'第 三 進', title:t, body:b,
+      buttons:[{label:'再試一次',go:()=>setScene(L3,'level3')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:reason==='mizhu'?'糜竺被害。再戰一場，這次護緊他。':'力竭陷陣，再戰一場。'});
+  },
+  hitBoss(dt){ player.atkT+=dt; if(player.atkT<ATK_INT) return; player.atkT=0;
+    const dx=boss.x-player.x, dy=boss.y-player.y, d=Math.hypot(dx,dy);
+    if(d<=ATK_RANGE+10){ let da=Math.atan2(dy,dx)-player.ang; da=Math.atan2(Math.sin(da),Math.cos(da));
+      if(Math.abs(da)<=ATK_ARC){ const dmg=(boss.st==='recover')?2:1; boss.hp-=dmg; boss.flash=0.12;
+        emitSteel((player.x+boss.x)/2,(player.y+boss.y)/2,4); player.swingT=player.swingDur;
+        if(boss.st==='recover') SFX.kill(); else SFX.hit();
+        if(boss.hp<=0){ boss.hp=0; this.slay(); } return; } }
+    player.swingT=player.swingDur;
+  },
+  slay(){ emitBlood(boss.x,boss.y,14); shake(0.5); flash('斬淳于導！救出糜竺，護他殺出北側出口');
+    speak('斬了淳于導！救出糜竺，護他殺出重圍。'); SFX.win();
+    mizhu.freed=true; this.phase='escort'; this.exit={x:this.world.w/2, y:90, w:280}; },
+  stepBoss(dt){
+    boss.flash=Math.max(0,boss.flash-dt); boss.t+=dt;
+    const dx=player.x-boss.x, dy=player.y-boss.y, d=Math.hypot(dx,dy)||1;
+    if(boss.st==='approach'){ boss.ang=Math.atan2(dy,dx);
+      if(d>40){ boss.x+=dx/d*BOSS_SPD*dt; boss.y+=dy/d*BOSS_SPD*dt; }
+      if(d<44 && boss.t>0.6){ if(player.iframe<=0 && player.hitCD<=0 && player.dashT<=0){
+        player.hp-=BOSS_TOUCH; player.hitCD=0.6; player.hurtFlash=1; emitBlood(player.x,player.y,3); SFX.hurt(); } boss.t=0; }
+      boss.winCD-=dt;
+      if(boss.winCD<=0 && d<240){ boss.st='windup'; boss.t=0; boss.aim=Math.atan2(dy,dx); SFX.swing(); }
+    } else if(boss.st==='windup'){ boss.ang=boss.aim;
+      if(boss.t>=WIND){ boss.st='slam'; boss.t=0; boss.slamHit=false; SFX.hurt(); shake(0.25); }
+    } else if(boss.st==='slam'){ boss.ang=boss.aim;
+      boss.x+=Math.cos(boss.aim)*620*dt; boss.y+=Math.sin(boss.aim)*620*dt;
+      if(!boss.slamHit){ const pd=Math.hypot(player.x-boss.x, player.y-boss.y);
+        if(pd<58 && player.iframe<=0 && player.dashT<=0){ boss.slamHit=true;
+          player.hp-=SLAM_DMG; player.hitCD=0.6; player.hurtFlash=1; player.x+=(player.x-boss.x)/(pd||1)*40; player.y+=(player.y-boss.y)/(pd||1)*40;
+          emitBlood(player.x,player.y,8); SFX.hurt(); shake(0.5); } }
+      if(boss.t>=SLAM){ boss.st='recover'; boss.t=0; }
+    } else if(boss.st==='recover'){
+      if(boss.t>=REC){ boss.st='approach'; boss.t=0; boss.winCD=rand(1.3,2.1); }
+    }
+    boss.x=clamp(boss.x,40,this.world.w-40); boss.y=clamp(boss.y,40,this.world.h-40);
+  },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    updatePlayer(player,dt,this.world);
+    if(this.phase==='duel'){
+      this.hitBoss(dt); this.stepBoss(dt);
+      if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+    } else if(this.phase==='escort'){
+      stepAttack(this,dt); stepEnemies(this,dt);
+      if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+      stepSpawn(this,dt,8,0.85);
+      const bx=player.x-Math.cos(player.ang)*50, by=player.y-Math.sin(player.ang)*50;
+      const mdx=bx-mizhu.x, mdy=by-mizhu.y, md=Math.hypot(mdx,mdy);
+      if(md>4){ const step=Math.min(md, LADY_SPD*dt); mizhu.x+=mdx/md*step; mizhu.y+=mdy/md*step; }
+      let near=0; for(const e of enemies){ if(!e.dead && dist(e.x,e.y,mizhu.x,mizhu.y)<56) near++; }
+      mizhu.drain=near;
+      if(near>0){ mizhu.hp-=near*11*dt; if(mizhu.hp<=0){ mizhu.hp=0; this.lose('mizhu'); return; } }
+      else mizhu.hp=Math.min(mizhu.max, mizhu.hp+6*dt);
+      if(this.exit && Math.abs(player.x-this.exit.x)<this.exit.w/2 && player.y<this.exit.y+44) this.win();
+    }
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this);
+    if(this.phase==='escort' && this.exit) drawExit(this.exit);
+    for(const r of this.ring) drawSoldier({x:r.x,y:r.y,ang:r.ang,hp:2,flash:0});
+    drawCaptive(mizhu, this.t);
+    for(const e of enemies) drawSoldier(e);
+    if(this.phase==='duel' || boss.flash>0) drawBoss(boss, this.t);
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    drawP();
+    ctx.restore();
+    drawHUD(this, this.phase==='duel'?'單挑淳于導 — 見紅扇蓄力就衝刺閃避，破綻反打':'護糜竺殺出北側出口');
+    if(this.phase==='duel') drawEscortGauge('淳于導', boss.hp, boss.max, boss.st==='recover');
+    else if(mizhu.freed) drawEscortGauge('糜竺 安危', mizhu.hp, mizhu.max, mizhu.drain>0);
+    const tgt=this.phase==='escort'&&this.exit?this.exit:null;
+    if(tgt && !this.done) drawCompass(tgt.x,tgt.y,'出口');
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext(this.phase==='duel'?'紅光扇形＝重擊預警　·　輕點衝刺穿過去　·　破綻(對方暈眩)時狠打':'護送：別讓曹兵逼近糜竺',W/2,H-70,17,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-210,86,420,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第四關：四進・奪青釭（追擊夏侯恩）
+   =========================================================== */
+const L4={
+  world:{w:1500,h:1200},
+  enter(){
+    this.t=0; this.phase='chase'; this.done=false; this.hintT=7.5; this.kills=0; this.spawnT=0;
+    this.tufts=[]; for(let i=0;i<130;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<46;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    const cx=this.world.w/2;
+    player=makePlayer(cx, 916); player.qinggang=false;
+    enemies=[];
+    this.gate={x:cx, y:96, w:380};
+    runner={x:cx+rand(-40,40), y:586, ang:-Math.PI/2, flash:0};
+    this.startDist=Math.hypot(runner.x-this.gate.x, runner.y-this.gate.y);
+    this.catchR=90;
+    // 樹叢（躲貓貓障礙；避開玩家起點與營門口）
+    this.trees=[]; let tt=0;
+    while(this.trees.length<8 && tt<400){ tt++;
+      const x=rand(170,this.world.w-170), y=rand(220,840);
+      if(Math.hypot(x-cx,y-916)<170) continue;                                  // 避玩家起點
+      if(Math.abs(x-this.gate.x)<this.gate.w/2+50 && y<300) continue;           // 避營門口
+      if(this.trees.some(q=>Math.hypot(q.x-x,q.y-y)<165)) continue;
+      this.trees.push({x,y,r:rand(40,56)});
+    }
+    this.exit=null;
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 四 進', title:'奪　青　釭',
+      body:'曹將夏侯恩背負曹操佩劍「青釭」（削鐵如泥），正鑽進樹林、躲躲閃閃要奔回曹營。\n他**繞著樹叢變線奔逃**，硬追他屁股追不上——**切角抄捷徑、預判他繞樹的去路**，配合衝刺貼上他，別讓他奔進營門。追到身邊即可奪劍。',
+      buttons:[{label:'截　殺',go:()=>{ hideCard(); speak('夏侯恩背著青釭劍鑽樹林躲閃。別硬追他屁股，切角抄路、預判他繞樹的去向，衝刺貼上他，別讓他跑進營門。'); }}],
+      narrate:'第四進，奪青釭。夏侯恩繞著樹叢躲閃奔逃。別硬追屁股，切角抄路、預判去向，衝刺貼上他，別讓他跑進營門。'});
+  },
+  onTap(){ if(!this.done) tryDash(player); },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,4); for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 四 進 · 過 關', title:'青　釭　在　手',
+      body:'趙雲截殺夏侯恩，奪得青釭寶劍——此劍砍鐵如泥，自此雜兵一掃而盡。\n（趙雲奪青釭劍、斬夏侯恩，見《三國演義》第四十一回。）\n\n青釭劍將隨你殺入後陣。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L5,'level5')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L4,'level4')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'青釭在手！此劍削鐵如泥，雜兵一掃而盡。'});
+  },
+  lose(reason){ this.done=true; SFX.lose();
+    const t=reason==='escape'?'夏　侯　恩　脫　逃':'力　竭　陷　陣';
+    const b=reason==='escape'?'夏侯恩奔進曹營，青釭劍失之交臂——\n再追一次，這回抄住他的去路。':'亂軍之中力竭——\n重整旗鼓，再追一場。';
+    showCard({tag:'第 四 進', title:t, body:b,
+      buttons:[{label:'再試一次',go:()=>setScene(L4,'level4')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:reason==='escape'?'夏侯恩脫逃了。再追一次，抄住他的去路。':'力竭陷陣，再追一場。'});
+  },
+  stepRunner(dt){
+    runner.flash=Math.max(0,runner.flash-dt);
+    let tox=this.gate.x-runner.x, toy=this.gate.y-runner.y, td=Math.hypot(tox,toy)||1;
+    let ax=runner.x-player.x, ay=runner.y-player.y, ad=Math.hypot(ax,ay)||1;
+    const av=clamp(170/ad,0,0.7);
+    let px=-ay/ad, py=ax/ad; if((px*tox+py*toy)<0){ px=-px; py=-py; }
+    // 繞開樹叢（躲貓貓的核心：他會鑽樹林、變線）
+    let rxv=0, ryv=0;
+    for(const tr of this.trees){ const ex=runner.x-tr.x, ey=runner.y-tr.y, ed=Math.hypot(ex,ey)||1; const reach=tr.r+78;
+      if(ed<reach){ const f=(reach-ed)/reach; rxv+=ex/ed*f; ryv+=ey/ed*f; } }
+    let vx=tox/td + (ax/ad)*av*0.55 + px*av*0.32 + rxv*1.5, vy=toy/td + (ay/ad)*av*0.55 + py*av*0.32 + ryv*1.5;
+    const vn=Math.hypot(vx,vy)||1; runner.x+=vx/vn*RUN_SPD*dt; runner.y+=vy/vn*RUN_SPD*dt; runner.ang=Math.atan2(vy,vx);
+    runner.x=clamp(runner.x,40,this.world.w-40); runner.y=clamp(runner.y,40,this.world.h-40);
+    collideTrees(runner, this.trees, 6);
+    const dx=runner.x-player.x, dy=runner.y-player.y, d=Math.hypot(dx,dy);
+    // 揮砍視覺（接近時）
+    player.atkT+=dt; if(player.atkT>=ATK_INT){ player.atkT=0; if(d<=ATK_RANGE+40){ player.swingT=player.swingDur; SFX.swing(); } }
+    // 貼到身邊即奪劍
+    if(d<=this.catchR){ runner.flash=0.12; emitSteel((player.x+runner.x)/2,(player.y+runner.y)/2,6); this.seize(); return; }
+    // 逃進曹營＝失敗
+    if(runner.y<this.gate.y+34 && Math.abs(runner.x-this.gate.x)<this.gate.w/2) this.lose('escape');
+  },
+  seize(){ player.qinggang=true; flash('得青釭劍！削鐵如泥，殺出去！'); speak('斬了夏侯恩，得青釭寶劍！此劍削鐵如泥，殺出重圍！');
+    SFX.win(); shake(0.5); for(let i=0;i<18;i++) emitSteel(player.x+rand(-20,20),player.y+rand(-20,20),1);
+    this.phase='breakout'; this.exit={x:this.world.w/2, y:96, w:340}; this.spawnT=0; },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    updatePlayer(player,dt,this.world);
+    if(this.phase==='chase'){
+      collideTrees(player, this.trees, 14);
+      this.stepRunner(dt);
+      if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+    } else if(this.phase==='breakout'){
+      stepAttack(this,dt); stepEnemies(this,dt);
+      if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+      stepSpawn(this,dt,14,0.5);
+      if(this.exit && Math.abs(player.x-this.exit.x)<this.exit.w/2 && player.y<this.exit.y+44) this.win();
+    }
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this); drawGate(this.gate);
+    if(this.phase==='chase') for(const tr of this.trees) drawThicket(tr);
+    if(this.phase==='breakout' && this.exit) drawExit(this.exit);
+    for(const e of enemies) drawSoldier(e);
+    if(this.phase==='chase') drawRunner(runner, this.t);
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    drawP();
+    ctx.restore();
+    drawHUD(this, this.phase==='chase'?'追擊夏侯恩 — 他鑽樹林躲閃，切角抄路、衝刺貼上他':'持青釭殺出北側出口');
+    if(this.phase==='chase'){ const rem=Math.hypot(runner.x-this.gate.x, runner.y-this.gate.y);
+      drawEscortGauge('夏侯恩 距曹營', rem, this.startDist, rem<this.startDist*0.4); }
+    const tgt = this.phase==='chase'? runner : (this.exit||null);
+    if(tgt && !this.done) drawCompass(tgt.x,tgt.y, this.phase==='chase'?'夏侯恩':'出口');
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext(this.phase==='chase'?'他繞著樹叢躲躲藏藏　·　別硬追屁股，切角抄路＋衝刺攔住他':'青釭削鐵如泥　·　雜兵一擊即潰',W/2,H-70,16,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-210,86,420,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第五關：五進・懷阿斗（投井 → 推牆掩井＋死守 → 懷阿斗突圍）
+   =========================================================== */
+const PUSH_RATE=15;
+const L5={
+  world:{w:1400,h:1150},
+  enter(){
+    this.t=0; this.phase='cover'; this.done=false; this.hintT=8; this.kills=0; this.spawnT=0; this.push=0;
+    this.tufts=[]; for(let i=0;i<120;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<44;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    const cx=this.world.w/2, cy=this.world.h/2;
+    player=makePlayer(cx, cy+210); player.qinggang=(progress>=4); player.adou=false; adouHp=adouMax;
+    enemies=[]; for(let i=0;i<6;i++) spawnEnemy(rand(0,this.world.w),rand(120,this.world.h-120));
+    this.well={x:cx, y:cy-30, r:34, covered:0};
+    this.wall={x:cx, y:cy+60, w:96, h:22};
+    this.wallY0=cy+60; this.wallY1=cy-30;
+    this.exit=null;
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 五 進', title:'懷　阿　斗',
+      body:'糜夫人身被重創、不能行，將幼主阿斗託付趙雲，自投枯井而死，全趙雲之志。\n趙雲含悲——先**推倒土牆掩住井口**（站上推牆處持續推），莫教曹兵驚擾夫人遺體；曹軍正蜂擁而來，須**邊推邊守**。',
+      buttons:[{label:'掩　井',go:()=>{ hideCard(); speak('糜夫人投井全志。推土牆掩住井口，邊推邊守，莫教曹兵驚擾。'); }}],
+      narrate:'第五進，懷阿斗。糜夫人投井全志。推土牆掩住井口，邊推邊守。'});
+  },
+  onTap(){ if(!this.done) tryDash(player); },
+  zone(){ return {x:this.wall.x, y:this.wall.y+this.wall.h/2+24, r:46}; },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,5); for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 五 進 · 過 關', title:'懷　主　突　圍',
+      body:'井口已掩，趙雲解開勒甲、將阿斗護於胸前，殺開血路而出。\n（糜夫人投井、趙雲推牆掩之、懷揣後主，見《三國演義》第四十一回。）\n\n阿斗將隨你殺入名將陣中。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L6,'level6')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L5,'level5')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'井口已掩，懷主突圍！阿斗護於胸前。'});
+  },
+  lose(reason){ this.done=true; SFX.lose();
+    const t=reason==='adou'?'阿　斗　有　失':'力　竭　陷　陣';
+    const b=reason==='adou'?'趙雲身被重創，懷中阿斗幾乎不保——\n再來一次，少挨些刀。':'曹兵勢眾，趙雲力竭——\n重整旗鼓，再守一場。';
+    showCard({tag:'第 五 進', title:t, body:b,
+      buttons:[{label:'再試一次',go:()=>setScene(L5,'level5')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:reason==='adou'?'阿斗幾乎不保。再來一次，少挨些刀。':'力竭陷陣，再守一場。'});
+  },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    updatePlayer(player,dt,this.world);
+    stepAttack(this,dt); stepEnemies(this,dt);
+    if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+    if(player.adou && adouHp<=0){ this.lose('adou'); return; }
+    if(this.phase==='cover'){
+      stepSpawn(this,dt,16,0.45);
+      const z=this.zone();
+      if(dist(player.x,player.y,z.x,z.y)<z.r){ this.push=Math.min(100,this.push+PUSH_RATE*dt);
+        if(Math.random()<dt*6) emitDust(this.wall.x+rand(-40,40), this.wall.y, 1); }
+      this.wall.y=this.wallY0 + (this.wallY1-this.wallY0)*(this.push/100);
+      this.well.covered=clamp((this.push-70)/30,0,1);
+      if(this.push>=100){ // 掩井完成 → 懷阿斗 → 突圍
+        player.adou=true; adouHp=adouMax; this.phase='breakout';
+        this.exit={x:this.world.w/2, y:this.world.h-92, w:320};
+        flash('井口已掩，懷阿斗殺出南側出口！'); speak('井口已掩。懷起阿斗，殺出重圍，往南邊出口。'); SFX.win();
+      }
+    } else if(this.phase==='breakout'){
+      stepSpawn(this,dt,12,0.6);
+      if(this.exit && Math.abs(player.x-this.exit.x)<this.exit.w/2 && player.y>this.exit.y-44) this.win();
+    }
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this);
+    if(this.phase==='breakout' && this.exit) drawExit(this.exit);
+    drawWell(this.well);
+    { const wy=this.well.y - this.well.r*1.25 - 16;
+      if(this.well.covered<1){ rrFill(this.well.x-52, wy-14, 104, 22, 7, 'rgba(20,16,10,.66)');
+        ctext('井 · 糜夫人投井處', this.well.x, wy-3, 12.5, '#ffe7a8', 800); }
+      else { rrFill(this.well.x-44, wy-14, 88, 22, 7, 'rgba(20,16,10,.66)'); ctext('井口已掩', this.well.x, wy-3, 13, '#cfe8c8', 800); } }
+    if(this.phase==='cover'){ const z=this.zone();
+      ctx.strokeStyle='rgba(110,200,140,'+(0.5+0.3*Math.sin(this.t*4))+')'; ctx.lineWidth=3; ctx.setLineDash([8,7]);
+      ctx.beginPath(); ctx.arc(z.x,z.y,z.r,0,7); ctx.stroke(); ctx.setLineDash([]);
+      ctext('推',z.x,z.y,20,'#dff5d8',800); }
+    drawWall(this.wall);
+    for(const e of enemies) drawSoldier(e);
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    drawP();
+    ctx.restore();
+    drawHUD(this, this.phase==='cover'?'推牆掩井 — 站上「推」處持續推，邊推邊守':'懷阿斗殺出南側出口');
+    if(this.phase==='cover') drawEscortGauge('掩井進度', this.push, 100, false);
+    if(player.adou) drawEscortGauge('阿斗 安危', adouHp, adouMax, false);
+    const tgt=this.phase==='breakout'&&this.exit?this.exit:null;
+    if(tgt && !this.done) drawCompass(tgt.x,tgt.y,'出口');
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext(this.phase==='cover'?'站進綠圈推牆（會原地不動較危險）　·　離開去清兵則暫停':'懷阿斗時單臂揮砍、揮弧較窄　·　自己挨打＝阿斗安危下降',W/2,H-70,16,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-210,86,420,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第六關：六進・斬將（險地闖關：陷馬坑＋名將）
+   =========================================================== */
+const L6={
+  world:{w:1500,h:1500},
+  enter(){
+    this.t=0; this.phase='fight'; this.done=false; this.hintT=8.5; this.kills=0; this.spawnT=0;
+    this.genTotal=4; this.genKilled=0;
+    this.tufts=[]; for(let i=0;i<160;i++) this.tufts.push({x:rand(20,this.world.w-20),y:rand(20,this.world.h-20),r:rand(6,13)});
+    this.patches=[]; for(let i=0;i<54;i++) this.patches.push({x:rand(0,this.world.w),y:rand(0,this.world.h),r:rand(20,52)});
+    const cx=this.world.w/2, H6=this.world.h;
+    player=makePlayer(cx, H6-150); player.qinggang=(progress>=4); player.adou=(progress>=5); adouHp=adouMax;
+    this.exit=null;
+    // 陷馬坑（中段散布，避開起點）
+    this.pits=[]; let tries=0;
+    while(this.pits.length<11 && tries<400){ tries++;
+      const x=rand(120,this.world.w-120), y=rand(280,H6-360);
+      if(Math.hypot(x-cx,y-(H6-150))<230) continue;
+      if(this.pits.some(q=>Math.hypot(q.x-x,q.y-y)<120)) continue;
+      this.pits.push({x,y,r:rand(30,40)});
+    }
+    enemies=[]; for(let i=0;i<8;i++) spawnEnemy(rand(80,this.world.w-80),rand(160,H6-300));
+    // 四名將散佈於前方，各據一方（強弱依史實：張郃＝五子良將，硬底子；餘為降將／雜號）
+    this.spawnGen(cx-400, H6*0.40, '晏明', 11); this.spawnGen(cx+400, H6*0.40, '張郃', 26, true);
+    this.spawnGen(cx-300, H6*0.64, '焦觸', 11); this.spawnGen(cx+300, H6*0.64, '張南', 11);
+    cam.x=player.x; cam.y=player.y;
+    showCard({tag:'第 六 進', title:'斬　四　將',
+      body:'重圍之中，曹營四將據守阻路。其中**張郃**乃曹魏「**五子良將**」之一，料敵如神、連諸葛亮都忌憚——血厚難纏，須久戰方能逼退（史上趙雲與他十餘合「料道不能勝」，撥馬而走）；晏明、焦觸、張南皆降將雜號，數擊可斬。\n戰場遍布**陷馬坑**（張郃正是逼趙雲馬陷土坑，幸得一道紅光滾出方脫）。持青釭、懷阿斗，穿陷坑、破四將，殺透死地。',
+      buttons:[{label:'斬　將',go:()=>{ hideCard(); speak('四將據守，張郃乃五子良將最是難纏。穿陷坑、破四將，殺透死地。掉進坑裡輕點可掙脫躍出。'); }}],
+      narrate:'第六進，斬四將。張郃乃五子良將，血厚難纏須久戰逼退；餘三將數擊可斬。遍地陷馬坑，穿坑破將，殺透死地。'});
+  },
+  spawnGen(x,y,name,hp,champion){ spawnEnemy(clamp(x,60,this.world.w-60),clamp(y,60,this.world.h-60)); const e=enemies[enemies.length-1]; e.hp=hp||10; e.max=hp||10; e.general=true; e.name=name; e.champion=!!champion; },
+  onTap(){ if(this.done)return; if(player.pitT>0) this.leap(); else tryDash(player); },
+  leap(){ player.pitT=0; player.iframe=Math.max(player.iframe,0.5);
+    const dy=-1, ny=clamp(player.y-46,40,this.world.h-40); player.y=ny; // 紅光躍出，向前(北)彈
+    shake(0.35); for(let i=0;i<12;i++) emitBlood(player.x+rand(-14,14),player.y+rand(-14,14),1); flash('紅光躍出！'); SFX.dash(); },
+  win(){ this.done=true; SFX.win(); progress=Math.max(progress,6); for(let i=0;i<2;i++) winFanfare();
+    showCard({tag:'第 六 進 · 過 關', title:'殺　透　重　圍',
+      body:'趙雲懷抱阿斗，連斬名將、躍出陷坑，砍倒大旗兩面、奪槊三條，前後槍刺劍砍、殺死曹營名將五十餘員，殺透重圍。\n（趙雲砍旗奪槊、斬將五十餘員，見《三國演義》第四十一回。）\n\n前方便是長坂橋。',
+      buttons:[{label:'下一關 ▶',go:()=>setScene(L7,'level7')},{label:'再殺一次',cls:'ghost',go:()=>setScene(L6,'level6')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:'殺透重圍！連斬名將五十餘員，懷抱阿斗，殺出死地。'});
+  },
+  lose(reason){ this.done=true; SFX.lose();
+    const t=reason==='adou'?'阿　斗　有　失':'力　竭　陷　陣';
+    const b=reason==='adou'?'趙雲身被數十創，懷中阿斗幾乎不保——\n再殺一次，仔細避坑、莫挨刀。':'名將圍攻、又陷土坑，趙雲力竭——\n重整旗鼓，再殺一場。';
+    showCard({tag:'第 六 進', title:t, body:b,
+      buttons:[{label:'再試一次',go:()=>setScene(L6,'level6')},{label:'回地圖',cls:'ghost',go:()=>setScene(MAP,'map')}],
+      narrate:reason==='adou'?'阿斗幾乎不保。再殺一次，仔細避坑。':'力竭陷陣，再殺一場。'});
+  },
+  update(dt){
+    this.t+=dt; if(this.hintT>0)this.hintT-=dt;
+    if(this.done){ updateP(dt); return; }
+    // 陷坑：掉坑後原地受困，輕點或時間到「紅光躍出」
+    if(player.pitT>0){ player.pitT-=dt; player.x=player.pitX; player.y=player.pitY;
+      if(player.pitT<=0){ this.leap(); }
+    } else {
+      updatePlayer(player,dt,this.world);
+      if(player.dashT<=0){ for(const q of this.pits){ if(dist(player.x,player.y,q.x,q.y)<q.r*0.8){
+        player.pitT=0.75; player.pitX=player.x; player.pitY=player.y; player.hp-=12; player.hurtFlash=1;
+        if(player.adou) adouHp=Math.max(0,adouHp-12); shake(0.4); for(let i=0;i<10;i++) emitDust(player.x,player.y,1); SFX.hurt(); break; } } }
+    }
+    stepAttack(this,dt); stepEnemies(this,dt);
+    if(player.hp<=0){ player.hp=0; this.lose('hp'); return; }
+    if(player.adou && adouHp<=0){ this.lose('adou'); return; }
+    // 計斬將數（在陣亡當下計，避免被 splice 後漏算）
+    for(const e of enemies){ if(e.general && e.dead && !e.counted){ e.counted=true; this.genKilled++;
+      flash(e.champion ? '張郃料敵不利，撥馬敗走！' : (e.name+'　授首！')); } }
+    stepSpawn(this,dt,7,0.78);
+    if(this.genKilled>=this.genTotal){ this.win(); return; }
+    cam.x=clamp(player.x, W/2, this.world.w-W/2);
+    cam.y=clamp(player.y, H/2, this.world.h-H/2);
+    updateP(dt);
+  },
+  draw(){
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    ctx.save(); ctx.translate(W/2-cam.x+ox, H/2-cam.y+oy);
+    drawGround(this);
+    for(const q of this.pits) drawPit(q);
+    for(const e of enemies){ if(e.general) drawGeneral(e); else drawSoldier(e); }
+    drawZhaoyun(player.x,player.y,player.ang,player);
+    drawP();
+    ctx.restore();
+    drawHUD(this, '斬四將 — 穿陷坑、殲滅晏明·張郃·焦觸·張南');
+    if(player.adou) drawEscortGauge('阿斗 安危', adouHp, adouMax, false);
+    drawEscortGauge('斬將進度', this.genKilled, this.genTotal, false);
+    // 指向最近名將
+    if(!this.done){ let ng=null,nd=1e9; for(const e of enemies){ if(e.general&&!e.dead){ const d=dist(e.x,e.y,player.x,player.y); if(d<nd){nd=d;ng=e;} } }
+      if(ng) drawCompass(ng.x,ng.y,'名將'); }
+    if(player.pitT>0){ ctx.globalAlpha=0.9; ctext('馬陷土坑！輕點掙脫躍出',W/2,H/2+90,20,'#ffd0c0',800); ctx.globalAlpha=1; }
+    if(this.hintT>0 && !this.done){ const a=clamp(this.hintT/2,0,1);
+      ctx.globalAlpha=a; ctext('深色坑洞＝陷馬坑（衝刺可一躍而過）　·　青釭秒雜兵、名將需數擊　·　羅盤指向最近名將',W/2,H-70,15,'#fff8e8',800); ctx.globalAlpha=1; }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-210,86,420,40,12,'rgba(20,16,10,.8)');
+      ctext(toast,W/2,106,18,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   第七關：七出・過橋（長坂橋・對話解謎・三聲怒吼）
+   =========================================================== */
+function fearBar(n){ let s=''; for(let i=0;i<3;i++) s+= i<n?'▰':'▱'; return s; }
+const L7={
+  world:{w:900,h:600},
+  enter(){ hideCard(); this.t=0; this.done=false; this.fear=0; this.adv=1; this.advTarget=1;
+    this.busy=false; this.anim=null; this.animT=0; this.pending=null;
+    this.shock=[]; this.jie=0; this.cross=0; this.routX=0;
+    this.dust=[]; for(let i=0;i<12;i++) this.dust.push({x:rand(0,1),y:rand(0,1),s:rand(0.4,1)});
+    // 疑兵密林（填滿中央橋道兩側；y 以比例存，繪製時乘 SH）
+    const BX=W/2, cor=90; this.cor=cor;
+    this.woods=[];
+    for(let side=0;side<2;side++){ const x0=side?BX+cor:6, x1=side?W-4:BX-cor;
+      for(let fy=0.015; fy<0.99; fy+=0.058){ for(let xx=x0; xx<x1; xx+=32){
+        this.woods.push({x:xx+rand(-9,9), fy:fy+rand(-0.02,0.02), r:rand(16,25), t:Math.random()}); } } }
+    this.yibing=[];
+    for(let i=0;i<7;i++){ const onR=i<5; this.yibing.push({ x: onR? BX+cor+30+rand(0,Math.max(24,W-BX-cor-66)) : rand(18,BX-cor-36), fy:0.30+i*0.085+rand(-0.03,0.03), ph:Math.random()*7 }); }
+    cam.x=0; cam.y=0; this.choices=[]; this.text=''; this.present('a'); },
+  present(id){ this.node=id;
+    const roar=(line,fearTo,advTo,nxt,big)=>()=>{ this.fear=fearTo; this.advTarget=advTo;
+        this.shock.push({r:14,a:1}); SFX.win(); speak(line); shake(big?0.55:0.32);
+        this.busy=true; this.anim=big?'rout':'roar'; this.animT=big?2.0:1.25; this.pending=nxt; if(big) this.jie=0.001; };
+    const fail=(nxt)=>()=>{ this.advTarget=1; this.fear=Math.max(0,this.fear-1);
+        this.busy=true; this.anim='surge'; this.animT=1.1; this.pending=nxt; SFX.lose(); shake(0.3); };
+    if(id==='a'){ this.fear=0; this.advTarget=1; this.adv=1; this.jie=0; this.cross=0; this.routX=0;
+      this.text='曹軍前鋒蜂擁殺到，塵頭大起。\n張飛獨據橋頭，圓睜環眼、倒豎虎鬚，橫矛立馬，\n只待一個喝退千軍的時機。';
+      this.setChoices([ ['厲聲大喝（第一聲）', roar('我乃燕人張翼德也！誰敢與我決一死戰！',1,0.66,'b',false)],
+                        ['先斷橋以絕追兵', fail('failEarly')] ]); }
+    else if(id==='b'){ this.text='一聲如雷，曹軍人馬股慄，為首者勒馬不前。\n曹操遙見橋東林後塵土飛揚——張飛令人於林中拖柴揚塵\n為疑兵，操疑有伏兵，不敢輕進。';
+      this.setChoices([ ['再喝（第二聲）', roar('燕人張翼德在此！誰敢來決死戰！',2,0.4,'c',false)],
+                        ['此刻便斷橋', fail('failBridge')],
+                        ['策馬上前挑釁', fail('failTaunt')] ]); }
+    else if(id==='c'){ this.text='二聲既出，曹軍陣腳已亂。\n曹操身旁夏侯傑面如土色，握韁的手微微發抖。';
+      this.setChoices([ ['暴喝（第三聲）', roar('戰又不戰，退又不退，卻是何故！',3,0.0,'d',true)],
+                        ['鳴金示弱', fail('failWeak')] ]); }
+    else if(id==='d'){ this.text='夏侯傑驚得肝膽碎裂，倒撞於馬下！\n曹操回馬便走，眾將一齊望北奔逃，如潮水般退去。';
+      this.setChoices([ ['從容斷橋，回報主公 ▶', ()=>{ this.busy=true; this.anim='cross'; this.animT=2.7; this.pending='ending'; speak('曹軍既退，斷橋回報主公。'); }] ]); }
+    else if(id==='ending'){ this.done=true; progress=Math.max(progress,7); SFX.win(); winFanfare();
+      this.text='趙雲懷抱阿斗、渾身血染，過橋至主公前，泣拜獻子。\n劉備接過，擲之於地：「為汝這孺子，幾損我一員大將！」\n趙雲忙抱起，泣拜：「雲雖肝腦塗地，不能報也！」　——七進七出，長坂功成。';
+      this.setChoices([ ['回地圖', ()=>setScene(MAP,'map')], ['再看一次', ()=>setScene(L7,'level7')] ]); }
+    else { const M={ failEarly:'橋一斷，曹操即省：「彼若有伏兵，必不斷橋；今斷橋而去，正是心虛！」於是麾軍急追。怒吼未足、斷橋太早，反露了破綻。',
+        failBridge:'疑懼未到極處便斷橋，曹操看破橋斷處並無伏兵接應，膽氣復生，揮軍踏屍而進。',
+        failTaunt:'你策馬上前挑釁，反顯獨木難支、並無埋伏，曹軍膽氣復生，一擁而上。',
+        failWeak:'你竟鳴金示弱，曹軍看破虛實，鼓譟掩殺而來。' };
+      this.text=M[id]+'\n（虛張聲勢貴在時機——先以怒吼喝足疑懼，斷橋宜遲不宜早。）'; speak('失策，露了破綻。再來一次。');
+      this.setChoices([ ['重　來', ()=>this.present('a')], ['回地圖', ()=>setScene(MAP,'map')] ]); }
+  },
+  setChoices(arr){ const a=arr.map(x=>({label:x[0],fn:x[1]}));
+    for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=a[i];a[i]=a[j];a[j]=t; }
+    this.choices=a; },
+  layout(){ const n=this.choices.length, bh=42, gap=10, bw=Math.min(560,W-48);
+    const totalH=n*bh+(n-1)*gap, by0=H-18-totalH; const lines=this.text.split('\n');
+    const panelTop=by0 - lines.length*24 - 16;
+    const rects=this.choices.map((c,i)=>({x:(W-bw)/2, y:by0+i*(bh+gap), w:bw, h:bh, c}));
+    return {rects, panelTop, lines}; },
+  onTap(){ if(this.busy) return; const {rects}=this.layout();
+    for(const r of rects){ if(ptr.sx>=r.x&&ptr.sx<=r.x+r.w&&ptr.sy>=r.y&&ptr.sy<=r.y+r.h){ r.c.fn(); return; } } },
+  update(dt){ this.t+=dt;
+    this.adv += (this.advTarget-this.adv)*Math.min(1,dt*4);
+    for(const s of this.shock){ s.r+=dt*440; s.a=Math.max(0,s.a-dt*0.85); } this.shock=this.shock.filter(s=>s.a>0);
+    if(this.anim==='rout'){ this.jie=Math.min(1,this.jie+dt/1.1); this.routX+=dt*60; }
+    if(this.anim==='cross'){ this.cross=Math.min(1,this.cross+dt/2.3); }
+    if(this.busy){ this.animT-=dt; if(this.animT<=0){ this.busy=false; const p=this.pending; this.anim=null; this.pending=null; if(p) this.present(p); } }
+    updateP(dt); },
+  draw(){
+    const {rects, panelTop, lines}=this.layout(); const SH=Math.max(220,panelTop);
+    let ox=0,oy=0; if(shakeT>0){ ox=rand(-shakeAmt,shakeAmt); oy=rand(-shakeAmt,shakeAmt); }
+    const g=ctx.createLinearGradient(0,0,0,SH); g.addColorStop(0,'#caba90'); g.addColorStop(1,'#a98f62'); ctx.fillStyle=g; ctx.fillRect(0,0,W,SH);
+    ctx.save(); ctx.translate(ox,oy);
+    // 河
+    ctx.fillStyle='#43677e'; ctx.fillRect(0,SH*0.36,W,SH*0.12);
+    ctx.fillStyle='rgba(255,255,255,.10)'; for(let i=0;i<6;i++){ const yy=SH*0.37+i*5; ctx.fillRect((this.t*26+i*130)%W-60,yy,44,2); }
+    // 橋（縱向）
+    const bx=W/2;
+    ctx.fillStyle='#6b4a2c'; ctx.fillRect(bx-36,SH*0.05,72,SH*0.92);
+    ctx.fillStyle='#7d5836'; for(let i=0;i<10;i++) ctx.fillRect(bx-36,SH*0.05+i*(SH*0.92/10),72,3);
+    // ── 疑兵密林：填滿兩側，只露出中央橋道與角色 ──
+    const BX=W/2, cor=this.cor||90;
+    ctx.fillStyle='#2c4524'; ctx.fillRect(0,0,BX-cor,SH); ctx.fillRect(BX+cor,0,W-(BX+cor),SH);   // 林地底色
+    for(const w of this.woods){ const wy=w.fy*SH; if(wy>SH+10) continue;
+      ctx.fillStyle='rgba(0,0,0,.13)'; ctx.beginPath(); ctx.arc(w.x+3, wy+w.r*0.45, w.r*0.92, 0,7); ctx.fill();
+      ctx.fillStyle= w.t<0.5?'#39582e':(w.t<0.82?'#456c36':'#557e48'); ctx.beginPath(); ctx.arc(w.x, wy, w.r, 0,7); ctx.fill(); }
+    for(const yb of this.yibing){ const px=yb.x+Math.sin(this.t*1.3+yb.ph)*20, py=yb.fy*SH;        // 林中疑兵騎來回奔走
+      drawMount(px, py, Math.cos(this.t*1.3+yb.ph)>=0?0.2:Math.PI-0.2, '#5a4030', {mane:'#241608'}); }
+    for(const d of this.dust){ const dy=(this.t*0.16+d.y)%1; ctx.globalAlpha=(1-dy)*0.42*d.s; ctx.fillStyle='#d8c498'; // 林中揚塵，越過張飛被曹軍望見
+      ctx.beginPath(); ctx.arc(BX+cor+24+d.x*Math.max(30,W-BX-cor-50), SH*0.84-dy*SH*0.5, 3.4*d.s,0,7); ctx.fill(); } ctx.globalAlpha=1;
+    ctext('張飛疑兵·林中揚塵', BX+cor+(W-BX-cor)/2, SH*0.30, 11, '#e6eccc', 800);
+    // 曹軍虎豹騎（北側，依 adv 進退）
+    const armyY = SH*0.20 - (1-this.adv)*SH*0.34;
+    for(let i=0;i<15;i++){ const c=i%5, r=(i/5)|0; const sx=bx-(c-2)*28 + this.routX*((c-2)>=0?1:-1)*0.3, sy=armyY-r*22 + Math.sin(this.t*3+i)*1.5;
+      drawMount(sx, sy, Math.PI/2, '#4a3326', {mane:'#2a1a10'}); drawSoldier({x:sx,y:sy-3,ang:Math.PI/2,hp:2,flash:0,dead:false}); }
+    // 夏侯傑（陣前；三喝時驚得肝膽碎裂、墜馬）
+    const jx=bx-54, jy=SH*0.165;
+    { const hy=jy - this.jie*48; drawMount(jx+this.jie*12, hy, -Math.PI/2 - this.jie*0.4, '#6a4a30', {mane:'#3a2418'}); } // 受驚竄逃的馬
+    ctx.save(); ctx.translate(jx - this.jie*16, jy + this.jie*10);
+    if(this.jie>0){ ctx.rotate(this.jie*1.8); ctx.globalAlpha=Math.max(0.12,1-this.jie*0.9); }
+    ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(0,6,11,5,0,0,7); ctx.fill();
+    ctx.fillStyle='#7a2f2f'; ctx.beginPath(); ctx.arc(0,0,9,0,7); ctx.fill();
+    ctx.strokeStyle='#d4af37'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(0,0,9,0,7); ctx.stroke();
+    ctx.fillStyle='#5a1f1f'; ctx.beginPath(); ctx.arc(0,-1,4.5,0,7); ctx.fill();
+    ctx.restore(); ctx.globalAlpha=1;
+    if(this.jie<0.9) ctext('夏侯傑', jx, jy-15, 11, '#ffd0c0', 800);
+    else if(this.jie>=0.9) ctext('夏侯傑墜馬！', jx, jy+SH*0.05, 12, '#7a1a1a', 800);
+    // 怒吼衝擊波（自張飛向北擴散）
+    const tx=bx, ty=SH*0.42;
+    for(const s of this.shock){ ctx.strokeStyle='rgba(255,242,200,'+(s.a*0.6)+')'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(tx,ty,s.r,0,7); ctx.stroke(); }
+    // 張飛（橋頭，面北）
+    (function(){ ctx.save(); ctx.translate(tx,ty);
+      drawMount(0,0,-Math.PI/2,'#23232a',{mane:'#0a0a0c'});                                     // 烏騅
+      ctx.fillStyle='#23232a'; ctx.beginPath(); ctx.arc(0,-6,13,0,7); ctx.fill(); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(0,-17,6.5,0,7); ctx.fill();                    // 面
+      ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-5,-15); ctx.quadraticCurveTo(-9,-9,-6,-6); ctx.moveTo(5,-15); ctx.quadraticCurveTo(9,-9,6,-6); ctx.stroke(); // 虎鬚
+      ctx.strokeStyle='#3a2a1a'; ctx.lineWidth=4.5; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(11,-6); ctx.lineTo(33,-46); ctx.stroke(); // 丈八蛇矛
+      ctx.strokeStyle='#cdd3da'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(33,-46); ctx.quadraticCurveTo(38,-52,34,-56); ctx.stroke();
+      ctx.restore(); })();
+    ctext('張飛 據橋', tx, ty-40, 13, '#2a1a10', 800);
+    // 結局：趙雲過橋獻子、劉備擲阿斗
+    if(this.anim==='cross' || this.node==='ending'){
+      const zy=SH*0.20 + (SH*0.58)*this.cross;
+      drawMount(bx, zy, Math.PI/2, '#e8e4dc', {mane:'#c8c0b4'});                                // 白馬
+      drawZhaoyun(bx, zy-3, Math.PI/2, {swingT:0,qinggang:true,adou:this.cross<0.96,hurtFlash:0,dashT:0});
+      // 劉備（橋南）
+      const lx=bx, ly=SH*0.82;
+      ctx.save(); ctx.translate(lx,ly);
+      ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0,12,16,8,0,0,7); ctx.fill();
+      ctx.fillStyle='#3a6a4a'; ctx.beginPath(); ctx.moveTo(-11,12); ctx.lineTo(11,12); ctx.lineTo(7,-8); ctx.lineTo(-7,-8); ctx.closePath(); ctx.fill(); // 綠袍
+      ctx.fillStyle='#e6cda4'; ctx.beginPath(); ctx.arc(0,-13,6,0,7); ctx.fill();
+      ctx.restore(); ctext('主公 劉備', lx, ly-22, 12, '#2a1a10', 800);
+      if(this.cross>=0.96){ ctext('擲於地：「為汝這孺子，幾損我一員大將！」', bx, SH*0.5, 13, '#5a2a1a', 800); }
+    }
+    ctx.restore();
+    // 疑懼表（頂端）
+    rrFill(W/2-150,16,300,28,9,'rgba(20,16,10,.72)');
+    rrFill(W/2-144,22,288*(this.fear/3),16,7, this.fear>=3?'#5ec07a':'#c89a3a');
+    ctext('曹軍疑懼　'+fearBar(this.fear), W/2, 30, 14, '#fff', 800);
+    // 底部敘事面板
+    ctx.fillStyle='rgba(18,14,9,.85)'; ctx.fillRect(0,panelTop,W,H-panelTop);
+    ctx.fillStyle='rgba(212,175,55,.5)'; ctx.fillRect(0,panelTop,W,2);
+    let ty2=panelTop+24; for(const ln of lines){ ctext(ln, W/2, ty2, 15.5, '#f0e6d2', 600); ty2+=24; }
+    if(!this.busy){ for(const r of rects){ rrFill(r.x,r.y,r.w,r.h,9,'#3a3027');
+        rrStroke(r.x,r.y,r.w,r.h,9,'#7a6646',1.5); ctext(r.c.label, r.x+r.w/2, r.y+r.h/2+5, 15, '#ffe9b0', 700); } }
+    else { ctext('· · ·', W/2, H-46, 18, 'rgba(255,255,255,.5)', 700); }
+  }
+};
+function enemyNear(p,r){ for(const e of enemies){ if(!e.dead && dist(e.x,e.y,p.x,p.y)<=r) return true; } return false; }
+
+function drawHUD(L,objText){
+  // 血條
+  rrFill(16,14,232,30,9,'rgba(20,16,10,.7)');
+  rrFill(22,20,220,18,7,'rgba(120,40,30,.5)');
+  const hp=clamp(player.hp/player.max,0,1); rrFill(22,20,220*hp,18,7, hp>0.3?'#c64132':'#8a261b');
+  ctext('趙雲',54,29,15,'#ffe7a8',800);
+  // 衝刺冷卻
+  const cd=player.dashCD/DASH_CD; rrFill(16,50,160,22,8,'rgba(20,16,10,.7)');
+  rrFill(20,54,152*(1-cd),14,6, cd>0?'#5a6b7c':'#5ec07a');
+  ctext(cd>0?'衝刺充能…':'衝刺 就緒（輕點）',92,61,13,'#eef3f8',800);
+  // 斬殺數
+  rrFill(W-150,14,134,30,9,'rgba(20,16,10,.7)'); ctext('斬殺 '+L.kills,W-83,29,16,'#ffe7a8',800);
+  // 目標字
+  ctext(objText,W/2,28,18,'#fff8e8',800);
+}
+function drawEscortGauge(label,hp,max,danger){
+  const x=W/2-130, y=52, w=260, r=clamp(hp/max,0,1);
+  rrFill(x,y,w,22,8,'rgba(20,16,10,.72)');
+  rrFill(x+4,y+4,(w-8)*r,14,6, r>0.35?'#5ec07a':'#d8543a');
+  ctext(label+'　'+Math.ceil(hp),W/2,y+11,13, danger?'#ffd0c0':'#eaf7e6',800);
+  if(danger){ ctx.strokeStyle='rgba(216,84,58,'+(0.5+0.4*Math.sin(performance.now()/90))+')'; ctx.lineWidth=2; rr(x,y,w,22,8); ctx.stroke(); }
+}
+function drawCompass(wx,wy,label){
+  const dx=wx-player.x, dy=wy-player.y, d=Math.hypot(dx,dy);
+  if(d<80) return; const a=Math.atan2(dy,dx);
+  const mx=W/2+Math.cos(a)*210, my=H/2+Math.sin(a)*150;
+  const cx=clamp(mx,40,W-40), cy=clamp(my,70,H-70);
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.fillStyle='rgba(20,16,10,.72)'; ctx.beginPath(); ctx.arc(0,0,18,0,7); ctx.fill();
+  ctx.rotate(a); ctx.fillStyle='#ffd576'; ctx.beginPath(); ctx.moveTo(13,0); ctx.lineTo(2,-7); ctx.lineTo(2,7); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctext(label+' '+Math.round(d/10)+'m',cx,cy+28,13,'#ffe7a8',800);
+}
+
+/* ===========================================================
+   地圖（七進七出選關，目前僅開放第一進）
+   =========================================================== */
+const STOPS=[
+  {n:'一·尋主',   x:160,y:150, go:()=>setScene(L1,'level1')},
+  {n:'二·救甘夫人',x:300,y:232, go:()=>setScene(L2,'level2')},
+  {n:'三·救糜竺', x:470,y:178, go:()=>setScene(L3,'level3')},
+  {n:'四·奪青釭', x:560,y:300, go:()=>setScene(L4,'level4')},
+  {n:'五·懷阿斗', x:430,y:382, go:()=>setScene(L5,'level5')},
+  {n:'六·斬將',   x:560,y:446, go:()=>setScene(L6,'level6')},
+  {n:'七·過橋',   x:706,y:486, go:()=>setScene(L7,'level7')}
+];
+const MAP={
+  enter(){ this.t=0; },
+  onDown(x,y){ for(let i=0;i<STOPS.length;i++){ const s=STOPS[i];
+    if(dist(x,y,s.x,s.y)<34){ tap(); if(i<=progress && s.go) s.go(); else flash('此進尚未開放，敬請期待'); return; } } },
+  update(dt){ this.t+=dt; if(toastT>0)toastT-=dt; updateP(dt); },
+  draw(){
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#cdb486'); g.addColorStop(.55,'#b59a6c'); g.addColorStop(1,'#9a8156');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // 景山
+    ctx.fillStyle='#9a8b5e'; ctx.beginPath(); ctx.moveTo(40,150); ctx.lineTo(110,40); ctx.lineTo(180,150); ctx.closePath(); ctx.fill();
+    ctext('景山',110,120,14,'#5a4a2a',800); ctext('（曹操觀戰）',110,138,11,'#6a5a36',700);
+    // 沮水・長坂橋
+    ctx.fillStyle='rgba(90,120,140,.5)'; ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(W,H); ctx.lineTo(W,H-46); ctx.quadraticCurveTo(W*0.6,H-72,0,H-40); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#7a5a36'; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(676,520); ctx.lineTo(736,520); ctx.stroke();
+    ctext('長坂橋',706,505,12,'#4a3a22',800);
+    // 連線
+    ctx.strokeStyle='rgba(70,55,30,.5)'; ctx.lineWidth=3; ctx.setLineDash([8,7]);
+    ctx.beginPath(); ctx.moveTo(STOPS[0].x,STOPS[0].y); for(let i=1;i<STOPS.length;i++) ctx.lineTo(STOPS[i].x,STOPS[i].y); ctx.stroke(); ctx.setLineDash([]);
+    ctext('趙雲七進七出 · 長坂坡 二〇八',W/2,40,26,'#5a2f18',900);
+    ctext('單騎救主——擊破當前關卡解鎖下一進（已過關可重玩）',W/2,68,15,'#6a4a2a',700);
+    for(let i=0;i<STOPS.length;i++){ const s=STOPS[i], open=i<=progress && !!s.go, done=i<progress, cur=i===progress && !!s.go;
+      const r=30+(cur?Math.sin(this.t*3)*2:0);
+      ctx.fillStyle=open?'#f3ead6':'rgba(150,135,105,.65)'; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,7); ctx.fill();
+      ctx.lineWidth=4; ctx.strokeStyle=done?'#5ec07a':(open?'#c44a38':'#7a6a48'); ctx.stroke();
+      ctext(done?'✓':(open?'⚔':'🔒'),s.x,s.y,open?24:20,'#2a2018');
+      rrFill(s.x-52,s.y+r+2,104,22,11, open?'rgba(60,30,18,.9)':'rgba(70,60,42,.8)');
+      ctext(s.n,s.x,s.y+r+13,13,'#fff',800); }
+    if(toastT>0){ ctx.globalAlpha=clamp(toastT,0,1); rrFill(W/2-170,H-58,340,36,11,'rgba(20,16,10,.82)');
+      ctext(toast,W/2,H-40,16,'#ffe7a8',800); ctx.globalAlpha=1; }
+  }
+};
+
+/* ===========================================================
+   開場
+   =========================================================== */
+const TITLE={
+  enter(){ this.t=0;
+    showCard({tag:'建 安 十 三 年 · 長 坂 坡', title:'趙雲七進七出',
+      body:'曹操虎豹騎一日一夜追三百餘里，當陽長坂衝散了劉備十餘萬眾。\n常山趙子龍懷抱幼主、七進七出於萬軍之中。\n\n換你來當這位「一身是膽」的虎將。',
+      buttons:[{label:'開始',go:()=>{ hideCard(); setScene(MAP,'map'); }}],
+      narrate:'趙雲七進七出。換你來當這位一身是膽的虎將。'}); },
+  update(dt){ this.t+=dt; updateP(dt); },
+  draw(){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#241f18'); g.addColorStop(1,'#15110c');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctext('趙雲七進七出',W/2,H/2-10,40,'#ece2c8',900); ctext('長坂坡 · 二〇八',W/2,H/2+34,18,'#b9a880',700); }
+};
+
+/* ===========================================================
+   主迴圈
+   =========================================================== */
+let nowt=0, last=0;
+function loop(ts){ nowt=ts/1000; const dt=Math.min(.05, last?(ts-last)/1000:.016); last=ts;
+  if(shakeT>0){ shakeT-=dt; if(shakeT<=0)shakeAmt=0; }
+  if(toastT>0 && scene!==MAP) toastT-=dt;
+  if(scene){ if(scene.update)scene.update(dt); ctx.clearRect(0,0,W,H); if(scene.draw)scene.draw(); }
+  // TSO：進度一有變動（過關）就存檔
+  if(progress!==savedProgress){ savedProgress=progress; try{ localStorage.setItem(SAVE_KEY,String(progress)); }catch(e){} }
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize',resize);
+resize(); setScene(TITLE,'title'); requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>

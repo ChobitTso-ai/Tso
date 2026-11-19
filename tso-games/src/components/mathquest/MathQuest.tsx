@@ -242,6 +242,7 @@ function formatTime(ms: number): string {
 
 export default function MathQuest() {
   const [state,      setState]   = useState<GameState | null>(null)
+  const [pendingResume, setPendingResume] = useState<GameState | null>(null)
   const [shaking,    setShaking] = useState(false)
   const [sparkleCell,setSparkle] = useState<string | null>(null)
   const [toast,      setToast]   = useState<string | null>(null)
@@ -249,7 +250,8 @@ export default function MathQuest() {
   const [muted,      setMuted]   = useState(isMuted())
   const shakingRef = useRef(false)
 
-  // 讀存檔：戰鬥/商店等中途畫面退回地圖（避免遮罩卡住），保留進度；
+  // 讀存檔：不直接套用，先讓玩家選擇繼續上次或重新選角（見 ResumePrompt）；
+  // 戰鬥/商店等中途畫面退回地圖（避免遮罩卡住），保留進度；
   // 其餘非法畫面（例如選角/結算，理論上不會被寫入存檔）視為無效存檔
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -257,10 +259,19 @@ export default function MathQuest() {
     try {
       const s: GameState = JSON.parse(saved)
       if (s.screen === 'battle' || s.screen === 'boss' || s.screen === 'shop') s.screen = 'map'
-      if (s.screen === 'map') setState(s)
+      if (s.screen === 'map') setPendingResume(s)
       else localStorage.removeItem(STORAGE_KEY)
     } catch { localStorage.removeItem(STORAGE_KEY) }
   }, [])
+
+  function resumeGame() {
+    setState(pendingResume)
+    setPendingResume(null)
+  }
+  function declineResume() {
+    localStorage.removeItem(STORAGE_KEY)
+    setPendingResume(null)
+  }
 
   // 寫存檔
   useEffect(() => {
@@ -602,7 +613,11 @@ export default function MathQuest() {
     })
   }
 
-  function resetGame() { localStorage.removeItem(STORAGE_KEY); setState(null) }
+  function resetGame() {
+    if (!confirm('確定要放棄目前這局，重新選角嗎？')) return
+    localStorage.removeItem(STORAGE_KEY)
+    setState(null)
+  }
 
   // ── 渲染 ──────────────────────────────────────────────────────────────────────
 
@@ -610,6 +625,7 @@ export default function MathQuest() {
     if (state?.screen === 'battle' || state?.screen === 'boss') answerStartRef.current = Date.now()
   }, [state?.screen, state?.bossIndex, state?.question])
 
+  if (!state && pendingResume) return <ResumePrompt saved={pendingResume} onResume={resumeGame} onNew={declineResume} />
   if (!state || state.screen === 'select') return <SelectScreen onSelectChar={selectChar} />
   if (state.screen === 'mode_select') return <ModeSelectScreen char={state.char} onSelect={startGame} onBack={() => setState(null)} />
   if (state.screen === 'win')  return <EndScreen state={state} win onReset={resetGame} elapsed={state.mode === 'speedrun' ? elapsed : 0}
@@ -704,6 +720,26 @@ export default function MathQuest() {
       {state.screen === 'boss' && state.bossQ[state.bossIndex] && (
         <BattleOverlay question={state.bossQ[state.bossIndex]} wrongOptions={state.bossWrongOptions} onAnswer={answerBoss} isBoss bossProgress={[state.bossIndex, state.bossQ.length]} shaking={shaking} hasSkip={state.items.includes('skip')} onSkip={() => useSkip(true)} mode={state.mode} timeLeft={state.timeLeft} bossRushInfo={state.mode === 'bossrush' ? [state.bossRushDefeated, state.bossRushTotal] : undefined} />
       )}
+    </div>
+  )
+}
+
+// ── 繼續上次 / 重新選角 ─────────────────────────────────────────────────────
+
+function ResumePrompt({ saved, onResume, onNew }: { saved: GameState; onResume: () => void; onNew: () => void }) {
+  const info = CHAR_INFO[saved.char]
+  const modeName = GAME_MODES.find(m => m.id === saved.mode)?.name ?? saved.mode
+  return (
+    <div className="mq-select">
+      <h1 className="mq-select-title">🔢 數學冒險</h1>
+      <div className="mq-resume-box">
+        <p className="mq-resume-title">發現上次玩到一半的進度</p>
+        <p className="mq-resume-info">{info.emoji} {info.name}｜{modeName}｜⭐ {saved.score} 分</p>
+        <div className="mq-resume-actions">
+          <button className="mq-resume-btn mq-resume-continue" onClick={onResume}>▶️ 繼續上次</button>
+          <button className="mq-resume-btn mq-resume-new" onClick={onNew}>🆕 重新選角</button>
+        </div>
+      </div>
     </div>
   )
 }

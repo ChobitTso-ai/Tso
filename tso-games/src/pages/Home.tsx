@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { EntryChooser, EntrySwitch } from '../components/entry/EntryChooser'
+import { islandUrl, readEntry, saveEntry } from '../components/entry/entry'
+import type { Entry } from '../components/entry/entry'
 import './Home.css'
 
 interface GameCard {
@@ -31,7 +35,7 @@ const GAMES: GameCard[] = [
   {
     id: 'kidibot',
     title: '回家之路',
-    description: '排列路徑磁力片，引導機器人避開怪獸與陷阱，安全回家！10 關程式思維冒險。',
+    description: '排列路徑磁力片，引導機器人避開怪獸與陷阱，安全回家！25 關程式思維冒險。',
     icon: '🤖',
     path: '/kidibot',
     available: true,
@@ -81,15 +85,49 @@ const GAMES: GameCard[] = [
     available: true,
     tag: 'NEW',
   },
+  {
+    id: 'wordgrid',
+    title: '方陣找找看',
+    description: '在字母方陣上連起相鄰格子拼出英文單字，也能切換數學模式連數字湊目標數。',
+    icon: '🔤',
+    path: '/wordgrid',
+    available: true,
+    tag: 'NEW',
+  },
+  {
+    id: 'slitherlink',
+    title: '數迴',
+    description: 'Loop Puzzle：在點與點之間畫線，連成不交叉、不分岔的迴路，數字是周圍的線數。',
+    icon: '➰',
+    path: '/slitherlink',
+    available: true,
+    tag: 'NEW',
+  },
 ]
 
 export default function Home() {
   document.title = 'TSO'
+  const [entry, setEntry] = useState<Entry | null>(() => readEntry())
+
+  // 選了島嶼版：導向獨立的 3D 頁面（replace，按上一頁才不會卡在空白首頁）
+  useEffect(() => {
+    if (entry === 'island') window.location.replace(islandUrl())
+  }, [entry])
+
+  const pick = (next: Entry) => {
+    saveEntry(next)
+    setEntry(next)
+  }
+
+  if (entry === null) return <EntryChooser onPick={pick} />
+  if (entry === 'island') return null
+
   return (
     <div className="home">
       <header className="home-header">
         <h1 className="home-title">🎮 TSO Games</h1>
         <p className="home-subtitle">免費、無需登入，打開即玩</p>
+        <EntrySwitch onSwitch={() => pick('island')} />
       </header>
 
       <div className="game-grid">

@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // island/parts 是串接成單一 HTML 的片段、public/island 是建置產物，都不是獨立的原始碼
+  globalIgnores(['dist', 'island/parts', 'public/island']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
