@@ -88,37 +88,38 @@ function buildIslands() {
   const groundMats = {};
 
   DATA.islands.forEach((d, idx) => {
-    const { x: cx, z: cz } = axialToWorld(d.q, d.r);
-    const isl = { data: d, idx, cx, cz, nodes: [], items: [] };
+    const { x: cx, z: cz } = islandCenter(d, DATA.islands);
+    const sc = d.scale || 1, Ri = R * sc, Pi = PATH_R * sc;
+    const isl = { data: d, idx, cx, cz, sc, R: Ri, nodes: [], items: [] };
     S.islands.push(isl); S.islandById[d.id] = isl;
 
     const gm = groundMats[d.ground] || (groundMats[d.ground] = new THREE.MeshStandardMaterial({ map: GROUND_TEX[d.ground], roughness: .92, metalness: 0 }));
-    const top = new THREE.Mesh(worldUV(hexGeo(R - .05).translate(cx, TOP, cz)), gm);
+    const top = new THREE.Mesh(worldUV(hexGeo(Ri - .05).translate(cx, TOP, cz)), gm);
     top.receiveShadow = true; top.userData.island = isl;
     isl.top = top;
 
-    const curb = new THREE.Mesh(hexRingGeo(R - .2, R - .03).translate(cx, TOP + .006, cz), curbMat);
-    const path = new THREE.Mesh(hexRingGeo(PATH_R - .14, PATH_R + .14).translate(cx, TOP + .008, cz), pathMat);
+    const curb = new THREE.Mesh(hexRingGeo(Ri - .2, Ri - .03).translate(cx, TOP + .006, cz), curbMat);
+    const path = new THREE.Mesh(hexRingGeo(Pi - .14, Pi + .14).translate(cx, TOP + .008, cz), pathMat);
     curb.receiveShadow = path.receiveShadow = true;
 
     const bandH = .16, wallBot = WATER_Y - .05;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(R - .02, R - .02, bandH, 6, 1, true).translate(cx, TOP - bandH / 2 + .003, cz),
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(Ri - .02, Ri - .02, bandH, 6, 1, true).translate(cx, TOP - bandH / 2 + .003, cz),
       new THREE.MeshStandardMaterial({ map: bandTex(d.band, idx), roughness: .85 }));
     band.material.map.repeat.set(6, 1);
     const wallH = TOP - bandH - wallBot;
-    const wall = new THREE.Mesh(new THREE.CylinderGeometry(R - .02, R + .03, wallH, 6, 1, true).translate(cx, wallBot + wallH / 2, cz), sideMat);
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(Ri - .02, Ri + .03, wallH, 6, 1, true).translate(cx, wallBot + wallH / 2, cz), sideMat);
     band.castShadow = wall.castShadow = true;
     band.userData.island = wall.userData.island = curb.userData.island = path.userData.island = isl;
 
-    const shallow = new THREE.Mesh(hexRingGeo(R, R + .7).translate(cx, WATER_Y + .004, cz), shallowMat);
-    const foam = new THREE.Mesh(hexRingGeo(R, R + .16).translate(cx, WATER_Y + .008, cz), foamMat);
+    const shallow = new THREE.Mesh(hexRingGeo(Ri, Ri + .7).translate(cx, WATER_Y + .004, cz), shallowMat);
+    const foam = new THREE.Mesh(hexRingGeo(Ri, Ri + .16).translate(cx, WATER_Y + .008, cz), foamMat);
     shallow.renderOrder = 1; foam.renderOrder = 2;
     S.scene.add(top, curb, path, band, wall, shallow, foam);
     isl.pickables = [top, curb, path, band, wall];
 
     // 路網：12 節點，偶數 = 邊中點 k、奇數 = 頂點 k
     for (let k = 0; k < 6; k++) {
-      const [mx, mz] = hexMid(k, PATH_R), [vx, vz] = hexVert(k, PATH_R);
+      const [mx, mz] = hexMid(k, Pi), [vx, vz] = hexVert(k, Pi);
       isl.nodes.push(addNode(cx + mx, TOP + .02, cz + mz), addNode(cx + vx, TOP + .02, cz + vz));
     }
     for (let i = 0; i < 12; i++) linkNodes(isl.nodes[i], isl.nodes[(i + 1) % 12]);
@@ -178,7 +179,7 @@ function buildIslandLabels() {
     el.innerHTML = `<b>${isl.data.no}</b><span>${tr(isl.data.name, isl.data.en)}</span>`;
     el.addEventListener('click', (e) => { e.stopPropagation(); if (typeof selectIsland === 'function') selectIsland(isl); });
     const obj = new CSS2DObject(el);
-    obj.position.set(isl.cx, TOP - .28, isl.cz + R * .87 + .1);
+    obj.position.set(isl.cx, TOP - .28, isl.cz + isl.R * .87 + .1);
     S.scene.add(obj);
     isl.label = obj; isl.labelEl = el;
   });

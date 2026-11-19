@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import AnimalIcon from './AnimalIcon'
+import { animalFor } from './animals'
 import type { Chapter } from './types'
 import './LevelMap.css'
 
@@ -8,14 +10,17 @@ interface ChapterTheme {
   deco: string[]
 }
 
-// 順序對應 CHAPTERS：草原、沙漠、遊樂園、機械城、彩虹雙子、星空山頂
+// 順序對應 CHAPTERS：草原、沙漠、遊樂園、機械城、彩虹、星空山頂
+// 蠟筆繪本風：米白圖畫紙上疊一層主題色的斜線塗色，與關卡畫面的紙張一致
+const crayonTint = (paper: string, tint: string) =>
+  `repeating-linear-gradient(-55deg, ${tint} 0 3px, transparent 3px 10px), ${paper}`
 const THEMES: ChapterTheme[] = [
-  { bg: 'linear-gradient(180deg, #b8ec9a 0%, #7fcf5c 100%)', sign: '#2f9e44', deco: ['🌳', '🌼', '🌷', '🍄', '🌲', '🐛'] },
-  { bg: 'linear-gradient(180deg, #ffe3a3 0%, #f1b458 100%)', sign: '#d9480f', deco: ['🌵', '🏜️', '🦂', '☀️', '🌵', '🐍'] },
-  { bg: 'linear-gradient(180deg, #ffd3e6 0%, #f59ac2 100%)', sign: '#c2255c', deco: ['🎈', '🎪', '🦘', '🎠', '🍭', '🎡'] },
-  { bg: 'linear-gradient(180deg, #d0d8e4 0%, #8d9bb3 100%)', sign: '#495057', deco: ['⚙️', '🔩', '🏭', '🤖', '🔧', '⛓️'] },
-  { bg: 'linear-gradient(180deg, #d9cfff 0%, #a493f2 100%)', sign: '#6741d9', deco: ['🌈', '👯', '🦋', '🫧', '🌸', '🎶'] },
-  { bg: 'linear-gradient(180deg, #1b1f5e 0%, #2f2a7a 100%)', sign: '#e8a400', deco: ['⭐', '🏔️', '🌙', '✨', '🏆', '🌟'] },
+  { bg: crayonTint('#fbf4e2', 'rgba(124,195,91,0.16)'), sign: '#7cc35b', deco: ['🌳', '🌼', '🌷', '🍄', '🌲', '🐛'] },
+  { bg: crayonTint('#fbecd0', 'rgba(240,160,32,0.16)'), sign: '#f08c4a', deco: ['🌵', '🏜️', '🦂', '☀️', '🌵', '🐍'] },
+  { bg: crayonTint('#fdeff4', 'rgba(224,85,143,0.14)'), sign: '#f06595', deco: ['🎈', '🎪', '🦘', '🎠', '🍭', '🎡'] },
+  { bg: crayonTint('#eef0f2', 'rgba(110,125,150,0.16)'), sign: '#8d9bb3', deco: ['⚙️', '🔩', '🏭', '🤖', '🔧', '⛓️'] },
+  { bg: crayonTint('#f4f0ff', 'rgba(155,123,217,0.16)'), sign: '#9b7bd9', deco: ['🌈', '👯', '🦋', '🫧', '🌸', '🎶'] },
+  { bg: crayonTint('#262a55', 'rgba(255,244,200,0.07)'), sign: '#f2a900', deco: ['⭐', '🏔️', '🌙', '✨', '🏆', '🌟'] },
 ]
 
 const NODE_GAP = 100 // 相鄰關卡的垂直距離
@@ -132,7 +137,7 @@ export default function LevelMap({ chapters, stars, current, isUnlocked, onSelec
           >
             {isCurrent && (
               <span className="db-map-avatar" aria-hidden="true">
-                🔴
+                <AnimalIcon animal={animalFor(n.i, 0)} size={44} />
               </span>
             )}
             <span className="db-map-num">{locked ? '🔒' : n.i + 1}</span>

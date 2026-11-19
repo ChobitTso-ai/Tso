@@ -9,6 +9,11 @@ import MathQuestPage from './pages/MathQuestPage'
 import BattleshipPage from './pages/BattleshipPage'
 import ThreeKingdomsPage from './pages/ThreeKingdomsPage'
 import DrawBallPage from './pages/DrawBallPage'
+import SanguoGamePage from './pages/SanguoGamePage'
+import { SANGUO_GAMES } from './components/sanguo/games'
+import WordGridPage from './pages/WordGridPage'
+import SlitherlinkPage from './pages/SlitherlinkPage'
+import StrategistPage from './pages/StrategistPage'
 import EducationPage from './pages/EducationPage'
 import DrillPage from './pages/DrillPage'
 
@@ -25,7 +30,13 @@ export default function App() {
           <Route path="/mathquest" element={<MathQuestPage />} />
           <Route path="/battleship" element={<BattleshipPage />} />
           <Route path="/threekingdoms" element={<ThreeKingdomsPage />} />
+          {SANGUO_GAMES.map(game => (
+            <Route key={game.id} path={game.path} element={<SanguoGamePage key={game.id} game={game} />} />
+          ))}
           <Route path="/drawball" element={<DrawBallPage />} />
+          <Route path="/wordgrid" element={<WordGridPage />} />
+          <Route path="/slitherlink" element={<SlitherlinkPage />} />
+          <Route path="/strategist" element={<StrategistPage />} />
           <Route path="/education" element={<EducationPage />} />
           <Route path="/drill" element={<DrillPage />} />
         </Routes>

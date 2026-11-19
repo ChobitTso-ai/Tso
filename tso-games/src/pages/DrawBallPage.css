@@ -2,10 +2,10 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* 木頭書桌色，襯托米白圖畫紙 */
   background:
-    radial-gradient(900px 420px at 50% -80px, rgba(123, 77, 255, 0.35), transparent 70%),
-    radial-gradient(700px 400px at 90% 110%, rgba(58, 134, 255, 0.25), transparent 65%),
-    #0f1729;
+    repeating-linear-gradient(90deg, rgba(120, 80, 40, 0.05) 0 2px, transparent 2px 60px),
+    #e9dcc0;
 }
 
 .drawball-nav {
@@ -13,22 +13,22 @@
   align-items: center;
   gap: 16px;
   padding: 12px 24px;
-  background: #0b1120;
-  border-bottom: 1px solid #1e2a3a;
+  background: #4a3520;
+  border-bottom: 3px solid #2e2010;
   flex-shrink: 0;
 }
 
 .drawball-nav .nav-home {
-  color: #888;
+  color: #e9dcc0;
   text-decoration: none;
   font-size: 14px;
   transition: color 0.15s;
 }
-.drawball-nav .nav-home:hover { color: #e4c97e; }
+.drawball-nav .nav-home:hover { color: #ffd166; }
 
 .drawball-nav .nav-title {
   flex: 1;
-  color: #e4c97e;
+  color: #ffd166;
   font-weight: 700;
   font-size: 16px;
 }
