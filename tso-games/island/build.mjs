@@ -2,7 +2,9 @@
 // 在 npm run dev / build 之前自動執行。產物在 public/island/，已被 .gitignore 排除，不要手動修改。
 //
 // 本頁改寫自 KerryHuang/island-game（MIT 授權），授權全文見 island/LICENSE。
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -50,6 +52,24 @@ for (const name of names) {
 }
 const doc = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
   '<!-- 由 island/build.mjs 產生，請勿手動修改。改寫自 KerryHuang/island-game（MIT），見 LICENSE-island-game.txt -->\n' + html
+
+// ---------- 語法檢查 ----------
+// 資料驗證只比對建物名稱，不會發現合併衝突留下的語法錯誤（那會讓島嶼頁整頁空白），所以串好之後逐段 node --check
+const checkDir = mkdtempSync(join(tmpdir(), 'island-check-'))
+try {
+  let n = 0
+  for (const m of html.matchAll(/<script( type="module")?>([\s\S]*?)<\/script>/g)) {
+    const file = join(checkDir, `script${n++}${m[1] ? '.mjs' : '.js'}`)
+    writeFileSync(file, m[2])
+    try {
+      execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' })
+    } catch (e) {
+      fail(`串接後的 JavaScript 有語法錯誤（${m[1] ? 'module' : '一般'} script 第 ${n} 段）：\n${String(e.stderr).replaceAll(checkDir, '<script>')}`)
+    }
+  }
+} finally {
+  rmSync(checkDir, { recursive: true, force: true })
+}
 
 // ---------- 輸出與 vendor ----------
 const THREE = join(ROOT, 'node_modules', 'three')
