@@ -1,10 +1,11 @@
 
 // ================= 零件庫：全部靜態物件走 InstancedMesh =================
 const kit = {
-  parts: [], owner: null, lod: false, groups: {}, meshes: [], ownerParts: new Map(),
+  parts: [], owner: null, lod: false, skip: null, groups: {}, meshes: [], ownerParts: new Map(),
   add(kind, t, color, opts) {
     const s = t.scale === undefined ? [1, 1, 1] : (typeof t.scale === 'number' ? [t.scale, t.scale, t.scale] : t.scale);
     const j = 1 + (rand() * 2 - 1) * .0072; // 防 z-fighting 的微抖動
+    if (this.skip && this.skip(t.pos)) return; // 河、水灣上的擺設不放
     this.parts.push({
       kind, pos: t.pos, rot: t.rot || [0, 0, 0], rotOrder: t.rotOrder || 'XYZ', scale: [s[0] * j, s[1] * j, s[2] * j],
       color: new THREE.Color(color), owner: this.owner, lod: (opts && opts.lod) ?? this.lod,

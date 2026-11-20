@@ -548,31 +548,41 @@ const MODELS = {
 
 // ================= 島內配置 =================
 const inHex = (x, z, a) => Math.abs(x) <= a && Math.abs(x) * .5 + Math.abs(z) * SQ3 / 2 <= a;
+const NEW_FLAGS = 2; // 每座島最多幾棟插「新遊戲」旗，太多會雜
 function layoutIsland(isl) {
-  const items = isl.data.items, rest = items.length - 1, sc = isl.sc, main = { x: 0, z: -.58 * sc, size: 1.15 };
+  const items = isl.data.items, sc = isl.sc, fixed = isl.data.layout || {};
+  // 有 layout 的島：寫了位置的遊戲照位置放，其餘自動找空位，並避開固定建物與水面
+  const hasLayout = items.some((it) => fixed[it.id]);
+  const main = { x: 0, z: -.58 * sc, size: 1.15 };
+  const blocks = hasLayout ? items.filter((it) => fixed[it.id]).map((it) => fixed[it.id]) : [main];
+  const need = items.filter((it) => !fixed[it.id]).length - (hasLayout ? 0 : 1);
   let cell = .62, cand = [];
   for (; cell >= .46; cell -= .02) {
     cand = [];
     for (let row = -7; row <= 7; row++) for (let col = -7; col <= 7; col++) {
       const x = (col + (row % 2 ? .5 : 0)) * cell, z = row * cell * .9;
       if (!inHex(x, z, 1.36 * sc - cell * .5)) continue;
-      if (Math.abs(x - main.x) < (main.size + cell) / 2 - .02 && Math.abs(z - main.z) < (main.size + cell) / 2 - .02) continue;
+      if (blocks.some((b) => Math.abs(x - b.x) < (b.size + cell) / 2 - .02 && Math.abs(z - b.z) < (b.size + cell) / 2 - .02)) continue;
+      if (onWater(isl, x, z, cell * .5)) continue;
       cand.push({ x, z });
     }
-    if (cand.length >= rest) break;
+    if (cand.length >= need) break;
   }
   cell = Math.max(cell, .46);
   cand.sort((a, b) => (b.z - a.z) * .6 + (Math.abs(a.x) - Math.abs(b.x)) * .4); // 前排優先
-  const spots = [main, ...cand.slice(0, rest).map((c) => ({ ...c, size: cell * .92 }))];
+  const auto = [...(hasLayout ? [] : [main]), ...cand.slice(0, need).map((c) => ({ ...c, size: cell * .92 }))];
+  const flagged = new Set(items.filter((it) => it.heat === 3).sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, NEW_FLAGS).map((it) => it.id));
+  let k = 0;
   items.forEach((it, i) => {
-    const sp = spots[i];
-    const frame = { origin: new THREE.Vector3(isl.cx + sp.x, TOP, isl.cz + sp.z), yaw: rr(-.18, .18), size: sp.size };
+    const f = fixed[it.id], sp = f || auto[k++];
+    const jitter = rr(-.18, .18); // 固定位置的建物不抖動，但照樣抽亂數，讓其餘擺設不受影響
+    const frame = { origin: new THREE.Vector3(isl.cx + sp.x, TOP, isl.cz + sp.z), yaw: f ? (f.yaw || 0) : jitter, size: sp.size };
     const rec = { data: it, island: isl, frame, num: i + 1, top: new THREE.Vector3(frame.origin.x, TOP + sp.size * 1.15, frame.origin.z) };
     isl.items.push(rec); S.itemById[it.id] = rec;
     kit.owner = rec;
     const fn = MODELS[it.model] || MODELS.house;
     fn((kind, p, s, c, rot) => kit.local(frame, kind, p, s, c, rot));
-    if (it.heat === 3) { // 新遊戲旗：只標 heat 3（最新）的遊戲，插在右後角，旗頂夜晚發光
+    if (flagged.has(it.id)) { // 新遊戲旗：每座島只標最新的幾款，插在右後角，旗頂夜晚發光
       const h = .95;
       kit.local(frame, 'cylinder', [.44, h / 2, -.44], [.03, h, .03], PAL.stone);
       kit.local(frame, 'box', [.55, h - .07, -.44], [.2, .13, .02], isl.data.band);

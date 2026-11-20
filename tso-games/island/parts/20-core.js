@@ -12,14 +12,18 @@ const PAL = {
 };
 
 function mulberry32(a) {
-  return function () {
+  const f = function () {
     a |= 0; a = a + 0x6D2B79F5 | 0;
     let t = Math.imul(a ^ a >>> 15, 1 | a);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
+  f.reseed = (s) => { a = s; };
+  return f;
 }
-const rand = mulberry32(20261029);
+const RAND_SEED = 20261029;
+const rand = mulberry32(RAND_SEED);
+const seedOf = (s) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0;
 const rr = (a, b) => a + (b - a) * rand();
 const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

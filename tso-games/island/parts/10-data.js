@@ -10,7 +10,18 @@ const DATA = {
     { id: 'puzzle', no: '03', name: '解謎島', en: 'Puzzle Isle', q: 0, r: 1, ground: 'stripe', tree: 'cherry', band: '#fcea8b',
       summary: '畫線、找字、推理，動動腦解開各種謎題。', summaryEn: 'Draw, find words and deduce. Puzzles of every kind.' },
     { id: 'kingdom', no: '04', name: '三國島', en: 'Kingdoms Isle', q: 1, r: 1, scale: 1.5, ground: 'brick', tree: 'willow', band: '#db6a41',
-      summary: '三國主題小遊戲，陸續加入中。', summaryEn: 'Three Kingdoms mini games, coming one by one.' },
+      summary: '三國主題小遊戲，陸續加入中。', summaryEn: 'Three Kingdoms mini games, coming one by one.',
+      // 照方位排成一張中國地圖：-z 是北。hub 在中央當主位，官渡在北、長坂坡在東、軍帳在西，長江橫過島，赤壁在南岸
+      first: 'threekingdoms',
+      layout: {
+        threekingdoms: { x: 0, z: -.25, size: 1.15 },
+        guandu: { x: -.9, z: -1.35, size: .8, yaw: .2 },
+        strategist: { x: -1.45, z: 0, size: .8, yaw: .35 },
+        changban: { x: 1.45, z: -.1, size: .85, yaw: -.35 },
+        chibi: { x: .2, z: 1.68, size: .85 },
+      },
+      river: { z: .95, w: .46, amp: .1 },
+      roads: true },
   ],
   // 旅人路線：小人在島與島之間走動（evidence 只影響路線線條樣式，這裡一律用實線）
   flows: [
@@ -33,4 +44,8 @@ const DATA = {
 
 // 每座島的遊戲依熱度排，同熱度新的在前；排第一的佔主位
 const sortIssues = (list) => [...list].sort((a, b) => b.heat - a.heat || b.updated.localeCompare(a.updated));
-DATA.islands.forEach((d) => { d.items = sortIssues(ISSUES[d.id] || []); });
+// first：指定主位的遊戲（例如 hub），不照熱度與日期排
+DATA.islands.forEach((d) => {
+  d.items = sortIssues(ISSUES[d.id] || []);
+  if (d.first) d.items.sort((a, b) => (b.id === d.first) - (a.id === d.first));
+});

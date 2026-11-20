@@ -147,7 +147,9 @@ function buildSeaProps() {
 
 function buildWorld() {
   setupTerrainFn();
-  S.islands.forEach((isl) => { layoutIsland(isl); buildFurniture(isl); });
+  // 每座島用自己的亂數種子，島之後的背景也重設：改一座島的擺設，不會連帶改變其他島與背景
+  S.islands.forEach((isl) => { rand.reseed(seedOf(isl.data.id)); layoutIsland(isl); buildFurniture(isl); });
+  rand.reseed(RAND_SEED);
   buildPools();
   buildTerrain();
   buildBackgroundTrees();
