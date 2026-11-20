@@ -91,12 +91,12 @@ function addPath(isl, ax, az, bx, bz, road) {
   for (let i = 0; i < n; i++) {
     const t = (i + .5) / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
     if (!onWater(isl, x, z, .06)) continue;
-    const p = new THREE.Vector3(isl.cx + x, TOP + .045, isl.cz + z);
+    const p = new THREE.Vector3(isl.cx + x, TOP + .025, isl.cz + z); // 板面略高於水面、貼近小人走路的高度
     kit.add('box', { pos: p, rot: [0, yaw, 0], scale: [.075, .03, .3] }, i % 2 ? PAL.wood : tint(PAL.wood, .05));
     [-1, 1].forEach((side) => {
       const off = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(.14 * side);
-      kit.add('box', { pos: p.clone().add(off).setY(TOP + .12), rot: [0, yaw, 0], scale: [len / n, .02, .02] }, PAL.cream);
-      if (i % 3 === 0) kit.add('cylinder', { pos: p.clone().add(off).setY(TOP + .085), scale: [.025, .08, .025] }, PAL.cream);
+      kit.add('box', { pos: p.clone().add(off).setY(TOP + .1), rot: [0, yaw, 0], scale: [len / n, .02, .02] }, PAL.cream);
+      if (i % 3 === 0) kit.add('cylinder', { pos: p.clone().add(off).setY(TOP + .065), scale: [.025, .08, .025] }, PAL.cream);
     });
   }
 }
