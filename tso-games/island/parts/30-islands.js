@@ -26,6 +26,15 @@ function buildGroundTextures() {
       g.beginPath(); g.arc(rand() * w, rand() * h, rr(.8, 2.6), 0, 7); g.fill();
     }
   }, true);
+  // 棋盤格：一格約 0.275（世界單位），不用亂數，不影響其他貼圖
+  GROUND_TEX.checker = canvasTex(256, 256, (g, w, h) => {
+    const n = 8, s = w / n;
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      g.fillStyle = (r + c) % 2 ? '#bfb3a2' : '#f2eadc'; g.fillRect(c * s, r * s, s, s);
+      g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(c * s, r * s, s, 2);
+      g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(c * s, r * s + s - 2, s, 2);
+    }
+  }, true);
   GROUND_TEX.stripe = canvasTex(256, 256, (g, w, h) => {
     g.fillStyle = '#f0e5d4'; g.fillRect(0, 0, w, h);
     g.strokeStyle = '#e6d6c1'; g.lineWidth = 9;

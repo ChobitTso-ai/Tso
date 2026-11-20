@@ -123,7 +123,7 @@ function setupRenderer() {
 }
 
 const OVERVIEW_DIR = () => new THREE.Vector3(.24, .33, .87).normalize();
-function overviewDist() { const a = innerWidth / innerHeight; return (a > 1.3 ? 22 : a > .8 ? 28 : 40) * 1.12; } // 1.12：三國島放大後，總覽要多退一點
+function overviewDist() { const a = innerWidth / innerHeight; return (a > 1.3 ? 22 : a > .8 ? 28 : 47) * 1.12; } // 1.12：三國島放大後，總覽要多退一點；直式手機（47）在棋盤島也放大後再退一些，群島左右才不會被切掉
 
 // 飛行：同時插值 position 與 target；reduced-motion 時瞬移
 function flyTo(target, pos) {
