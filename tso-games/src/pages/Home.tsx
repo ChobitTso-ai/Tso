@@ -79,8 +79,8 @@ const GAMES: GameCard[] = [
   {
     id: 'drawball',
     title: '畫線滾球',
-    description: '畫線鋪出軌道，引導小球滾進杯子！球滾動時還能繼續畫，5 關物理解謎。',
-    icon: '✏️',
+    description: '畫線幫小動物鋪路，滾進竹籃！蠟筆繪本風，67 關物理解謎，用越少墨水星星越多。',
+    icon: '🖍️',
     path: '/drawball',
     available: true,
     tag: 'NEW',
