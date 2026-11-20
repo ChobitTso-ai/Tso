@@ -486,6 +486,7 @@ useEffect(() => {
 （`首頁有這些遊戲，但島嶼上還沒有`），不會中斷建置。
 
 - 一般島放 1–4 款；遊戲更多的島在 `island/parts/10-data.js` 加 `scale`（三國島 `scale: 1.5`，約 25 棟），不要硬塞
+- 島可以有主題地圖（`first` 主位、`layout` 固定位置、`river` 河、`roads` 土路），三國島照方位排成中國地圖，做法見 `island/README.md`
 - 島嶼頁是**獨立的靜態頁面**，不在 React 路由內：`island/build.mjs` 把 `island/parts/` 串成
   `public/island/index.html`（建置產物，已 `.gitignore`，不要手動改）
 - Three.js 固定 `three@0.160.0`（`devDependencies`），由建置腳本複製到 `public/island/vendor/`，不走 CDN
