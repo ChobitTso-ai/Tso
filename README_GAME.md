@@ -126,7 +126,10 @@ A: 會的！所有題目都會自動儲存在 `questions.json` 檔案中，下�
 
 ## 📄 授權
 
-此專案為教育用途的開源專案，以 MIT 授權釋出，版權人 Tso KY。使用、修改或轉發時，必須保留版權聲明與授權全文，詳見根目錄的 `LICENSE`。
+© 2026 Tso KY - All Rights Reserved
+
+Python 桌面版（`minecraft_quiz.py` 與本說明、安裝指南、範例題庫）保留所有權利，未經許可不得複製、修改或轉發。
+網站版（`tso-games/`）另以 MIT 授權釋出，兩者不同，詳見根目錄的 `LICENSE`。
 
 ## 🎉 享受遊戲
 

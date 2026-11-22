@@ -746,4 +746,4 @@ git push -u origin <branch-name>
 
 **最後更新**: 2026-05-16  
 **維護者**: ChobitTso-ai  
-**授權**: MIT License，版權人 Tso KY（全文見根目錄 `LICENSE`；第三方元件保留各自授權，見該檔末段）
+**授權**: 網站（`tso-games/`、`docs/`）為 MIT License，版權人 Tso KY；根目錄其他檔案（含 Python 桌面工具與其說明、範例題庫）為 © Tso KY - All Rights Reserved，不適用 MIT。範圍與第三方元件見根目錄 `LICENSE`

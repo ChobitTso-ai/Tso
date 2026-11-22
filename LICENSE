@@ -22,6 +22,22 @@ SOFTWARE.
 
 --------------------------------------------------------------------------------
 
+Scope
+
+The MIT License above covers the website only: everything under tso-games/
+and docs/.
+
+It does NOT cover the other files at the repository root, including the Python
+desktop tool and its files:
+
+  minecraft_quiz.py, requirements.txt, INSTALL_v3.md, README_GAME.md,
+  example_questions_*.txt
+
+These are (c) 2026 Tso KY - All Rights Reserved. They may not be copied,
+modified or distributed without permission.
+
+--------------------------------------------------------------------------------
+
 Third-party components keep their own licenses:
 
 - tso-games/island/ is adapted from KerryHuang/island-game (MIT License).
