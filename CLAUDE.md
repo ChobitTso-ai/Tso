@@ -746,4 +746,4 @@ git push -u origin <branch-name>
 
 **最後更新**: 2026-05-16  
 **維護者**: ChobitTso-ai  
-**授權**: MIT License (待確認)
+**授權**: MIT License，版權人 Tso KY（全文見根目錄 `LICENSE`；第三方元件保留各自授權，見該檔末段）
