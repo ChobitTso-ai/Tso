@@ -88,7 +88,7 @@ const GAMES: GameCard[] = [
   {
     id: 'wordgrid',
     title: '方陣找找看',
-    description: '在字母方陣上連起相鄰格子拼出英文單字，也能切換數學模式連數字湊目標數。',
+    description: '玩法類似 Boggle 的英文找字遊戲：連起相鄰的字母拼出單字，也能切換成數學模式湊目標數。',
     icon: '🔤',
     path: '/wordgrid',
     available: true,
