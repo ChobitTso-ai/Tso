@@ -1,11 +1,13 @@
-.sg-page {
+.sanguo-page {
+  position: relative;
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: #0f1729;
 }
 
-.sg-nav {
+.sanguo-nav {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -15,7 +17,7 @@
   flex-shrink: 0;
 }
 
-.sg-nav .nav-home {
+.sanguo-nav .nav-home {
   color: #c0392b;
   text-decoration: none;
   font-size: 15px;
@@ -23,15 +25,17 @@
   transition: color 0.15s;
 }
 
-.sg-nav .nav-home:hover { color: #e74c3c; }
+.sanguo-nav .nav-home:hover { color: #e74c3c; }
 
-.sg-nav .nav-title {
+.sanguo-nav .nav-title {
   color: #888;
   font-size: 15px;
 }
 
+.sanguo-nav-short { display: none; }
+
 /* 遊戲自己會依 iframe 大小置中縮放，這裡只要把剩下的高度全給它 */
-.sg-frame {
+.sanguo-frame {
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -39,7 +43,52 @@
   display: block;
 }
 
-/* 手機橫拿時高度很寶貴，導覽列壓扁一點 */
-@media (orientation: landscape) and (max-height: 540px) {
-  .sg-nav { padding: 4px 16px; }
+.sanguo-rotate-hint { display: none; }
+
+/* ===== 手機版（條件與 SanguoGamePage.tsx 的 PHONE_QUERY 相同） ===== */
+
+/* 手機直拿：遊戲只佔畫面中間一小塊，在下方空白處提示轉橫（不遮遊戲，玩到一半轉也不會漏看） */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 500px) {
+  .sanguo-rotate-hint {
+    display: block;
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 32px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(26, 10, 10, 0.85);
+    color: #e4c97e;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+  }
+}
+
+/* 手機橫拿：收起導覽列把高度全給遊戲，返回鍵縮成左上角的小按鈕。
+   手機比遊戲的 10:7 寬，左右一定有空白，按鈕放在那裡不會蓋到遊戲 */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .sanguo-nav {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  .sanguo-nav .nav-title,
+  .sanguo-nav-long { display: none; }
+
+  .sanguo-nav-short { display: inline; }
+
+  .sanguo-nav .nav-home {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(26, 10, 10, 0.85);
+    font-size: 13px;
+  }
 }
