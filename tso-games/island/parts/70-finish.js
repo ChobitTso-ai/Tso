@@ -76,6 +76,11 @@ function afterBoot() {
   makeSheet($('side'), () => setSideOpen(false));
 
   $('bHelp').addEventListener('click', openHelp);
+  // 聲音：背景音樂與海浪在第一次點擊後開始；開關與卡片首頁共用設定
+  initSound({ music: true, waves: true });
+  const sb = $('bSound');
+  sb.setAttribute('aria-pressed', String(soundOn()));
+  sb.addEventListener('click', () => { const on = !soundOn(); setSoundOn(on); sb.setAttribute('aria-pressed', String(on)); });
   // 回到卡片版首頁：記住選擇，這樣從遊戲按「← 首頁」才不會又被帶回島嶼
   $('bCards').addEventListener('click', () => { try { sessionStorage.setItem('tsoEntry', 'cards'); } catch (e) { /* 略過 */ } location.href = '../'; });
   $('helpGo').addEventListener('click', closeHelp);

@@ -8,6 +8,7 @@
 }
 .btn:hover { background: var(--yellow); }
 .btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+#bSound[aria-pressed="true"] .off, #bSound[aria-pressed="false"] .on { display: none; }
 .btn:focus-visible, .chip:focus-visible, .row:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
 .btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .chip {
@@ -113,6 +114,7 @@ a.chip { text-decoration: none; color: inherit; }
   <button class="btn" id="bOverview" type="button"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span data-en="Overview">全景</span></button>
   <button class="btn" id="bList" type="button" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-en="List">清單</span></button>
   <button class="btn" id="bCards" type="button" aria-label="回到卡片版首頁"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span>卡片版</span></button>
+  <button class="btn" id="bSound" type="button" aria-pressed="true" aria-label="聲音開關"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg><span>聲音</span></button>
   <button class="btn" id="bHelp" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/></svg><span data-en="Help">說明</span></button>
 </nav>
 

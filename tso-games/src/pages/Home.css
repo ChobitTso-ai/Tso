@@ -69,6 +69,26 @@
   border-radius: 10px;
 }
 
+.game-speak {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #3a4a6b;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.game-speak:hover {
+  border-color: #e4c97e;
+  background: #1d2b4d;
+}
+
 .game-icon {
   font-size: 56px;
   line-height: 1;

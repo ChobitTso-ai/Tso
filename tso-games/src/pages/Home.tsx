@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { EntryChooser, EntrySwitch } from '../components/entry/EntryChooser'
 import { islandUrl, readEntry, saveEntry } from '../components/entry/entry'
 import type { Entry } from '../components/entry/entry'
+import SoundToggle from '../components/sound/SoundToggle'
+import { blip, initSound, setSoundOn, soundOn, speak } from '../components/sound/sound'
 import './Home.css'
 
 interface GameCard {
@@ -117,6 +119,15 @@ const GAMES: GameCard[] = [
 export default function Home() {
   document.title = 'TSO'
   const [entry, setEntry] = useState<Entry | null>(() => readEntry())
+  const [soundEnabled, setSoundEnabled] = useState(soundOn)
+
+  // 首頁的背景音樂（第一次點擊後才會開始）；離開首頁進遊戲時停掉，不蓋過遊戲自己的音效
+  useEffect(() => initSound({ music: true }), [])
+
+  const toggleSound = () => {
+    setSoundOn(!soundEnabled)
+    setSoundEnabled(!soundEnabled)
+  }
 
   // 選了島嶼版：導向獨立的 3D 頁面（replace，按上一頁才不會卡在空白首頁）
   useEffect(() => {
@@ -124,15 +135,19 @@ export default function Home() {
   }, [entry])
 
   const pick = (next: Entry) => {
+    blip()
     saveEntry(next)
     setEntry(next)
   }
 
-  if (entry === null) return <EntryChooser onPick={pick} />
+  const soundToggle = <SoundToggle on={soundEnabled} onToggle={toggleSound} />
+
+  if (entry === null) return <>{soundToggle}<EntryChooser onPick={pick} /></>
   if (entry === 'island') return null
 
   return (
     <div className="home">
+      {soundToggle}
       <header className="home-header">
         <h1 className="home-title">🎮 TSO Games</h1>
         <p className="home-subtitle">免費、無需登入，打開即玩</p>
@@ -143,11 +158,21 @@ export default function Home() {
         {GAMES.map(game => (
           <div key={game.id} className={`game-card ${!game.available ? 'unavailable' : ''}`}>
             {game.tag && <span className="game-tag">{game.tag}</span>}
+            {soundEnabled && (
+              <button
+                type="button"
+                className="game-speak"
+                aria-label={`念出「${game.title}」的介紹`}
+                onClick={() => speak(`${game.title}。${game.description}`)}
+              >
+                🔊
+              </button>
+            )}
             <div className="game-icon">{game.icon}</div>
             <h2 className="game-name">{game.title}</h2>
             <p className="game-desc">{game.description}</p>
             {game.available ? (
-              <Link to={game.path} className="game-btn">開始遊戲</Link>
+              <Link to={game.path} className="game-btn" onClick={blip}>開始遊戲</Link>
             ) : (
               <span className="game-btn-disabled">敬請期待</span>
             )}

@@ -47,7 +47,11 @@ if (missing.length) console.warn(`[island] 提醒：首頁有這些遊戲，但�
 const names = readdirSync(join(SRC, 'parts')).sort()
 let html = ''
 for (const name of names) {
-  if (name.startsWith('10-')) html += `const ISSUES = ${JSON.stringify(games).replace(/<\//g, '<\\/')};\n`
+  if (name.startsWith('10-')) {
+    // 與卡片首頁共用的聲音程式（src/components/sound/sound.js），嵌入時拿掉 export
+    html += readFileSync(join(ROOT, 'src', 'components', 'sound', 'sound.js'), 'utf8').replace(/^export /gm, '') + '\n'
+    html += `const ISSUES = ${JSON.stringify(games).replace(/<\//g, '<\\/')};\n`
+  }
   html += readFileSync(join(SRC, 'parts', name), 'utf8')
 }
 const doc = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
