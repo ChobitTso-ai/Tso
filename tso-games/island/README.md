@@ -60,6 +60,7 @@ island/
   - 新遊戲最好**畫一個專屬建物**，在 `MODELS` 加一個函式即可：用 `L('box', [x, y, z], [寬, 高, 深], '#色碼', [旋轉])` 在單位空間（底面 ±0.5、高 0–1.5、正面朝 +z）疊積木；可用形狀 `box rbox cylinder cone sphere ico dome torus prism hip`，`glowbox`／`glowsphere` 夜晚會發光。不要把建物放在右後角（新遊戲的旗子會插在那裡）
 - 一般島最好放 1–4 款；超過會排不下。要放更多，在 `parts/10-data.js` 該島加 `scale`（例如三國島 `scale: 1.5`，約可放 25 棟）：島會變大、往外推開並自動重新排版。要新增島，在 `parts/10-data.js` 的 `islands` 加一筆（`q`、`r` 是六角座標，相鄰的島會自動搭橋）
 - `views`、`sources` 保留為空陣列（沿用原作的欄位）
+- 聲音：點到建物會念「遊戲名稱。`what` 的第一句」（第一句不到 13 個字時連下一句一起念），所以 **`what` 的第一句要能單獨當作介紹**
 - 「新遊戲」旗：每座島只有 `heat: 3` 裡日期最新的 2 款插旗（`45-models.js` 的 `NEW_FLAGS`），避免整座島插滿旗；右側「新遊戲」清單仍列出所有 `heat: 3`
 
 島的地面（`ground`）可用 `brick`、`speckle`、`stripe`、`checker`（棋盤格，棋盤島用）。

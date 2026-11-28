@@ -1,0 +1,25 @@
+.snd-toggle {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 20;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid #3a4a6b;
+  background: rgba(22, 33, 62, 0.9);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.snd-toggle:hover {
+  border-color: #e4c97e;
+  transform: translateY(-1px);
+}
+
+.snd-toggle:focus-visible {
+  outline: 2px solid #e4c97e;
+  outline-offset: 3px;
+}

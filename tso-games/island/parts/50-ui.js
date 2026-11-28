@@ -81,7 +81,13 @@ function select(sel) {
   }
 }
 const selectIsland = (isl) => select({ type: 'island', island: isl });
-const selectItem = (rec) => select({ type: 'item', rec, island: rec.island });
+const selectItem = (rec) => {
+  select({ type: 'item', rec, island: rec.island });
+  chime();
+  // 念名稱與玩法的第一句；第一句太短（例如三國遊戲的「西元 208 年赤壁之戰」）就連下一句一起念
+  const parts = rec.data.what.split('。').filter(Boolean);
+  speak(`${rec.data.name}。${parts[0].length < 13 && parts[1] ? parts[0] + '。' + parts[1] : parts[0]}`);
+};
 const selectWalker = (w) => select({ type: 'walker', walker: w, flow: w.flow });
 const selectFlow = (f) => select({ type: 'flow', flow: f });
 

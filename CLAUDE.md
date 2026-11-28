@@ -494,6 +494,9 @@ TSX 的 `PHONE_QUERY` 與 CSS 的 media query 要同步：
 
 - 一般島放 1–4 款；遊戲更多的島在 `island/parts/10-data.js` 加 `scale`（三國島 `scale: 1.5`，約 25 棟），不要硬塞
 - 島可以有主題地圖（`first` 主位、`layout` 固定位置、`river` 河、`roads` 土路），三國島照方位排成中國地圖，做法見 `island/README.md`
+- **聲音**（首頁與遊戲島共用 `src/components/sound/sound.js`，遊戲島由建置腳本嵌入）：背景音樂、海浪、按鍵音都用 Web Audio 即時合成，
+  沒有音檔；朗讀用瀏覽器內建語音。開關記在 `localStorage.tsoSound`（`off` 才關，預設開）。卡片首頁的 🔊 念 `GAMES` 的
+  `description`，遊戲島點建物念 `games.json` 的 `what` 第一句，所以這兩段文字的開頭要寫得像一句介紹。進入遊戲時首頁音樂會停
 - 島嶼頁是**獨立的靜態頁面**，不在 React 路由內：`island/build.mjs` 把 `island/parts/` 串成
   `public/island/index.html`（建置產物，已 `.gitignore`，不要手動改）
 - Three.js 固定 `three@0.160.0`（`devDependencies`），由建置腳本複製到 `public/island/vendor/`，不走 CDN
